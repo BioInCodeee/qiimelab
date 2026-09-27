@@ -105,6 +105,7 @@ export function createGeometry(ctx) {
       const numInp = document.createElement('input');
       numInp.type = 'number'; numInp.className = 'tabular';
       numInp.min = min; numInp.max = max; numInp.step = step; numInp.value = toDisplay(current);
+      numInp.setAttribute('aria-label', lab.textContent); // el <label for> es del deslizador
 
       const onSliderChange = (raw) => {
         const num = parseFloat(raw);
@@ -140,6 +141,7 @@ export function createGeometry(ctx) {
       const numInp = document.createElement('input');
       numInp.type = 'number'; numInp.className = 'tabular';
       numInp.min = g.min; numInp.max = g.max; numInp.step = g.step; numInp.value = cur;
+      numInp.setAttribute('aria-label', lab.textContent); // el <label for> es del deslizador
       const onChange = (raw) => {
         const num = parseFloat(raw);
         if (Number.isNaN(num)) return;

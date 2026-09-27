@@ -34,6 +34,10 @@ svg.ce-global-font text, svg.ce-global-font tspan { font-family:var(--fig-global
 .ce-group-title { flex:1 1 100%; margin:0; font-size:12.5px; font-weight:600; color:var(--ink); }
 .ce-group-hint { flex:1 1 100%; margin:0 0 2px; }
 .ce-group > :nth-child(3) { margin-top:0; padding-top:0; border-top:0; }
+/* que las secciones puedan encogerse dentro del bloque (min-width:auto de flex las dejaba desbordar a 375px) */
+.ce-group { min-width:0; box-sizing:border-box; }
+.ce-group > * { min-width:0; max-width:100%; }
+@media (max-width:560px) { .ce-group { padding:8px 8px 10px; } }
 .ce-toolbar .ce-hint { font-size:11.5px; color:var(--ink-muted); flex:1 1 100%; margin:2px 0 0; }
 .ce-toolbar button { display:inline-flex; align-items:center; gap:6px; }
 .ce-toolbar button svg { flex:none; }
