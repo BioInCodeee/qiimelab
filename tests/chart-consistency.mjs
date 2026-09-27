@@ -52,7 +52,7 @@ try {
     ['#/beta', ['Mapa de calor']], ['#/beta', ['PCoA']], ['#/beta', ['RDA']],
     ['#/diferencial', ['Individual', 'Volcano']], ['#/diferencial', ['Individual', 'Lollipop']], ['#/diferencial', ['Individual', 'Mapa de calor']], ['#/diferencial', ['Individual', 'Cajas']], ['#/diferencial', ['Comparar']],
     ['#/recuentos', []], ['#/correlograma', ['Matriz']], ['#/correlograma', ['Red']], ['#/funcional', []],
-    ['#/inferencia', ['Gráfico de Barras']], ['#/inferencia', ['Diagrama Aluvial']], ['#/inferencia', ['Lollipop']],
+    ['#/inferencia', ['Gráfico de Barras']], ['#/inferencia', ['Lollipop']],
     ['#/temporal', []], ['#/venn', []], ['#/arbol', []],
   ];
   const missing = [];
@@ -130,13 +130,10 @@ try {
   const cmp = await c.ev(`(() => { const tb = document.querySelector('#app-view .ce-toolbar'); return { tb: !!tb, n: tb ? tb.querySelectorAll('button').length : 0, fmt: !!(tb && tb.querySelector('.ce-export-format')) }; })()`);
   check('el Venn de "Comparar varias" ya tiene la barra del editor (Personalizar, pantalla completa, formato + Descargar)', cmp.tb && cmp.n >= 3 && cmp.fmt, JSON.stringify(cmp));
 
-  await goto('#/inferencia', ['Diagrama Aluvial']);
-  await clickBtn('/Personalizar/'); await sleep(400);
-  const inf0 = await c.ev(`(() => getComputedStyle(document.querySelector('#app-view svg [data-ce-series-fill="s0"]')).fill)()`);
-  await c.ev(`(() => { const i = document.querySelector('.ce-palette input[type=color]'); i.value = '#00aa00'; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-  await sleep(500);
-  const inf1 = await c.ev(`(() => getComputedStyle(document.querySelector('#app-view svg [data-ce-series-fill="s0"]')).fill)()`);
-  check('el aluvial de Inferencia ya se puede recolorear desde Paleta', inf0 !== inf1 && inf1 === 'rgb(0, 170, 0)', JSON.stringify({ inf0, inf1 }));
+  // el aluvial de Inferencia se retiró en la Fase 2 (B3: no funcionaba)
+  await goto('#/inferencia', ['Gráfico de Barras']);
+  const infViews = await c.ev(`[...document.querySelectorAll('#app-view .ql-seg-btn, #app-view .ql-tab')].map((b) => b.textContent.trim())`);
+  check('Inferencia ya no ofrece la vista Aluvial (Barras / Lollipop / Tabla)', !infViews.some((x) => /Aluvial|Alluvial/.test(x)) && infViews.some((x) => /Lollipop/.test(x)), JSON.stringify(infViews));
 
   check('sin errores de consola', c.problems.length === 0, c.problems.join('; '));
 } catch (e) {

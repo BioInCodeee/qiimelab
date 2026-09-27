@@ -7,7 +7,6 @@ import { t, getLang } from '../lib/i18n.js';
 import { DEFAULT_FAPROTAX, FAPROTAX_METADATA, FUNCTION_NAMES } from '../lib/faprotax.js';
 import { DEFAULT_PHENOTYPES, PHENOTYPES_METADATA, PHENOTYPE_NAMES } from '../lib/phenotypes.js';
 import { groupTaxaByAbundance, OTHER_COLOR } from './taxaBarplot.js';
-import { computeGroupTaxaMatrix, computeAlluvialLayout, buildAlluvialLinkPath } from '../lib/alluvial.js';
 import { makeGroupResolver } from '../lib/sampleMatch.js';
 import { loadRealCommunityData, mountExampleButtons } from '../lib/exampleData.js';
 import { attachChartEditor, getFigureOptions } from '../lib/chartEditor.js';
@@ -388,10 +387,10 @@ export function mapTaxonomyToFunction(taxaMatrix, databaseJSON, options = {}) {
 
   const headers = [sampleKey, ...finalFunctions];
 
-  // Construcción de filas compatibles con barplots y diagramas aluviales.
+  // Construcción de filas compatibles con los barplots.
   // Normalización Matemática Funcional: se calcula el total funcional por muestra
   // y se relativiza cada función respecto a dicho total (multiplicado por 100),
-  // garantizando un techo estricto del 100% sin desbordamientos en barplots ni aluviales.
+  // garantizando un techo estricto del 100% sin desbordamientos en los barplots.
   const rows = samples.map((s) => {
     const row = { [sampleKey]: s };
     const relObj = {};
@@ -501,7 +500,7 @@ export function render(container) {
   let customDbInfo = null;
 
   let currentLevel = 6; // Nivel de género por defecto
-  let viewMode = 'barplot'; // 'barplot' | 'alluvial' | 'table'
+  let viewMode = 'barplot'; // 'barplot' | 'lollipop' | 'table' (el aluvial se retiró en la Fase 2: no funcionaba)
   let topN = 15;
   let minAbundance = 1; // 1%
   let minPrev = 0;
@@ -633,12 +632,11 @@ export function render(container) {
     const mainPanel = document.createElement('div');
     mainPanel.className = 'ql-main';
 
-    // Barra de herramientas de vistas (Barras / Aluvial / Lollipop / Tabla)
+    // Barra de herramientas de vistas (Barras / Lollipop / Tabla)
     const viewTabs = chartTypeField({
       labelKey: 'inference.viewLabel',
       options: [
         { value: 'barplot', labelKey: 'inference.tabBarplot' },
-        { value: 'alluvial', labelKey: 'inference.tabAlluvial' },
         { value: 'lollipop', labelKey: 'inference.tabLollipop' },
         { value: 'table', labelKey: 'inference.tabTable' },
       ],
@@ -858,12 +856,6 @@ export function render(container) {
         topN,
         minAbundance,
         minPrev,
-        groupCol: selectedGroupCol,
-      });
-    } else if (viewMode === 'alluvial') {
-      renderAlluvialDiagram(chartCard, inferredMatrix, {
-        topN,
-        minAbundance,
         groupCol: selectedGroupCol,
       });
     } else if (viewMode === 'lollipop') {
@@ -1315,246 +1307,6 @@ export function render(container) {
       figureOptions: { axisX: { domain: [0, maxVal] }, categoryOrder: true },
       onFigureOptionsChange: () => paint(),
       paletteType: 'categorical',
-      startEditing: wasEditing,
-    });
-  }
-
-  function renderAlluvialDiagram(card, matrix, opts) {
-    card.innerHTML = '';
-    const isPhenotypes = selectedDbType === 'phenotypes';
-    const resolveGroup = opts.groupCol ? makeGroupResolver(state.metadata, opts.groupCol) : (s) => s;
-    const grouped = groupTaxaByAbundance(matrix, opts.minAbundance, opts.topN, {
-      isPercentage: true,
-      sampleKey: matrix.sampleKey,
-    });
-
-    const { topTaxa, hasOther, series } = grouped;
-    const preAgg = hasOther ? ['Otros'] : [];
-
-    const groupMatrixRes = computeGroupTaxaMatrix(grouped.rows, matrix.sampleKey, topTaxa, resolveGroup, {
-      preAggOtherHeaders: preAgg,
-    });
-
-    if (!groupMatrixRes.groups || groupMatrixRes.groups.length < 2) {
-      card.innerHTML =
-        '<div class="ql-empty" style="padding:40px 20px;">' +
-        '<p>' + (t('inference.alluvialNeedGroups') || 'El diagrama aluvial requiere al menos 2 grupos o muestras para trazar el flujo funcional.') + '</p>' +
-        '</div>';
-      return;
-    }
-
-    const W = 880;
-    const H = 480;
-    const margin = { top: 40, right: 180, bottom: 50, left: 60 };
-
-    // computeAlluvialLayout necesita { groups, taxa, matrix, sampleCounts } —
-    // groupMatrixRes solo trae groups/matrix/sampleCounts (ver
-    // computeGroupTaxaMatrix en alluvial.js), así que sin el array `taxa`
-    // (con key/label/colorVar por taxón — grouped.series ya lo trae, igual
-    // que usan renderStackedBarplot/renderLollipop más arriba en este mismo
-    // archivo) el layout iteraba 0 taxones y no dibujaba ningún nodo/flujo.
-    const layout = computeAlluvialLayout({
-      ...groupMatrixRes,
-      // orden de las columnas (Ajustes > Estructura); 'original' = el de siempre
-      groups: orderCategories(groupMatrixRes.groups, null, getFigureOptions('inference-alluvial').categoryOrder),
-      taxa: series,
-    }, {
-      width: W,
-      height: H,
-      margin,
-      nodeWidth: 20,
-      nodeGap: 3,
-    });
-
-    const svg = svgEl('svg', {
-      viewBox: `0 0 ${W} ${H}`,
-      class: 'ql-svg',
-      role: 'img',
-      'aria-label': t('inference.alluvialAria') || 'Diagrama aluvial de flujos funcionales entre grupos',
-      style: 'max-width:100%;height:auto;display:block;'
-    });
-
-    // Enlaces / Flujos aluviales (Bézier cúbicas)
-    const linksG = svgEl('g', { class: 'ql-alluvial-links' });
-    layout.links.forEach((lk) => {
-      const d = buildAlluvialLinkPath(lk.x0, lk.y0, lk.h0, lk.x1, lk.y1, lk.h1);
-      const isOther = lk.taxonKey === '__other__' || lk.taxonKey === 'Otros';
-      const cIdx = topTaxa.indexOf(lk.taxonKey);
-      const color = isOther ? OTHER_COLOR : getSeriesColor(cIdx >= 0 ? cIdx : 0, isOther);
-
-      const path = svgEl('path', {
-        d,
-        fill: color,
-        'fill-opacity': '0.45',
-        stroke: 'none',
-        ...seriesTag(cIdx >= 0 ? cIdx : 0, isOther),
-        'data-taxon': lk.taxonKey,
-        'data-source': lk.sourceGroup,
-        'data-target': lk.targetGroup,
-        'data-pct': (lk.value * 100).toFixed(2),
-      });
-
-      linksG.appendChild(path);
-    });
-    svg.appendChild(linksG);
-    delegateHover(svg, 'path[data-taxon]', {
-      onEnter: (el, ev) => {
-        el.setAttribute('fill-opacity', '0.85');
-        tooltipEl.style.display = 'block';
-        tooltipEl.innerHTML =
-          '<strong>' + escapeHtml(formatFunctionName(el.dataset.taxon, getLang())) + '</strong><br/>' +
-          escapeHtml(el.dataset.source) + ' → ' + escapeHtml(el.dataset.target) + '<br/>' +
-          'Flujo medio: <b>' + el.dataset.pct + '%</b>';
-        positionTooltip(ev);
-      },
-      onMove: (el, ev) => positionTooltip(ev),
-      onLeave: (el) => {
-        el.setAttribute('fill-opacity', '0.45');
-        tooltipEl.style.display = 'none';
-      },
-    });
-
-    // Nodos (bloques de cada grupo)
-    const nodesG = svgEl('g', { class: 'ql-alluvial-nodes' });
-    layout.nodes.forEach((nd) => {
-      const isOther = nd.taxonKey === '__other__' || nd.taxonKey === 'Otros';
-      const cIdx = topTaxa.indexOf(nd.taxonKey);
-      const color = isOther ? OTHER_COLOR : getSeriesColor(cIdx >= 0 ? cIdx : 0, isOther);
-
-      const rect = svgEl('rect', {
-        x: nd.x, y: nd.y,
-        width: nd.width, height: Math.max(1, nd.height),
-        fill: color,
-        stroke: 'var(--surface)',
-        'stroke-width': '0.5',
-        'data-ce-role': 'bar',
-        ...seriesTag(cIdx >= 0 ? cIdx : 0, isOther),
-        'data-taxon': nd.taxonKey,
-      });
-      nodesG.appendChild(rect);
-    });
-    svg.appendChild(nodesG);
-
-    // Títulos de grupos (columnas X)
-    const groupsG = svgEl('g', { class: 'ql-alluvial-group-labels' });
-    layout.columns.forEach((col) => {
-      const label = svgEl('text', {
-        x: col.x + col.width / 2,
-        y: H - margin.bottom + 22,
-        class: 'ql-tick-label',
-        'text-anchor': 'middle',
-        'font-weight': '600',
-      });
-      label.textContent = col.group;
-      groupsG.appendChild(label);
-    });
-    svg.appendChild(groupsG);
-
-    // Título principal
-    const mainTitle = svgEl('text', {
-      x: W / 2,
-      y: 22,
-      class: 'ce-title ql-chart-main-title',
-      'text-anchor': 'middle',
-      'font-size': '14px',
-      'font-weight': '600',
-      fill: 'var(--ink-1)',
-      'data-ce': 'title'
-    });
-    mainTitle.textContent = isPhenotypes
-      ? (t('inference.alluvialTitlePhenotypes') || 'Flujo de Rasgos entre Grupos')
-      : (t('inference.alluvialTitle') || 'Flujo Funcional entre Grupos');
-    svg.appendChild(mainTitle);
-
-    // Título eje X
-    const xTitle = svgEl('text', {
-      x: margin.left + (W - margin.left - margin.right) / 2,
-      y: H - 10,
-      'text-anchor': 'middle',
-      'font-size': '12px',
-      'font-weight': '600',
-      fill: 'var(--ink-1)',
-      class: 'ql-axis-label ql-chart-x-title',
-      'data-ce': 'xtitle'
-    });
-    xTitle.textContent = opts.groupCol ? (t('barplots.axisSamplesBy', { col: opts.groupCol }) || 'Grupos') : (t('barplots.axisSamples') || 'Grupos');
-    svg.appendChild(xTitle);
-
-    // Título eje Y
-    const yTitle = svgEl('text', {
-      x: -(margin.top + (H - margin.top - margin.bottom) / 2),
-      y: 18,
-      transform: 'rotate(-90)',
-      'text-anchor': 'middle',
-      'font-size': '12px',
-      'font-weight': '600',
-      fill: 'var(--ink-1)',
-      class: 'ql-axis-label ql-chart-y-title',
-      'data-ce': 'ytitle'
-    });
-    yTitle.textContent = t('inference.yAxisTitle') || 'Abundancia Relativa Funcional (%)';
-    svg.appendChild(yTitle);
-
-    // Leyenda lateral interactiva — mismo patrón que renderStackedBarplot
-    // más arriba en este archivo (misma paleta getSeriesColor/CAT_FALLBACKS).
-    // Faltaba del todo: nada mapeaba color -> nombre de función, así que
-    // aunque el flujo se dibujara bien no había forma de leerlo.
-    const legendG = svgEl('g', { class: 'ql-legend', 'data-ce': 'legend', transform: `translate(${W - margin.right + 20}, ${margin.top})` });
-    const legTitle = svgEl('text', { x: 0, y: 0, 'font-size': '12px', 'font-weight': '600', fill: 'var(--ink)' });
-    legTitle.textContent = isPhenotypes
-      ? (t('inference.legendPhenotypes') || 'Rasgos Principales')
-      : (t('inference.legendTitle') || 'Funciones Principales');
-    legendG.appendChild(legTitle);
-
-    series.forEach((sObj, i) => {
-      if (i > 22) return; // Limitar tamaño de leyenda
-      const y = 20 + i * 18;
-      const gItem = svgEl('g', { style: 'cursor:pointer;', 'data-legend-key': sObj.key });
-
-      const swatch = svgEl('rect', {
-        x: 0, y: y - 10,
-        width: 12, height: 12,
-        rx: 2,
-        fill: sObj.isOther ? OTHER_COLOR : getSeriesColor(i, sObj.isOther),
-        ...seriesTag(i, sObj.isOther),
-      });
-      gItem.appendChild(swatch);
-
-      const fName = formatFunctionName(sObj.key, getLang());
-      const label = svgEl('text', { x: 18, y, class: 'ql-tick-label' });
-      label.textContent = fName.length > 22 ? fName.slice(0, 20) + '…' : fName;
-      gItem.appendChild(label);
-
-      legendG.appendChild(gItem);
-    });
-    svg.appendChild(legendG);
-    delegateHover(svg, 'g[data-legend-key]', {
-      onEnter: (el) => {
-        svg.querySelectorAll('[data-taxon]').forEach((n) => {
-          if (n.dataset.taxon !== el.dataset.legendKey) n.style.opacity = '0.15';
-        });
-      },
-      onLeave: () => { svg.querySelectorAll('[data-taxon]').forEach((n) => { n.style.opacity = ''; }); },
-    });
-
-    card.appendChild(svg);
-
-    editor = attachChartEditor({
-      key: 'inference-alluvial',
-      svg,
-      mount: card,
-      filename: isPhenotypes ? 'inferencia_fenotipica_aluvial' : 'inferencia_funcional_aluvial',
-      lang: getLang(),
-      elements: [
-        { id: 'title', selector: '[data-ce="title"]' },
-        { id: 'xtitle', selector: '[data-ce="xtitle"]' },
-        { id: 'ytitle', selector: '[data-ce="ytitle"]' },
-        { id: 'legend', selector: '[data-ce="legend"]', kind: 'group' },
-      ],
-      paletteSeries: paletteSeriesFor(series),
-      paletteType: 'categorical',
-      figureOptions: { categoryOrder: ['original', 'alpha-asc', 'alpha-desc'] },
-      onFigureOptionsChange: () => paint(),
       startEditing: wasEditing,
     });
   }

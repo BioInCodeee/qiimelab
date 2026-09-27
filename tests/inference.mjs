@@ -306,10 +306,9 @@ const barplotFnMatch = inferenceJsContent.match(/function renderStackedBarplot\(
 check('renderStackedBarplot declara isPhenotypes evaluando el estado del diccionario',
   barplotFnMatch && barplotFnMatch[0].includes('const isPhenotypes = selectedDbType === \'phenotypes\';'));
 
-// Comprobar renderAlluvialDiagram
-const alluvialFnMatch = inferenceJsContent.match(/function renderAlluvialDiagram\([^)]*\)\s*\{([^}]*?(?:\{[^}]*?\}[^}]*?)*)\}/);
-check('renderAlluvialDiagram declara isPhenotypes evaluando el estado del diccionario',
-  alluvialFnMatch && alluvialFnMatch[0].includes('const isPhenotypes = selectedDbType === \'phenotypes\';'));
+// La vista Aluvial se retiró en la Fase 2 (B3: no funcionaba)
+check('inference.js ya no tiene la vista Aluvial (ni renderAlluvialDiagram ni la opción del selector)',
+  !inferenceJsContent.includes('function renderAlluvialDiagram') && !inferenceJsContent.includes("value: 'alluvial'"));
 
 // Comprobar selector de grupos i18n
 check('selector de grupos usa t(\'barplots.groupCol\')',
