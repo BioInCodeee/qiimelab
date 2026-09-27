@@ -1,13 +1,13 @@
-// Presets del editor de gráficos (Fase 6 Paso 1 y Paso 3 de
+// Presets del editor de gráficos (Fase 6 Paso 1 de
 // qiimelab-prompt-editor-fase-6-presets-style-match-export-revista.md):
 // un preset es "una foto del store" -- guardarlo clona `store` +
 // `paletteSeries.map(s=>s.id)` (para poder remapear por posición al
 // aplicar sobre OTRO gráfico con un nº de series distinto); aplicarlo
 // sobreescribe `store` y llama a sync(). Se guardan en
 // localStorage['smart-175.chartPresets'], compartida entre TODAS las
-// gráficas (no por `key`). Los presets de revista (Nature/Cell) son
-// constantes de solo lectura, no localStorage -- "restablecer" es
-// simplemente volver a aplicarlos.
+// gráficas (no por `key`). Desde la Fase 1 no hay presets de revista
+// (Nature/Cell): se comprueba que no aparecen y que los propios persisten
+// tras recargar la página.
 //
 //   node tests/chartpresets.mjs
 
@@ -114,99 +114,65 @@ try {
   })()`);
   check('"Borrar" quita el preset de localStorage', deleted.nAfter === 0, JSON.stringify(deleted));
 
-  // ================= Paso 3: presets de revista (Nature/Cell) =================
-  console.log('\n-- Paso 3: preset de revista "Nature (89 mm)" en #/barplots --');
-  const natureApplied = await c.ev(`(() => {
-    const wrap = document.querySelector('.ce-presets');
-    const btn = [...wrap.querySelectorAll('button')].find((b) => /Nature \\(89 mm\\)/.test(b.textContent));
-    if (!btn) return { err: 'no se encontró el botón "Nature (89 mm)"' };
-    btn.click();
-    return { clicked: true };
-  })()`);
-  check('el botón de preset "Nature (89 mm)" existe y se puede pulsar', natureApplied.clicked, JSON.stringify(natureApplied));
-  await sleep(400);
+  // ================= Fase 1: sin presets de revista; los propios persisten al recargar =================
+  console.log('\n-- ningún preset de revista en ninguna vista --');
+  const journalLeft = [];
+  for (const route of ['#/alfa', '#/barplots', '#/beta', '#/venn', '#/correlograma']) {
+    await c.ev(`location.hash = '#/cargar'`); await sleep(300);
+    await c.ev(`location.hash = ${JSON.stringify(route)}`); await sleep(1500);
+    await openEditor();
+    const txt = await c.ev(`(() => { const tb = document.querySelector('.ce-toolbar'); return tb ? tb.textContent : null; })()`);
+    if (txt === null || /Nature|Cell \(|revista|Journal/.test(txt)) journalLeft.push(route + (txt === null ? ' (sin editor)' : ''));
+  }
+  const api = await c.ev(`import('/js/lib/chartEditor.js').then((m) => ({ journal: 'JOURNAL_PRESETS' in m, readPresets: typeof m.readPresets }))`);
+  check('ninguna vista muestra presets de revista (Nature/Cell)', journalLeft.length === 0, journalLeft.join(', '));
+  check('la API pública ya no exporta JOURNAL_PRESETS (readPresets sigue)', !api.journal && api.readPresets === 'function', JSON.stringify(api));
 
-  const natureResult = await c.ev(`(() => {
-    const svg = document.querySelector('svg.ql-svg');
-    const tick = svg.querySelector('.ql-tick-label');
-    const grid = svg.querySelector('.ql-gridline');
-    const titleEl = document.querySelector('[data-ce-id="title"] text, [data-ce="title"]');
-    const wrap = document.querySelector('.ce-presets');
-    const widthInp = wrap.querySelector('input[type=number]');
-    return {
-      tickFontSize: tick ? getComputedStyle(tick).fontSize : null,
-      gridStrokeWidth: grid ? getComputedStyle(grid).strokeWidth : null,
-      fontFamily: tick ? getComputedStyle(tick).fontFamily : null,
-      titleBold: titleEl ? getComputedStyle(titleEl).fontWeight : null,
-      exportWidthValue: widthInp ? widthInp.value : null,
-    };
-  })()`);
-  check('el preset Nature fija el tamaño de las marcas de eje a 7pt≈9.33px', natureResult.tickFontSize === '9.33px', JSON.stringify(natureResult));
-  check('...el grosor de rejilla a 0.5pt≈0.67px', natureResult.gridStrokeWidth === '0.67px', JSON.stringify(natureResult));
-  check('...la fuente a Helvetica/Arial (no la IBM Plex por defecto de la app)', /Helvetica|Arial/.test(natureResult.fontFamily), JSON.stringify(natureResult));
-  check('...el título en negrita (etiqueta de panel 8pt negrita)', natureResult.titleBold === '700' || natureResult.titleBold === 'bold', JSON.stringify(natureResult));
-  check('...y el ancho de exportación a 89mm, reflejado en el campo del toolbar', natureResult.exportWidthValue === '89', JSON.stringify(natureResult));
-
-  // Paso 4 (verificación final), punto 1: exportar a PNG a 300dpi con
-  // Nature aplicado y confirmar el tamaño FÍSICO real (no solo que el
-  // campo del panel diga "89") -- proxy automatizado de "verlo impreso a
-  // tamaño real"; abrir el PNG en un visor e imprimirlo de verdad, o abrir
-  // el SVG en Illustrator/Inkscape, escapa a lo que este test puede hacer
-  // (ver nota en el mensaje de commit / memoria del proyecto).
-  console.log('\n-- Paso 4: exportación PNG a tamaño físico real (89mm @ 300dpi) --');
-  const pngExport = await c.ev(`(async () => {
-    const svg = document.querySelector('svg.ql-svg');
-    const mod = await import('/js/lib/figureExport.js');
-    const res = await mod.exportFigure(svg, { formats: ['png'], scheme: 'light', background: 'white', dpi: 300, widthMm: 89 });
-    const blob = new Blob([res.png], { type: 'image/png' });
-    const url = URL.createObjectURL(blob);
-    const img = await new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = reject; im.src = url; });
-    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
-    const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, img.width, img.height).data;
-    let nonWhite = 0;
-    for (let i = 0; i < data.length; i += 4 * 97) { if (data[i] !== 255 || data[i + 1] !== 255 || data[i + 2] !== 255) nonWhite++; }
-    URL.revokeObjectURL(url);
-    return { widthPx: img.width, expectedWidthPx: Math.round(89 / 25.4 * 300), nonWhiteSamples: nonWhite };
-  })()`);
-  check('el PNG exportado con Nature (89mm) mide 1051px de ancho a 300dpi (89/25.4*300, redondeado)',
-    pngExport.widthPx === pngExport.expectedWidthPx, JSON.stringify(pngExport));
-  check('...y no sale en blanco (hay contenido dibujado)', pngExport.nonWhiteSamples > 5, JSON.stringify(pngExport));
-
-  console.log('\n-- preset de revista "Cell (114 mm)" en #/venn (2º tipo de gráfico distinto) --');
-  await c.ev(`location.hash = '#/venn'`);
-  await sleep(1500);
+  console.log('\n-- un preset propio persiste tras recargar la página --');
+  await c.ev(`location.hash = '#/alfa'`); await sleep(1500);
   await openEditor();
-  const cellApplied = await c.ev(`(() => {
-    const wrap = document.querySelector('.ce-presets');
-    const btn = [...wrap.querySelectorAll('button')].find((b) => /Cell \\(114 mm\\)/.test(b.textContent));
-    if (!btn) return { err: 'no se encontró el botón "Cell (114 mm)"' };
-    btn.click();
-    return { clicked: true };
+  await c.ev(`(() => {
+    const inp = document.querySelector('.ce-pal-row-block .ce-pal-row-fill input[type=color]');
+    inp.value = '#aa2266'; inp.dispatchEvent(new Event('change', { bubbles: true }));
   })()`);
-  check('el botón de preset "Cell (114 mm)" existe en un gráfico distinto (Venn) y se puede pulsar', cellApplied.clicked, JSON.stringify(cellApplied));
   await sleep(400);
-
-  const cellResult = await c.ev(`(() => {
-    const svg = document.querySelector('svg.ql-svg');
-    const tick = svg.querySelector('.ql-tick-label, text');
-    const grid = svg.querySelector('circle, ellipse, rect');
+  await c.ev(`(() => {
     const wrap = document.querySelector('.ce-presets');
-    const widthInp = wrap.querySelector('input[type=number]');
-    return {
-      fontFamily: tick ? getComputedStyle(tick).fontFamily : null,
-      exportWidthValue: widthInp ? widthInp.value : null,
-    };
+    wrap.querySelector('input[type=text]').value = 'Persistente';
+    [...wrap.querySelectorAll('button')].find((b) => /Guardar$/.test(b.textContent.trim())).click();
   })()`);
-  check('el preset Cell aplica su propia fuente (Arial únicamente, sin Helvetica) en un 2º tipo de gráfico', /Arial/.test(cellResult.fontFamily) && !/Helvetica/.test(cellResult.fontFamily), JSON.stringify(cellResult));
-  check('...y su propio ancho (114mm), independiente del 89mm aplicado antes en #/barplots', cellResult.exportWidthValue === '114', JSON.stringify(cellResult));
+  await sleep(300);
+  // restablecer la figura para que aplicar el preset tenga un efecto medible
+  await c.ev(`[...document.querySelectorAll('.ce-toolbar button')].find((b) => /Restablecer/.test(b.textContent))?.click()`);
+  await sleep(600);
+  await c.goto(); await sleep(1500);
+  await c.ev(`(async () => { const m = await import('/js/lib/exampleData.js'); await m.loadRealCommunityData(); })()`);
+  await sleep(1500);
+  await c.ev(`location.hash = '#/alfa'`); await sleep(1500);
+  await openEditor();
+  const afterReload = await c.ev(`(() => {
+    const wrap = document.querySelector('.ce-presets');
+    const names = wrap ? [...wrap.querySelectorAll('.ce-cs-row span')].map((x) => x.textContent) : [];
+    const before = getComputedStyle(document.querySelector('[data-ce-series-fill="s0"]')).fill;
+    const row = wrap && [...wrap.querySelectorAll('.ce-cs-row')].find((r) => r.textContent.includes('Persistente'));
+    const apply = row && [...row.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Aplicar');
+    if (apply) apply.click();
+    return { names, before };
+  })()`);
+  await sleep(500);
+  const appliedFill = await c.ev(`getComputedStyle(document.querySelector('[data-ce-series-fill="s0"]')).fill`);
+  check('tras recargar, el preset "Persistente" sigue listado', afterReload.names.includes('Persistente'), JSON.stringify(afterReload));
+  check('...y aplicarlo recolorea la figura con su color guardado', afterReload.before !== 'rgb(170, 34, 102)' && appliedFill === 'rgb(170, 34, 102)', JSON.stringify({ before: afterReload.before, appliedFill }));
+  await c.ev(`(() => { const wrap = document.querySelector('.ce-presets'); const row = [...wrap.querySelectorAll('.ce-cs-row')].find((r) => r.textContent.includes('Persistente')); [...row.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Borrar').click(); })()`);
+  await sleep(300);
+  check('...y se puede borrar después', await c.ev(`!Object.values(JSON.parse(localStorage.getItem('smart-175.chartPresets') || '{}')).some((p) => p.name === 'Persistente')`));
 
   // ================= ancho de exportación manual (sin preset) =================
-  console.log('\n-- ancho de exportación manual --');
+  console.log('\n-- ancho de exportación manual (sección Exportación) --');
   await c.ev(`location.hash = '#/alfa'`); await sleep(1200);
   await openEditor();
   const manualWidth = await c.ev(`(() => {
-    const wrap = document.querySelector('.ce-presets');
+    const wrap = document.querySelector('.ce-export');
     const inp = wrap.querySelector('input[type=number]');
     inp.value = '120'; inp.dispatchEvent(new Event('change', { bubbles: true }));
     return { ok: true };

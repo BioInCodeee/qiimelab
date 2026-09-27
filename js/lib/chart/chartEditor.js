@@ -65,7 +65,7 @@
 //   chartColors.js      paleta de series · chartSeriesStyle.js  sus controles
 //   chartColorScale.js  escala de color   · chartStats.js       estadística
 //   chartAxes.js        estructura/ejes   · chartGeometry.js    geometría/márgenes
-//   chartFigureStyle.js --fig-*/fuentes   · chartPresets.js     presets/revistas
+//   chartFigureStyle.js --fig-*/fuentes   · chartPresets.js     presets propios
 //   chartExport.js      descargas         · chartState.js       lectura persistida
 //   chartI18n.js · chartStyles.js · chartLegacyDialog.js (openChartEditor)
 // Cada sección es una fábrica `createX(ctx)` que se invoca una vez por
@@ -90,7 +90,7 @@ export {
   getPaletteOverrides, getFigureOptions, getFigureGeometry, getFigureStyle, getStatsOptions,
   getColorScaleOptions,
 } from './chartState.js';
-export { readPresets, JOURNAL_PRESETS } from './chartPresets.js';
+export { readPresets } from './chartPresets.js';
 export { sanitizeFilename, inlineComputedStyles, serializeSvg, exportSvg, exportPng } from './chartExport.js';
 export { openChartEditor } from './chartLegacyDialog.js';
 
@@ -254,7 +254,9 @@ export function attachChartEditor(cfg) {
   const {
     closePanel, decorate, onDocDown, onKey, sync, syncSelection,
   } = register(createElements(ctx));
-  const { downloadAs, downloadPng, downloadSvg, serialize } = register(createExport(ctx));
+  const {
+    downloadAs, downloadPng, downloadSvg, renderExportSection, serialize,
+  } = register(createExport(ctx));
   const { renderPresetsSection } = register(createPresets(ctx));
 
   function readStore() {
@@ -391,12 +393,12 @@ export function attachChartEditor(cfg) {
     toolbar.appendChild(panelGroup('data', T.groupData, T.groupDataHint, dataSecs));
 
     // 2) Apariencia: lo que solo cambia cómo se ve (nunca recalcula).
-    //    "Estilo de la figura" y Presets siempre — cualquier gráfico con las
+    //    "Estilo de la figura", Exportación y Presets siempre — cualquier gráfico con las
     //    clases de rol de components.css los aprovecha sin cfg adicional —;
     //    la paleta solo si el módulo declara series.
     const lookSecs = [renderTitlesSection(), renderFigureStyleSection()];
     if (paletteSeries.length) lookSecs.push(renderPaletteSection());
-    lookSecs.push(renderPresetsSection());
+    lookSecs.push(renderExportSection(), renderPresetsSection());
     toolbar.appendChild(panelGroup('look', T.groupLook, T.groupLookHint, lookSecs));
   }
 

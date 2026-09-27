@@ -273,7 +273,7 @@ export function exportPng(svgEl, filename = 'smart175_figura', scale = 4) {
 }
 
 export function createExport(ctx) {
-  const { filename, svg, writeStoreDebounced } = ctx;
+  const { T, filename, svg, writeStoreDebounced } = ctx;
 
   // ---- exportar SVG/PNG/TIFF vía js/lib/figureExport.js (Paso 3 de
   // qiimelab-prompt-editor-fase-0-fundamentos.md): siempre en esquema claro
@@ -297,8 +297,8 @@ export function createExport(ctx) {
     } catch (e) { /* entorno restringido / headless */ }
   }
 
-  // ---- ancho de exportación físico (mm) -- Paso 3: un preset de revista
-  // fija store.__export.widthMm; también editable a mano en el toolbar. ----
+  // ---- ancho de exportación físico (mm): store.__export.widthMm, editable
+  // en la sección "Exportación" del panel (y guardado en los presets). ----
   function getExportWidthMm() { return (ctx.store.__export && ctx.store.__export.widthMm) || null; }
   function setExportWidthMm(mm) {
     if (mm > 0) ctx.store.__export = { widthMm: mm }; else delete ctx.store.__export;
@@ -335,6 +335,29 @@ export function createExport(ctx) {
     return res;
   }
 
+  function renderExportSection() {
+    const wrap = document.createElement('div');
+    wrap.className = 'ce-export ce-colorscale'; // mismo estilo de sección que Estructura/Presets
+    wrap.innerHTML = '<h5>' + T.exportTitle + '</h5>';
+    const row = document.createElement('div');
+    row.className = 'ce-cs-row';
+    const id = 'ce-exportwidth-' + (++ctx.cePanelUid);
+    const lab = document.createElement('label');
+    lab.setAttribute('for', id);
+    lab.textContent = T.exportWidthLabel;
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.id = id; inp.min = '10'; inp.max = '400'; inp.step = '1';
+    inp.value = getExportWidthMm() || '';
+    inp.addEventListener('change', () => setExportWidthMm(parseFloat(inp.value) || null));
+    row.appendChild(lab); row.appendChild(inp);
+    wrap.appendChild(row);
+    const help = document.createElement('p');
+    help.className = 'ce-hint';
+    help.textContent = T.exportWidthHelp;
+    wrap.appendChild(help);
+    return wrap;
+  }
+
   /** Descarga en el formato elegido en el desplegable de la barra. */
   function downloadAs(fmt) {
     const fn = { svg: downloadSvg, png: downloadPng, tiff: downloadTiff, pdf: downloadPdf }[fmt];
@@ -342,7 +365,7 @@ export function createExport(ctx) {
   }
 
   return {
-    downloadAs, downloadPdf, downloadPng, downloadSvg, downloadTiff, getExportWidthMm, serialize,
-    setExportWidthMm,
+    downloadAs, downloadPdf, downloadPng, downloadSvg, downloadTiff, getExportWidthMm,
+    renderExportSection, serialize, setExportWidthMm,
   };
 }

@@ -51,9 +51,7 @@ const I18N = {
         presetsTitle: 'Presets', presetSaveLabel: 'Guardar el estilo actual como preset',
         presetNamePlaceholder: 'Nombre del preset', presetSaveBtn: 'Guardar', presetApplyBtn: 'Aplicar',
         presetDeleteBtn: 'Borrar', presetNone: 'Sin presets guardados todavía',
-        presetJournalTitle: 'Presets de revista', presetJournalHelp: 'Fuente/tamaño/grosor/ancho según la especificación oficial — aplicar reemplaza el estilo actual.',
-        presetNatureLabel: (mm) => 'Nature (' + mm + ' mm)', presetCellLabel: (mm) => 'Cell (' + mm + ' mm)',
-        exportWidthLabel: 'Ancho de exportación (mm)', exportWidthHelp: 'Vacío = tamaño natural en píxeles.' },
+        exportTitle: 'Exportación', presetHelp: 'Guarda el estilo actual con un nombre y aplícalo a cualquier gráfico. Se guardan en este navegador.', exportWidthLabel: 'Ancho de exportación (mm)', exportWidthHelp: 'Vacío = tamaño natural en píxeles.' },
   en: { customize: 'Customise', groupData: 'Data and structure', groupDataHint: 'Axes, order, sizes, statistics and colour scale. These changes recalculate the chart.', groupLook: 'Appearance', groupLookHint: 'Titles, typography, colours and presets. They only change how it looks.', done: 'Done', reset: 'Reset', downloadBtn: 'Download', exportFormatLabel: 'Download format', exportFormats: { svg: 'SVG (vector)', png: 'PNG (300 dpi)', tiff: 'TIFF (300 dpi)', pdf: 'PDF (image, 300 dpi)' },
         hint: 'Drag the labels (or focus them with Tab and move them with the arrow keys). Click or press Enter to change the style.',
         lead: 'This figure is editable:', leadRest: 'change text, colours and positions, then download it as SVG, PNG, TIFF or PDF.',
@@ -100,8 +98,6 @@ const I18N = {
         presetsTitle: 'Presets', presetSaveLabel: 'Save the current style as a preset',
         presetNamePlaceholder: 'Preset name', presetSaveBtn: 'Save', presetApplyBtn: 'Apply',
         presetDeleteBtn: 'Delete', presetNone: 'No saved presets yet',
-        presetJournalTitle: 'Journal presets', presetJournalHelp: 'Font/size/weight/width per the official spec — applying replaces the current style.',
-        presetNatureLabel: (mm) => 'Nature (' + mm + ' mm)', presetCellLabel: (mm) => 'Cell (' + mm + ' mm)',
-        exportWidthLabel: 'Export width (mm)', exportWidthHelp: 'Empty = natural pixel size.' },
+        exportTitle: 'Export', presetHelp: 'Save the current style under a name and apply it to any chart. Stored in this browser.', exportWidthLabel: 'Export width (mm)', exportWidthHelp: 'Empty = natural pixel size.' },
 };
 export function tr(lang) { return I18N[lang] || I18N.es; }

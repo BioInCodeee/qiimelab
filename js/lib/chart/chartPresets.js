@@ -1,5 +1,6 @@
-// chartPresets.js — presets de estilo: los de usuario (localStorage) y los de
-// revista (JOURNAL_PRESETS), más la sección "Presets" del panel.
+// chartPresets.js — presets de estilo propios del usuario (localStorage,
+// globales: se aplican a cualquier gráfico) y la sección "Presets" del panel.
+// Los presets de revista (Nature/Cell) se retiraron en la Fase 1.
 //
 // Parte del editor de figuras troceado desde js/lib/chartEditor.js (Fase 0b,
 // sin cambios de comportamiento). Reparto y patrón `ctx`: js/lib/chart/chartEditor.js.
@@ -24,40 +25,10 @@ function writePresets(all) {
   } catch (e) { /* modo privado */ }
 }
 
-const PT_TO_PX = 96 / 72; // 1pt = 4/3 px a 96dpi -- la tabla de la revista viene en pt, el motor --fig-* en px
-const pt = (n) => Math.round(n * PT_TO_PX * 100) / 100;
-
-/** Presets de revista (Paso 3): NO editables por el usuario -- reaplicar
- *  siempre vuelve a la especificación oficial exacta, así que no hace
- *  falta un "restablecer" aparte. Valores tomados de la tabla de
- *  `Claude outputs/estudio-editor-graficas-nivel-biorender.md` sección
- *  1.5 (rangos de la revista; se elige un valor concreto dentro de cada
- *  rango, documentado aquí en pt antes de convertir a px):
- *   - Nature: texto de cuerpo 7pt (rango 5-7), título de panel 8pt
- *     negrita, línea 0.5pt (rango 0.25-1), fuente Helvetica/Arial.
- *   - Cell: texto de cuerpo 7pt (rango 6-8), línea 1pt (rango 0.5-1.5),
- *     fuente Arial únicamente. */
-function journalStyleBlock({ font, bodyPt, titlePt, linePt, widthMm }) {
-  return {
-    __figureStyle: { font, tickSize: pt(bodyPt), axisTitleSize: pt(bodyPt), gridWidth: pt(linePt), axisWidth: pt(linePt) },
-    __export: { widthMm },
-    title: { size: pt(titlePt), bold: true, font },
-  };
-}
-export const JOURNAL_PRESETS = {
-  nature89: { id: 'nature89', builtin: true, journal: 'nature', widthMm: 89, store: journalStyleBlock({ font: 'Helvetica, Arial, sans-serif', bodyPt: 7, titlePt: 8, linePt: 0.5, widthMm: 89 }) },
-  nature183: { id: 'nature183', builtin: true, journal: 'nature', widthMm: 183, store: journalStyleBlock({ font: 'Helvetica, Arial, sans-serif', bodyPt: 7, titlePt: 8, linePt: 0.5, widthMm: 183 }) },
-  cell85: { id: 'cell85', builtin: true, journal: 'cell', widthMm: 85, store: journalStyleBlock({ font: 'Arial, sans-serif', bodyPt: 7, titlePt: 8, linePt: 1, widthMm: 85 }) },
-  cell114: { id: 'cell114', builtin: true, journal: 'cell', widthMm: 114, store: journalStyleBlock({ font: 'Arial, sans-serif', bodyPt: 7, titlePt: 8, linePt: 1, widthMm: 114 }) },
-  cell174: { id: 'cell174', builtin: true, journal: 'cell', widthMm: 174, store: journalStyleBlock({ font: 'Arial, sans-serif', bodyPt: 7, titlePt: 8, linePt: 1, widthMm: 174 }) },
-};
-
 export function createPresets(ctx) {
-  const {
-    T, getExportWidthMm, paletteSeries, renderToolbar, setExportWidthMm, sync, writeStore,
-  } = ctx;
+  const { T, paletteSeries, renderToolbar, sync, writeStore } = ctx;
 
-  // ---- Presets (Fase 6 Paso 1/3): aplicar es sobreescribir `store` con el
+  // ---- Presets (Fase 6 Paso 1): aplicar es sobreescribir `store` con el
   // contenido del preset (remapeando __palette por POSICIÓN si el nº de
   // series no coincide) y llamar a writeStore()+sync() -- cero código de
   // bajo nivel nuevo, reutiliza exactamente lo que ya existe para leer/
@@ -106,23 +77,10 @@ export function createPresets(ctx) {
     wrap.className = 'ce-presets ce-colorscale'; // reutiliza el estilo de sección de "Escala de color"/"Estructura"
     wrap.innerHTML = '<h5>' + T.presetsTitle + '</h5>';
 
-    // ancho de exportación
-    const widthRow = document.createElement('div');
-    widthRow.className = 'ce-cs-row';
-    const widthId = 'ce-exportwidth-' + (++ctx.cePanelUid);
-    const widthLab = document.createElement('label');
-    widthLab.setAttribute('for', widthId);
-    widthLab.textContent = T.exportWidthLabel;
-    const widthInp = document.createElement('input');
-    widthInp.type = 'number'; widthInp.id = widthId; widthInp.min = '10'; widthInp.max = '400'; widthInp.step = '1';
-    widthInp.value = getExportWidthMm() || '';
-    widthInp.addEventListener('change', () => setExportWidthMm(parseFloat(widthInp.value) || null));
-    widthRow.appendChild(widthLab); widthRow.appendChild(widthInp);
-    wrap.appendChild(widthRow);
-    const widthHelp = document.createElement('p');
-    widthHelp.className = 'ce-hint';
-    widthHelp.textContent = T.exportWidthHelp;
-    wrap.appendChild(widthHelp);
+    const help = document.createElement('p');
+    help.className = 'ce-hint';
+    help.textContent = T.presetHelp;
+    wrap.appendChild(help);
 
     // guardar preset actual
     const saveRow = document.createElement('div');
@@ -163,26 +121,6 @@ export function createPresets(ctx) {
         wrap.appendChild(row);
       });
     }
-
-    // presets de revista (Paso 3): no editables, reaplicar siempre vuelve a
-    // la especificación oficial
-    const journalH5 = document.createElement('h5');
-    journalH5.textContent = T.presetJournalTitle;
-    wrap.appendChild(journalH5);
-    const journalHelp = document.createElement('p');
-    journalHelp.className = 'ce-hint';
-    journalHelp.textContent = T.presetJournalHelp;
-    wrap.appendChild(journalHelp);
-    const journalRow = document.createElement('div');
-    journalRow.className = 'ce-cs-row';
-    Object.values(JOURNAL_PRESETS).forEach((jp) => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'ql-btn';
-      b.textContent = (jp.journal === 'nature' ? T.presetNatureLabel : T.presetCellLabel)(jp.widthMm);
-      b.addEventListener('click', () => applyPresetSnapshot(jp));
-      journalRow.appendChild(b);
-    });
-    wrap.appendChild(journalRow);
 
     return wrap;
   }
