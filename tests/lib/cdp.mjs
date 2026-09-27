@@ -117,7 +117,16 @@ export async function connect({ dark = false, url = 'http://127.0.0.1:8931', lab
   return {
     ev, rpc, screenshot, setViewport, problems, sessionId,
     setLabel: (l) => { current = l; },
-    goto: (u) => rpc('Page.navigate', { url: u ?? url }, sessionId),
+    // Page.navigate devuelve errorText si Chrome no llega (conexión rechazada,
+    // servidor caído…): se convierte en un error claro en vez de dejar la
+    // pestaña en chrome-error://chromewebdata/ y que cada import() posterior
+    // falle con un mensaje críptico (ver tests/server-smoke.mjs)
+    goto: async (u) => {
+      const target = u ?? url;
+      const r = await rpc('Page.navigate', { url: target }, sessionId);
+      if (r && r.errorText) throw new Error(`SERVER_REACHABILITY_FROM_CHROME: Chrome cannot reach ${target} (${r.errorText})`);
+      return r;
+    },
     kill() {
       try { chrome.kill('SIGKILL'); } catch { /* noop */ }
       try { rmSync(profileDir, { recursive: true, force: true }); } catch { /* noop */ }

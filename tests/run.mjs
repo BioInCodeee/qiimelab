@@ -12,6 +12,7 @@ import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { findChrome, hasR, hasBiopython } from './lib/env.mjs';
+import { freePort, startServer } from './lib/server.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -130,13 +131,42 @@ function runOne(spec) {
   });
 }
 
+// Un solo servidor para toda la ejecución, en un puerto libre y sirviendo
+// ESTE árbol (salvo que se fije QL_TEST_PORT a mano): nada de reutilizar lo
+// que haya en :8931 ni de arrancar/parar uno por test. Los hijos lo heredan
+// por el entorno.
+const browserPicked = picked.some((s) => s.kind === 'navegador');
+let sharedServer = null;
+if (browserPicked && findChrome() && !process.env.QL_TEST_PORT) {
+  sharedServer = await startServer(await freePort());
+  if (sharedServer) {
+    process.env.QL_TEST_PORT = sharedServer.url.split(':').pop();
+    console.log('· servidor de test propio: ' + sharedServer.url + '\n');
+  }
+}
+
+// Humo de infraestructura antes de cualquier suite de navegador: si Chrome
+// no llega al servidor, no tiene sentido lanzar el resto (fallarían en
+// cascada con chrome-error://…); se marcan como fallo de infraestructura.
+const SMOKE = { name: 'server-smoke', file: 'server-smoke.mjs', kind: 'navegador' };
+const queue = browserPicked && !picked.some((s) => s.name === SMOKE.name) ? [SMOKE, ...picked] : picked;
+let chromeUnreachable = false;
+
 const results = [];
-for (const spec of picked) {
+for (const spec of queue) {
   process.stdout.write(`\n${'━'.repeat(70)}\n▶ ${spec.name}  (${spec.kind})\n${'━'.repeat(70)}\n`);
+  if (chromeUnreachable && spec.kind === 'navegador') {
+    const msg = 'NO EJECUTADO: SERVER_REACHABILITY_FROM_CHROME (ver server-smoke) — fallo de infraestructura, no del código';
+    process.stdout.write(msg + '\n');
+    results.push({ spec, code: 1, secs: '0.0', out: msg });
+    continue;
+  }
   const r = await runOne(spec);
   process.stdout.write(r.out.trimEnd() + '\n');
   results.push(r);
+  if (spec.name === SMOKE.name && r.code === 1) chromeUnreachable = true;
 }
+if (sharedServer) sharedServer.stop();
 
 const mark = { 0: 'PASA ', 1: 'FALLA', 2: 'salta' };
 console.log('\n\n' + '═'.repeat(70));
