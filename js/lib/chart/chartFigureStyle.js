@@ -60,6 +60,13 @@ export function createFigureStyle(ctx) {
       if (v === undefined || v === '') svg.style.removeProperty(f.css);
       else svg.style.setProperty(f.css, f.unit ? (v + f.unit) : String(v));
     });
+    // tipografía global (Fase 1): la misma fuente en TODOS los textos de la
+    // figura — títulos, ejes, leyenda, etiquetas —, por encima del estilo
+    // propio de cada elemento (regla con !important en chartStyles.js)
+    const gf = ov.globalFont;
+    svg.classList.toggle('ce-global-font', !!gf);
+    if (gf) svg.style.setProperty('--fig-global-font', gf);
+    else svg.style.removeProperty('--fig-global-font');
   }
 
   function setFigureStyleValue(id, val) {
@@ -136,25 +143,66 @@ export function createFigureStyle(ctx) {
     return sel;
   }
 
+  function fontSelect(id, current) {
+    const sel = document.createElement('select');
+    sel.id = id;
+    FONTS.forEach(([val, label]) => {
+      const o = document.createElement('option'); o.value = val; o.textContent = label;
+      if (current === val) o.selected = true;
+      sel.appendChild(o);
+    });
+    return sel;
+  }
+
+  /** Fuente de ejes y marcas (--fig-font: .ql-tick-label/.ql-axis-label). */
   function figStyleFontRow(ov) {
     const row = document.createElement('div');
     row.className = 'ce-figstyle-row';
     const selId = 'ce-figstyle-font-' + (++ctx.cePanelUid);
     const lab = document.createElement('label');
     lab.setAttribute('for', selId);
-    lab.textContent = T.font;
+    lab.textContent = T.axisFont;
     row.appendChild(lab);
     const def = figStyleDefault(FIG_STYLE_VARS.find((v) => v.id === 'font'));
-    const sel = document.createElement('select');
-    sel.id = selId;
-    FONTS.forEach(([val, label]) => {
-      const o = document.createElement('option'); o.value = val; o.textContent = label;
-      if ((ov.font || def) === val) o.selected = true;
-      sel.appendChild(o);
-    });
+    const sel = fontSelect(selId, ov.font || def);
+    // con la tipografía global activa manda esa; este control no tendría efecto
+    sel.disabled = !!ov.globalFont;
+    if (ov.globalFont) sel.title = T.axisFontOverridden;
     sel.addEventListener('change', () => setFigureStyleValue('font', sel.value));
     row.appendChild(sel);
     return row;
+  }
+
+  /** Tipografía global: casilla + fuente, aplicada a todos los textos. */
+  function figStyleGlobalFontRow(ov) {
+    const row = document.createElement('div');
+    row.className = 'ce-figstyle-row ce-globalfont-row';
+    const chkId = 'ce-globalfont-' + (++ctx.cePanelUid);
+    const chk = document.createElement('input');
+    chk.type = 'checkbox'; chk.id = chkId; chk.checked = !!ov.globalFont;
+    const lab = document.createElement('label');
+    lab.setAttribute('for', chkId);
+    lab.textContent = T.globalFontLabel;
+    const controls = document.createElement('div');
+    controls.className = 'ce-figstyle-controls';
+    const def = figStyleDefault(FIG_STYLE_VARS.find((v) => v.id === 'font'));
+    const sel = fontSelect('ce-globalfont-sel-' + ctx.cePanelUid, ov.globalFont || ov.font || def);
+    sel.setAttribute('aria-label', T.globalFontSelect);
+    sel.disabled = !chk.checked;
+    chk.addEventListener('change', () => {
+      sel.disabled = !chk.checked;
+      setFigureStyleValue('globalFont', chk.checked ? sel.value : '');
+    });
+    sel.addEventListener('change', () => { if (chk.checked) setFigureStyleValue('globalFont', sel.value); });
+    controls.appendChild(chk); controls.appendChild(sel);
+    row.appendChild(lab); row.appendChild(controls);
+    const help = document.createElement('p');
+    help.className = 'ce-hint';
+    help.textContent = T.globalFontHelp;
+    const frag = document.createElement('div');
+    frag.className = 'ce-globalfont';
+    frag.appendChild(row); frag.appendChild(help);
+    return frag;
   }
 
   function figStyleGroupRow(label, ids, ov) {
@@ -182,6 +230,7 @@ export function createFigureStyle(ctx) {
     rows.className = 'ce-figstyle-rows';
     const ov = figureStyleOverrides();
 
+    rows.appendChild(figStyleGlobalFontRow(ov));
     rows.appendChild(figStyleFontRow(ov));
     rows.appendChild(figStyleGroupRow(T.gridLabel, ['gridColor', 'gridWidth', 'gridDash'], ov));
     rows.appendChild(figStyleSingleRow(T.gridVisibleLabel, 'gridVisible', ov));
