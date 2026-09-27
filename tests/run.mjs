@@ -55,6 +55,7 @@ const SUITE = [
   { name: 'inference', file: 'inference.mjs', kind: 'estático' },
   { name: 'phenotypes', file: 'phenotypes.mjs', kind: 'estático' },
   { name: 'ingest', file: 'ingest.mjs', kind: 'estático' },
+  { name: 'zipbomb', file: 'zipbomb.mjs', kind: 'estático' },
   { name: 'aligner', file: 'aligner.mjs', kind: 'estático' },
   { name: 'alluvial', file: 'alluvial.mjs', kind: 'estático' },
   { name: 'sunburst', file: 'sunburst.mjs', kind: 'estático' },

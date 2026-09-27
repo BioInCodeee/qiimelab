@@ -1672,4 +1672,13 @@ export default {
     mmComMixRowName: 'Commercial Master Mix ({x}X)',
     mmEffectiveBadge: 'Pipetting factor: {n} + {pct}% = {total} reactions',
   },
+  zip: {
+    tooManyEntries: 'The archive has {n} entries (maximum {max}). It does not look like a normal .qza/.qzv; rejected for safety so the tab does not hang.',
+    zip64: '"{name}" uses the ZIP64 format (entries over 4 GB). It cannot be opened in the browser.',
+    entryTooBig: '"{name}" is {size} uncompressed (maximum {max} per inner file). Rejected so the tab does not hang; export that table to .tsv with QIIME2 and upload it directly.',
+    ratioTooHigh: '"{name}" would expand {ratio}× when decompressed (maximum {max}×). That is the signature of a "zip bomb", so it is not decompressed.',
+    totalTooBig: 'Decompressing this archive would exceed {max} in total. Rejected so the tab does not hang.',
+    sizeMismatch: '"{name}" decompresses to more than its header declares ({size}). The file is damaged or tampered with, so reading stops.',
+    gzTooBig: 'The .gz expands to more than {max}. Decompression stops so the tab does not hang.',
+  },
 };

@@ -66,6 +66,7 @@ Chrome, R, un paquete de R, o Biopython). El runner sale ≠ 0 solo si algo
 | `pwa.mjs` | estático + navegador | `manifest.json` es JSON válido con los campos obligatorios y sus iconos existen; `index.html` enlaza el manifest. Con navegador: el service worker registra, activa y controla la página tras la 1ª carga; con la red simulada offline por CDP una 2ª navegación sigue sirviendo el shell (sidebar + main + footer) desde caché sin errores; y el evento `offline`/`online` muestra/oculta el banner "sin conexión" de `js/lib/pwa.js`. |
 | `perf-stress.mjs` | navegador | Genera un dataset de estrés (260 muestras × 2800 taxones, semilla fija, **no** en `datos-ejemplo/`) y cronometra las 4 operaciones pesadas midiendo el "jank" (hueco máximo entre frames de `requestAnimationFrame`). **Falla** si la ruta migrada a Web Worker (`js/lib/heavyStats.js`: UPGMA de matrices grandes + curvas de rarefacción) vuelve a bloquear el hilo principal (> 120 ms). El resto solo se informa. |
 | `globalfont.mjs` | navegador | Tipografía global del editor (Fase 1): la casilla "Usar tipografía global" cambia de golpe todos los `<text>` de la figura en alfa/barplots/beta, incluido un título con fuente propia; desactiva "Fuente de ejes y marcas" mientras está activa; se exporta en el SVG, se guarda en `store.__figureStyle.globalFont`, persiste al recargar y al desactivarla cada texto vuelve a su fuente. |
+| `zipbomb.mjs` | estático | Límites anti zip-bomb de `minizip.js` con ZIP reales fabricados (`tests/lib/zip.mjs`): ratio >100× (bomba de 64 MB de ceros), entrada >250 MB, presupuesto total, >2000 entradas, cabecera que miente (se corta el flujo), `.gz` suelto; los rechazos previos ocurren sin crear ningún `DecompressionStream`, e `ingestFile()` lo convierte en un aviso legible sin perder el resto del artefacto. |
 
 ### Modo de los tests de `stats/`
 
@@ -120,4 +121,5 @@ R instalado.
   que las migradas a worker no bloqueen; no hay presupuesto de tiempo para el
   resto de rutas ni medición de memoria.
 - **Compatibilidad de navegadores**: solo se prueba en el Chrome del sistema.
+
 

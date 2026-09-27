@@ -1675,4 +1675,13 @@ export default {
     mmComMixRowName: 'Master Mix comercial ({x}X)',
     mmEffectiveBadge: 'Factor pipeteo: {n} + {pct}% = {total} reacciones',
   },
+  zip: {
+    tooManyEntries: 'El archivo tiene {n} entradas (máximo {max}). No parece un .qza/.qzv normal; se rechaza por seguridad para no colgar la pestaña.',
+    zip64: '"{name}" usa el formato ZIP64 (entradas de más de 4 GB). No se puede abrir en el navegador.',
+    entryTooBig: '"{name}" ocupa {size} descomprimido (máximo {max} por archivo interno). Se rechaza para no colgar la pestaña; exporta esa tabla a .tsv con QIIME2 y súbela directamente.',
+    ratioTooHigh: '"{name}" se expandiría {ratio}× al descomprimir (máximo {max}×). Es la firma de una "bomba zip", así que no se descomprime.',
+    totalTooBig: 'Descomprimir este archivo superaría {max} en total. Se rechaza para no colgar la pestaña.',
+    sizeMismatch: '"{name}" descomprime a más de lo que declara su cabecera ({size}). El archivo está dañado o manipulado, así que se detiene la lectura.',
+    gzTooBig: 'El .gz se expande a más de {max}. Se detiene la descompresión para no colgar la pestaña.',
+  },
 };
