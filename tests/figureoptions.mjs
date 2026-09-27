@@ -38,7 +38,7 @@ if (!server) skip('no se pudo servir la app (¿python3?)');
 
 const c = await connect({ url: server.url + '/index.html', label: 'figureoptions' });
 const openEditor = async () => {
-  await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => /Ajustes|Settings/.test(x.textContent)); if (b) b.click(); })()`);
+  await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => /Personalizar|Customise/.test(x.textContent)); if (b) b.click(); })()`);
   await sleep(600);
 };
 
@@ -103,7 +103,7 @@ try {
   check('el rango de eje manual persiste en store.__structure', axisTest && axisTest.axisMax === 999, JSON.stringify(axisTest));
 
   // ---- G5/G6 vía el motor --fig-* (mostrar/ocultar rejilla y leyenda) ----
-  // "Estilo de la figura" vive en Personalizar; Estructura estaba en Ajustes (rueda)
+  // panel único (Fase 1): Estructura y "Estilo de la figura" ya están en el mismo panel abierto
   await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => /Personalizar|Customise/.test(x.textContent)); if (b) b.click(); })()`);
   await sleep(500);
   const toggleTest = await c.ev(`(() => {

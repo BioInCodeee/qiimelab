@@ -21,7 +21,7 @@ let failed = false;
 const check = (name, ok, extra = '') => { console.log((ok ? '  ✓ ' : '  ✗ ') + name + (extra ? '  ' + extra : '')); if (!ok) failed = true; };
 
 const openEditor = async () => {
-  await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => /Ajustes|Settings/.test(x.textContent)); if (b) b.click(); })()`);
+  await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => /Personalizar|Customise/.test(x.textContent)); if (b) b.click(); })()`);
   await sleep(600);
 };
 

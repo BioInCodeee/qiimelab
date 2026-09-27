@@ -220,14 +220,12 @@ export function attachChartEditor(cfg) {
   // arrancaba con editing=false, perdiendo el estado de la anterior. El
   // módulo debe leer `editor.isEditing()` ANTES de destruir la instancia
   // vieja y pasarlo aquí.
-  // Dos paneles exclusivos: 'edit' (Personalizar: títulos, estilo, paleta,
-  // presets — lo que se ARRASTRA y se ve) y 'settings' (rueda Ajustes:
-  // estructura, geometría, estadística, escala de color — lo que RECALCULA
-  // la figura). startEditing acepta true|'edit'|'settings'; isEditing()
-  // devuelve el modo ('edit'|'settings') o false, así que los módulos que
-  // hacen `startEditing: editor.isEditing()` conservan cuál estaba abierto.
-  ctx.editing = !!cfg.startEditing && cfg.startEditing !== 'settings';
-  let settingsOpen = cfg.startEditing === 'settings';
+  // Un solo panel (Fase 1, 27 sep 2026 — antes eran dos exclusivos,
+  // Personalizar y la rueda Ajustes): dentro se agrupa por lo que controla
+  // cada sección (ver renderToolbar). startEditing acepta cualquier valor
+  // verdadero (incluido el antiguo 'settings', por compatibilidad) e
+  // isEditing() devuelve 'edit' o false.
+  ctx.editing = !!cfg.startEditing;
   ctx.selectedId = null;
   ctx.panel = null;
   ctx.cePanelUid = 0; // ids para enlazar <label for> ↔ control dentro del panel
@@ -327,24 +325,15 @@ export function attachChartEditor(cfg) {
     if (ctx.editing) {
       lead.className = 'ce-hint';
       lead.textContent = T.hint;
-    } else if (settingsOpen) {
-      lead.className = 'ce-hint';
-      lead.textContent = T.settingsHint;
     } else {
       lead.innerHTML = '<strong>' + T.lead + '</strong> ' + T.leadRest;
     }
     toolbar.appendChild(lead);
 
-    const bCustom = mkBtn(CE_ICONS.edit, ctx.editing ? T.done : T.customize, () => { setPanel(ctx.editing ? false : 'edit'); });
-    bCustom.className = 'ql-btn' + (ctx.editing ? ' ce-on' : ' ce-cta');
+    const bCustom = mkBtn(CE_ICONS.edit, ctx.editing ? T.done : T.customize, () => { setEditing(!ctx.editing); });
+    bCustom.className = 'ql-btn ce-customize-btn' + (ctx.editing ? ' ce-on' : ' ce-cta');
+    bCustom.setAttribute('aria-expanded', String(ctx.editing));
     toolbar.appendChild(bCustom);
-
-    // rueda de Ajustes: la MISMA en todas las figuras (antes solo el aluvial
-    // de Barplots tenía la suya, un modal aparte ya retirado)
-    const bSet = mkBtn(CE_ICONS.gear, settingsOpen ? T.done : T.settings, () => { setPanel(settingsOpen ? false : 'settings'); });
-    bSet.className = 'ql-btn ce-settings-btn' + (settingsOpen ? ' ce-on' : '');
-    bSet.setAttribute('aria-expanded', String(settingsOpen));
-    toolbar.appendChild(bSet);
 
     const bFull = mkBtn(CE_ICONS.fullscreen, fsHandle ? T.fullscreenExit : T.fullscreen, openFullscreen);
     bFull.className = 'ql-btn' + (fsHandle ? ' ce-on' : '');
@@ -368,32 +357,44 @@ export function attachChartEditor(cfg) {
       toolbar.appendChild(bReset);
     }
 
-    if (ctx.editing) {
-      toolbar.appendChild(renderTitlesSection());
-    }
+    if (!ctx.editing) return;
 
-    // sección de estilo (rejilla/eje/marcas/título de eje/fuente): siempre
-    // disponible cuando se edita, a diferencia de paleta/geometría que son
-    // opt-in por módulo — todo gráfico con las clases de rol de components.css
-    // (la inmensa mayoría) la aprovecha gratis, sin cfg adicional.
-    if (ctx.editing) toolbar.appendChild(renderFigureStyleSection());
+    // ---- panel único, agrupado por lo que controla cada sección ----
+    // 1) Datos y estructura: lo que RECALCULA la figura (el módulo repinta).
+    //    Estructura siempre; geometría/estadística/escala de color solo si
+    //    el módulo las activa.
+    const dataSecs = [renderStructureSection()];
+    if (geometrySliders.length || geoPresentSliders().length) dataSecs.push(renderGeometrySection());
+    if (statsControls) dataSecs.push(renderStatsSection());
+    if (colorScaleCfg) dataSecs.push(renderColorScaleSection());
+    toolbar.appendChild(panelGroup('data', T.groupData, T.groupDataHint, dataSecs));
 
-    if (ctx.editing && paletteSeries.length) toolbar.appendChild(renderPaletteSection());
+    // 2) Apariencia: lo que solo cambia cómo se ve (nunca recalcula).
+    //    "Estilo de la figura" y Presets siempre — cualquier gráfico con las
+    //    clases de rol de components.css los aprovecha sin cfg adicional —;
+    //    la paleta solo si el módulo declara series.
+    const lookSecs = [renderTitlesSection(), renderFigureStyleSection()];
+    if (paletteSeries.length) lookSecs.push(renderPaletteSection());
+    lookSecs.push(renderPresetsSection());
+    toolbar.appendChild(panelGroup('look', T.groupLook, T.groupLookHint, lookSecs));
+  }
 
-    // ---- panel Ajustes (rueda): lo que recalcula la figura ----
-    if (settingsOpen) toolbar.appendChild(renderStructureSection());
-
-    if (settingsOpen && (geometrySliders.length || geoPresentSliders().length)) toolbar.appendChild(renderGeometrySection());
-
-    if (settingsOpen && statsControls) toolbar.appendChild(renderStatsSection());
-
-    if (settingsOpen && colorScaleCfg) toolbar.appendChild(renderColorScaleSection());
-
-    // Presets (Fase 6): siempre disponible al editar, no opt-in por módulo
-    // -- a diferencia de paleta/geometría, cualquier gráfico puede guardar/
-    // aplicar un preset (aunque no tenga paletteSeries, sigue teniendo
-    // __figureStyle/posiciones de elemento que guardar).
-    if (ctx.editing) toolbar.appendChild(renderPresetsSection());
+  function panelGroup(id, title, hint, sections) {
+    const g = document.createElement('div');
+    g.className = 'ce-group ce-group-' + id;
+    g.setAttribute('role', 'group');
+    const h = document.createElement('h4');
+    h.className = 'ce-group-title';
+    h.id = 'ce-group-' + id + '-' + (++ctx.cePanelUid);
+    h.textContent = title;
+    g.setAttribute('aria-labelledby', h.id);
+    g.appendChild(h);
+    const p = document.createElement('p');
+    p.className = 'ce-hint ce-group-hint';
+    p.textContent = hint;
+    g.appendChild(p);
+    sections.forEach((sec) => g.appendChild(sec));
+    return g;
   }
 
   function renderTitlesSection() {
@@ -520,16 +521,10 @@ export function attachChartEditor(cfg) {
 
   function setEditing(on) {
     ctx.editing = on;
-    if (on) settingsOpen = false;
     svg.classList.toggle('ce-editing', on);
     if (!on) { closePanel(); ctx.selectedId = null; syncSelection(); }
     renderToolbar();
     sync();
-  }
-  /** Abre 'edit' (Personalizar) o 'settings' (Ajustes), o cierra ambos (false). */
-  function setPanel(mode) {
-    settingsOpen = mode === 'settings';
-    setEditing(mode === 'edit');
   }
 
   let debTimer = null;
@@ -581,7 +576,7 @@ export function attachChartEditor(cfg) {
     download: downloadSvg,
     downloadPng,
     isDirty: () => Object.keys(ctx.store).length > 0,
-    isEditing: () => (ctx.editing ? 'edit' : (settingsOpen ? 'settings' : false)),
+    isEditing: () => (ctx.editing ? 'edit' : false),
     destroy() {
       if (fsHandle) fsHandle.close(); // devuelve el <svg>/toolbar a casa antes de que el módulo limpie su contenedor
       clearTimeout(debTimer);

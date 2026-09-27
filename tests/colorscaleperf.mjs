@@ -67,7 +67,7 @@ try {
   check('el mapa de calor sintético llegó a pintarse (primer pintado, incl. posible paso por worker)',
     firstPaintOk.nCells === N_SAMPLES * N_SAMPLES, JSON.stringify(firstPaintOk));
 
-  await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /Ajustes|Settings/.test(x.textContent)); if (b) b.click(); })()`);
+  await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /Personalizar|Customise/.test(x.textContent)); if (b) b.click(); })()`);
   await sleep(500);
 
   const result = await c.ev(`(async () => {

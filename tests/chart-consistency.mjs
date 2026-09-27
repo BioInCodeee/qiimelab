@@ -1,10 +1,11 @@
-// Coherencia entre gráficas (23 sep 2026): TODAS las figuras llevan el mismo
-// par Personalizar + rueda Ajustes, y el panel de Ajustes trae "Estructura"
-// (márgenes del lienzo, rangos de eje, orden) y "Geometría" (tamaño de
-// puntos, grosor de línea, anchura de barras/cajas, tamaño de celda).
-// Además comprueba que esos ajustes funcionan de verdad (no solo que
-// existan), que Personalizar y Ajustes son paneles exclusivos y que el
-// modo abierto sobrevive a un repintado del módulo.
+// Coherencia entre gráficas (23 sep 2026; panel único desde la Fase 1, 27 sep):
+// TODAS las figuras llevan el mismo botón Personalizar, y su panel trae
+// "Estructura" (márgenes del lienzo, rangos de eje, orden) y "Geometría"
+// (tamaño de puntos, grosor de línea, anchura de barras/cajas, tamaño de
+// celda) junto a Títulos/Estilo. Además comprueba que esos ajustes
+// funcionan de verdad (no solo que existan), que no queda la antigua rueda
+// Ajustes ni secciones repetidas, y que el panel abierto sobrevive a un
+// repintado del módulo.
 //
 //   node tests/chart-consistency.mjs
 
@@ -44,7 +45,7 @@ try {
   await c.ev(`(async () => { const m = await import('/js/lib/exampleData.js'); await m.loadRealCommunityData(); await m.loadRealDifferentialAbundance(); await m.loadRealFunctionalWithMeta(); if (m.loadRealDiffComparisons) await m.loadRealDiffComparisons(); if (m.loadExampleMicrobialCountsPlate) await m.loadExampleMicrobialCountsPlate(); })()`);
   await sleep(2500);
 
-  console.log('-- todas las gráficas: rueda + Estructura + Geometría --');
+  console.log('-- todas las gráficas: Personalizar + Estructura + Geometría --');
   const CASES = [
     ['#/barplots', ['Barras clásicas']], ['#/barplots', ['Flujos']], ['#/barplots', ['Sunburst']], ['#/barplots', ['Biomarcadores']], ['#/barplots', ['Burbujas']],
     ['#/alfa', ['Boxplot']], ['#/alfa', ['Curvas']], ['#/alfa', ['Violín']],
@@ -57,28 +58,28 @@ try {
   const missing = [];
   for (const [route, parts] of CASES) {
     await goto(route, parts);
-    const info = await c.ev(`(() => { const tb = document.querySelector('#app-view .ce-toolbar'); return { tb: !!tb, gear: !!(tb && tb.querySelector('.ce-settings-btn')), pers: !!tb && [...tb.querySelectorAll('button')].some((b) => /Personalizar/.test(b.textContent)) }; })()`);
-    await clickBtn('/Ajustes/');
+    const info = await c.ev(`(() => { const tb = document.querySelector('#app-view .ce-toolbar'); return { tb: !!tb, gear: !!(tb && tb.querySelector('.ce-settings-btn')) || (!!tb && [...tb.querySelectorAll('button')].some((b) => /Ajustes/.test(b.textContent))), pers: !!tb && [...tb.querySelectorAll('button')].some((b) => /Personalizar/.test(b.textContent)) }; })()`);
+    await clickBtn('/Personalizar/');
     await sleep(350);
     const secs = await sections();
-    const ok = info.tb && info.gear && info.pers && secs.includes('Estructura') && secs.includes('Geometría');
+    const ok = info.tb && !info.gear && info.pers && secs.includes('Estructura') && secs.includes('Geometría') && secs.some((x) => /Títulos/.test(x));
     if (!ok) missing.push(route + ' ' + parts.join('>') + ' ' + JSON.stringify({ ...info, secs }));
   }
-  check('las ' + CASES.length + ' vistas tienen Personalizar + rueda + Estructura + Geometría', missing.length === 0, missing.join(' | '));
+  check('las ' + CASES.length + ' vistas tienen Personalizar (sin rueda Ajustes) con Estructura + Geometría + Títulos en el mismo panel', missing.length === 0, missing.join(' | '));
 
   console.log('\n-- los ajustes universales funcionan --');
   // puntos (PCoA)
   await goto('#/beta', ['PCoA']);
-  await clickBtn('/Ajustes/'); await sleep(300);
+  await clickBtn('/Personalizar/'); await sleep(300);
   const r0 = await c.ev(`(() => +document.querySelector('#app-view svg circle[data-ce-role="marker"]').getAttribute('r'))()`);
   await setGeo('/puntos|Point/i', 2); await sleep(400);
   const r1 = await c.ev(`(() => +document.querySelector('#app-view svg circle[data-ce-role="marker"]').getAttribute('r'))()`);
   check('"Tamaño de los puntos ×2" duplica el radio (PCoA)', Math.abs(r1 - 2 * r0) < 0.05, JSON.stringify({ r0, r1 }));
-  check('el panel de Ajustes sigue abierto tras el cambio', (await sections()).includes('Geometría'));
+  check('el panel sigue abierto tras el cambio', (await sections()).includes('Geometría'));
 
   // anchura de barras (Barplots apiladas)
   await goto('#/barplots', ['Barras clásicas']);
-  await clickBtn('/Ajustes/'); await sleep(300);
+  await clickBtn('/Personalizar/'); await sleep(300);
   const w0 = await c.ev(`(() => +document.querySelector('#app-view svg rect[data-ce-role="bar"]').getAttribute('width'))()`);
   await setGeo('/barras|Bar/i', 0.5); await sleep(400);
   const w1 = await c.ev(`(() => +document.querySelector('#app-view svg rect[data-ce-role="bar"]').getAttribute('width'))()`);
@@ -86,14 +87,14 @@ try {
 
   // grosor de línea (temporal)
   await goto('#/temporal');
-  await clickBtn('/Ajustes/'); await sleep(300);
+  await clickBtn('/Personalizar/'); await sleep(300);
   await setGeo('/líneas|Line/i', 2); await sleep(400);
   const sw = await c.ev(`(() => parseFloat(getComputedStyle(document.querySelector('#app-view svg polyline[data-ce-role="line"]')).strokeWidth))()`);
   check('"Grosor de las líneas ×2" dobla el trazo (temporal: 2 → 4)', Math.abs(sw - 4) < 0.1, JSON.stringify({ sw }));
 
   // tamaño de celdas (heatmap beta)
   await goto('#/beta', ['Mapa de calor']);
-  await clickBtn('/Ajustes/'); await sleep(300);
+  await clickBtn('/Personalizar/'); await sleep(300);
   const cw0 = await c.ev(`(() => +document.querySelector('#app-view svg rect[data-ce-role="cell"]').getAttribute('width'))()`);
   await setGeo('/celdas|Cell/i', 0.5); await sleep(400);
   const cw1 = await c.ev(`(() => +document.querySelector('#app-view svg rect[data-ce-role="cell"]').getAttribute('width'))()`);
@@ -102,7 +103,7 @@ try {
   // márgenes del lienzo (genérico) + rango de eje (temporal)
   await goto('#/temporal');
   const vb0 = await c.ev(`document.querySelector('#app-view svg.ql-svg').getAttribute('viewBox')`);
-  await clickBtn('/Ajustes/'); await sleep(300);
+  await clickBtn('/Personalizar/'); await sleep(300);
   await c.ev(`(() => { const row = [...document.querySelectorAll('.ce-cs-row')].find((r) => /Margen|margin/i.test(r.querySelector('label').textContent)); const i = row.querySelectorAll('input[type=number]')[0]; i.value = '40'; i.dispatchEvent(new Event('change', { bubbles: true })); })()`);
   await sleep(400);
   const vb1 = await c.ev(`document.querySelector('#app-view svg.ql-svg').getAttribute('viewBox')`);
@@ -111,16 +112,18 @@ try {
   await sleep(600);
   const ticks = await c.ev(`[...document.querySelectorAll('#app-view svg .ql-tick-label')].map((t) => t.textContent)`);
   check('el rango manual del eje X recorta el eje a 10 (temporal)', ticks.includes('10'), JSON.stringify(ticks.slice(-6)));
-  check('tras cambiar el rango el panel de Ajustes sigue abierto (el modo sobrevive al repintado)', (await sections()).includes('Estructura'));
+  check('tras cambiar el rango el panel sigue abierto (sobrevive al repintado)', (await sections()).includes('Estructura'));
 
-  console.log('\n-- paneles exclusivos y el modo se conserva --');
+  console.log('\n-- panel único: dos bloques, nada repetido --');
   await goto('#/alfa', ['Boxplot']);
   await clickBtn('/Personalizar/'); await sleep(300);
-  const editSecs = await sections();
-  await clickBtn('/Ajustes/'); await sleep(300);
-  const setSecs = await sections();
-  check('Personalizar muestra Títulos/Estilo/Paleta y NO Estructura', editSecs.some((s) => /Títulos/.test(s)) && !editSecs.includes('Estructura'), JSON.stringify(editSecs));
-  check('Ajustes muestra Estructura/Geometría/Significación y NO Títulos (paneles exclusivos)', setSecs.includes('Estructura') && setSecs.includes('Geometría') && !setSecs.some((s) => /Títulos/.test(s)), JSON.stringify(setSecs));
+  const allSecs = await sections();
+  const groups = await c.ev(`[...document.querySelectorAll('#app-view .ce-toolbar .ce-group')].map((g) => ({ title: g.querySelector('.ce-group-title').textContent, secs: [...g.querySelectorAll('h5')].map((h) => h.textContent) }))`);
+  const data = groups.find((g) => /Datos/.test(g.title)), look = groups.find((g) => /Apariencia/.test(g.title));
+  check('el panel tiene los bloques "Datos y estructura" y "Apariencia"', groups.length === 2 && !!data && !!look, JSON.stringify(groups));
+  check('Estructura/Geometría/Significación van en "Datos y estructura"', !!data && ['Estructura', 'Geometría'].every((x) => data.secs.includes(x)) && data.secs.some((x) => /Significaci/.test(x)), JSON.stringify(data));
+  check('Títulos/Estilo/Paleta/Presets van en "Apariencia"', !!look && look.secs.some((x) => /Títulos/.test(x)) && look.secs.some((x) => /Estilo/.test(x)) && look.secs.includes('Presets'), JSON.stringify(look));
+  check('ninguna sección aparece dos veces', new Set(allSecs).size === allSecs.length, JSON.stringify(allSecs));
 
   console.log('\n-- lo que antes faltaba --');
   await goto('#/diferencial', ['Comparar']);

@@ -5,7 +5,7 @@
 // sin cambios de comportamiento). Reparto y patrón `ctx`: js/lib/chart/chartEditor.js.
 
 const I18N = {
-  es: { customize: 'Personalizar', settings: 'Ajustes', settingsHint: 'Ajustes de la figura: estructura, tamaños, estadística y escala de color. Los cambios recalculan el gráfico.', done: 'Terminar', reset: 'Restablecer', download: 'Descargar SVG', downloadPng: 'Descargar PNG', downloadTiff: 'Descargar TIFF',
+  es: { customize: 'Personalizar', groupData: 'Datos y estructura', groupDataHint: 'Ejes, orden, tamaños, estadística y escala de color. Estos cambios recalculan el gráfico.', groupLook: 'Apariencia', groupLookHint: 'Títulos, tipografía, colores y presets. Solo cambian cómo se ve.', done: 'Terminar', reset: 'Restablecer', download: 'Descargar SVG', downloadPng: 'Descargar PNG', downloadTiff: 'Descargar TIFF',
         hint: 'Arrastra los textos (o enfócalos con el tabulador y muévelos con las flechas). Haz clic o pulsa Intro para cambiar su estilo.',
         lead: 'Esta figura es editable:', leadRest: 'cambia textos, colores y posiciones, y descárgala en SVG o PNG.',
         text: 'Texto', color: 'Color', hex: 'Hex', font: 'Fuente', size: 'Tamaño', bold: 'Negrita', italic: 'Cursiva', close: 'Cerrar',
@@ -54,7 +54,7 @@ const I18N = {
         presetJournalTitle: 'Presets de revista', presetJournalHelp: 'Fuente/tamaño/grosor/ancho según la especificación oficial — aplicar reemplaza el estilo actual.',
         presetNatureLabel: (mm) => 'Nature (' + mm + ' mm)', presetCellLabel: (mm) => 'Cell (' + mm + ' mm)',
         exportWidthLabel: 'Ancho de exportación (mm)', exportWidthHelp: 'Vacío = tamaño natural en píxeles.' },
-  en: { customize: 'Customise', settings: 'Settings', settingsHint: 'Figure settings: structure, sizes, statistics and colour scale. Changes recalculate the chart.', done: 'Done', reset: 'Reset', download: 'Download SVG', downloadPng: 'Download PNG', downloadTiff: 'Download TIFF',
+  en: { customize: 'Customise', groupData: 'Data and structure', groupDataHint: 'Axes, order, sizes, statistics and colour scale. These changes recalculate the chart.', groupLook: 'Appearance', groupLookHint: 'Titles, typography, colours and presets. They only change how it looks.', done: 'Done', reset: 'Reset', download: 'Download SVG', downloadPng: 'Download PNG', downloadTiff: 'Download TIFF',
         hint: 'Drag the labels (or focus them with Tab and move them with the arrow keys). Click or press Enter to change the style.',
         lead: 'This figure is editable:', leadRest: 'change text, colours and positions, then download it as SVG or PNG.',
         text: 'Text', color: 'Colour', hex: 'Hex', font: 'Font', size: 'Size', bold: 'Bold', italic: 'Italic', close: 'Close',
