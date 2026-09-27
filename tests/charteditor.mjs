@@ -824,40 +824,30 @@ console.log('\n--- 4. Motor de exportación vectorial (SVG) y rasterizado (PNG 3
     lang: 'es',
   });
 
-  const allTbBtns = mountTb.querySelectorAll('button');
-  const btnSvgTb = Array.from(allTbBtns).find((b) => b.textContent && b.textContent.includes('Descargar SVG'));
-  const btnPngTb = Array.from(allTbBtns).find((b) => b.textContent && b.textContent.includes('Descargar PNG'));
-  const btnTiffTb = Array.from(allTbBtns).find((b) => b.textContent && b.textContent.includes('Descargar TIFF'));
+  // Fase 1: un desplegable de formato + un solo botón "Descargar" (antes, un
+  // botón por formato)
+  const allTbBtns = Array.from(mountTb.querySelectorAll('button'));
+  const oldBtns = allTbBtns.filter((b) => b.textContent && /Descargar (SVG|PNG|TIFF)/.test(b.textContent));
+  const btnDl = allTbBtns.find((b) => b.classList.contains('ce-download-btn'));
+  const fmtSel = Array.from(mountTb.querySelectorAll('select')).find((s) => s.classList.contains('ce-export-format'));
+  const fmtVals = fmtSel ? fmtSel.children.map((o) => o.value) : [];
 
-  check('attachChartEditor incluye botón "Descargar SVG"', Boolean(btnSvgTb));
-  check('attachChartEditor incluye botón "Descargar PNG"', Boolean(btnPngTb));
-  check('attachChartEditor incluye botón "Descargar TIFF" (Paso 3 de Fase 0)', Boolean(btnTiffTb));
+  check('ya no hay un botón por formato (Descargar SVG/PNG/TIFF)', oldBtns.length === 0, oldBtns.map((b) => b.textContent).join(','));
+  check('la barra tiene un desplegable de formato con svg/png/tiff/pdf', JSON.stringify(fmtVals) === '["svg","png","tiff","pdf"]', JSON.stringify(fmtVals));
+  check('la barra tiene un único botón "Descargar"', Boolean(btnDl) && /Descargar/.test(btnDl.textContent));
 
-  if (btnSvgTb) {
+  // pdf no se pulsa aquí: necesita getImageData + CompressionStream reales
+  // (se comprueba en el navegador en tests/figureexport.mjs)
+  for (const fmt of ['svg', 'png', 'tiff']) {
+    if (!btnDl || !fmtSel) break;
     doc._downloads = [];
-    btnSvgTb.dispatchEvent('click');
+    fmtSel.value = fmt;
+    btnDl.dispatchEvent('click');
+    // PNG/TIFF son async (rasterizado simulado)
+    await new Promise((r) => setTimeout(r, 30));
     const dl = doc._downloads[doc._downloads.length - 1];
-    check('clic en "Descargar SVG" en toolbar dispara descarga con filename especificado',
-      dl && dl.download === 'smart175_test_tb.svg');
-  }
-
-  if (btnPngTb) {
-    doc._downloads = [];
-    btnPngTb.dispatchEvent('click');
-    // Esperar microtask / onload simulado
-    await new Promise((r) => setTimeout(r, 20));
-    const dl = doc._downloads[doc._downloads.length - 1];
-    check('clic en "Descargar PNG" en toolbar dispara descarga con filename especificado',
-      dl && dl.download === 'smart175_test_tb.png');
-  }
-
-  if (btnTiffTb) {
-    doc._downloads = [];
-    btnTiffTb.dispatchEvent('click');
-    await new Promise((r) => setTimeout(r, 20));
-    const dl = doc._downloads[doc._downloads.length - 1];
-    check('clic en "Descargar TIFF" en toolbar dispara descarga con filename especificado',
-      dl && dl.download === 'smart175_test_tb.tiff');
+    check('formato "' + fmt + '" + Descargar → descarga smart175_test_tb.' + fmt,
+      dl && dl.download === 'smart175_test_tb.' + fmt, dl && dl.download);
   }
 
   editorTb.destroy();

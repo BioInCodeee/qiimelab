@@ -1,8 +1,8 @@
 // tests/figureexport.mjs — Paso 3 de qiimelab-prompt-editor-fase-0-fundamentos.md
 // (pipeline de exportación de figuras, js/lib/figureExport.js).
 //
-// Parte 1 (siempre corre, sin Chrome): resolveComputedColor, pngWithDpi y
-// encodeTiff son funciones puras — se verifican decodificando a mano los
+// Parte 1 (siempre corre, sin Chrome): resolveComputedColor, pngWithDpi,
+// encodeTiff y encodePdf son funciones puras — se verifican decodificando a mano los
 // bytes producidos (CRC32/IFD propios, no reutilizando el código bajo
 // prueba) igual que se haría con un visor real o Python-Pillow.
 //
@@ -14,7 +14,8 @@
 //
 //   node tests/figureexport.mjs
 
-import { resolveComputedColor, resolveComputedColorHex, pngWithDpi, encodeTiff } from '../js/lib/figureExport.js';
+import { resolveComputedColor, resolveComputedColorHex, pngWithDpi, encodeTiff, encodePdf, deflateZlib } from '../js/lib/figureExport.js';
+import { inflateSync } from 'node:zlib';
 
 let failed = false;
 function check(label, condition, detail = '') {
@@ -161,6 +162,32 @@ console.log('\n--- 3. encodeTiff (IFD decodificado a mano, RGB y RGBA) ---');
     Array.from(pixRgba).join(',') === '255,0,0,255,0,255,0,128');
 }
 
+console.log('\n--- 3b. encodePdf (xref/offsets y la imagen, decodificados a mano) ---');
+{
+  // 3×2 px RGB conocidos → deflate → PDF; se relee con zlib de Node (no con
+  // el código bajo prueba) y se comprueban las tablas del PDF byte a byte
+  const w = 3, h = 2;
+  const rgb = Uint8Array.from({ length: w * h * 3 }, (_, i) => (i * 37) % 256);
+  const z = await deflateZlib(rgb);
+  check('deflateZlib produce zlib que Node descomprime a los mismos bytes', Buffer.compare(inflateSync(Buffer.from(z)), Buffer.from(rgb)) === 0);
+  const wPt = 89 / 25.4 * 72, hPt = wPt * h / w;
+  const pdf = encodePdf(z, w, h, wPt, hPt);
+  const txt = Buffer.from(pdf).toString('latin1');
+  check('empieza por %PDF-1.4 y termina en %%EOF', txt.startsWith('%PDF-1.4\n') && txt.trimEnd().endsWith('%%EOF'));
+  const xref = +(txt.match(/startxref\n(\d+)/) || [])[1];
+  check('startxref apunta exactamente a la tabla xref', txt.slice(xref, xref + 5) === 'xref\n', String(xref));
+  const offs = [...txt.slice(xref).matchAll(/(\d{10}) 00000 n /g)].map((m) => +m[1]);
+  check('las 5 entradas de xref apuntan al inicio de su objeto', offs.length === 5 && offs.every((o, i) => txt.startsWith((i + 1) + ' 0 obj', o)), JSON.stringify(offs));
+  const mb = txt.match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
+  check('la página mide el tamaño físico pedido (89 mm = 252.28 pt)', mb && Math.abs(+mb[1] - 252.283) < 0.01 && Math.abs(+mb[2] - hPt) < 0.01, mb && mb[0]);
+  const im = txt.indexOf('/Subtype /Image');
+  const lenM = txt.slice(im).match(/\/Width (\d+) \/Height (\d+).*?\/Length (\d+) >>\nstream\n/);
+  const start = im + txt.slice(im).indexOf('stream\n') + 7;
+  const stream = Buffer.from(pdf.subarray(start, start + (lenM ? +lenM[3] : 0)));
+  check('el XObject de imagen declara 3×2 y su stream descomprime a los píxeles originales',
+    lenM && +lenM[1] === w && +lenM[2] === h && Buffer.compare(inflateSync(stream), Buffer.from(rgb)) === 0);
+}
+
 console.log('\n--- 4. Exportación real en Chrome (color-mix() en modo oscuro) ---');
 {
   const { ensureServer } = await import('./lib/server.mjs');
@@ -192,7 +219,7 @@ console.log('\n--- 4. Exportación real en Chrome (color-mix() en modo oscuro) -
     const svg = document.querySelector('svg.ql-svg');
     if (!svg) return { err: 'no se encontró ningún <svg> en #/beta' };
     const { exportFigure } = await import('/js/lib/figureExport.js');
-    const res = await exportFigure(svg, { widthMm: 89, dpi: 300, scheme: 'light', background: 'white', formats: ['svg', 'png', 'tiff'] });
+    const res = await exportFigure(svg, { widthMm: 89, dpi: 300, scheme: 'light', background: 'white', formats: ['svg', 'png', 'tiff', 'pdf'] });
 
     const noColorFn = !/color\\(/.test(res.svg);
     const noVar = !/var\\(--/.test(res.svg);
@@ -210,8 +237,11 @@ console.log('\n--- 4. Exportación real en Chrome (color-mix() en modo oscuro) -
 
     const pngHead = Array.from(res.png.subarray(0, 50));
     const tiffHead = Array.from(res.tiff.subarray(0, 4));
+    const pdfTxt = new TextDecoder('latin1').decode(res.pdf.subarray(0, 600));
+    const pdfMediaBox = (pdfTxt.match(/\\/MediaBox \\[0 0 ([\\d.]+) /) || [])[1];
+    const pdfImg = new TextDecoder('latin1').decode(res.pdf).match(/\\/Width (\\d+) \\/Height (\\d+)/);
 
-    return { noColorFn, noVar, hasWhiteBg, axisTitleHex, axisTitleLum, pngHead, tiffHead };
+    return { noColorFn, noVar, hasWhiteBg, axisTitleHex, axisTitleLum, pngHead, tiffHead, pdfHead: pdfTxt.slice(0, 8), pdfMediaBox, pdfW: pdfImg && +pdfImg[1], widthPx: res.widthPx };
   })()`);
 
   if (result.err) {
@@ -240,6 +270,10 @@ console.log('\n--- 4. Exportación real en Chrome (color-mix() en modo oscuro) -
     check('el TIFF exportado empieza con la cabecera little-endian válida (II, 42)',
       result.tiffHead[0] === 0x49 && result.tiffHead[1] === 0x49 &&
       new DataView(Uint8Array.from(result.tiffHead).buffer).getUint16(2, true) === 42);
+
+    check('el PDF exportado es un %PDF-1.4 de 89 mm de ancho con la imagen a 300 dpi',
+      result.pdfHead === '%PDF-1.4' && Math.abs(+result.pdfMediaBox - 252.283) < 0.01 && result.pdfW === result.widthPx,
+      JSON.stringify({ head: result.pdfHead, mb: result.pdfMediaBox, w: result.pdfW, px: result.widthPx }));
   }
 
   c.kill();

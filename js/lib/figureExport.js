@@ -1,7 +1,8 @@
 // figureExport.js — pipeline de exportación de figuras: SVG limpio (sin
 // var()/color()/color-mix() residual, siempre legible con independencia del
-// tema activo), PNG con metadatos de dpi reales (chunk pHYs) y TIFF baseline
-// sin compresión con resolución embebida. Sin dependencias.
+// tema activo), PNG con metadatos de dpi reales (chunk pHYs), TIFF baseline
+// sin compresión con resolución embebida y PDF de una página (la figura
+// rasterizada al tamaño físico — no vectorial). Sin dependencias.
 //
 // Motivación — 2 bugs confirmados en el pipeline anterior de chartEditor.js
 // (ver Paso 3 de qiimelab-prompt-editor-fase-0-fundamentos.md):
@@ -327,8 +328,49 @@ export function encodeTiff(img, dpi, o = {}) {
   return buf;
 }
 
+// ----------------------------------------------------------------- PDF ----
 /**
- * Pipeline completo: <svg> → { svg, png, tiff } con tamaño físico.
+ * PDF 1.4 de una página con la figura como imagen RGB (FlateDecode). Función
+ * pura: recibe los bytes RGB ya comprimidos en zlib (ver `deflateZlib`). La
+ * página mide exactamente `wPt`×`hPt` puntos (1pt = 1/72"), así que al
+ * imprimir sale al tamaño físico pedido; la resolución efectiva es wPx/wPt*72.
+ * No es vectorial: para editar trazos en Illustrator/Inkscape, el SVG.
+ */
+export function encodePdf(rgbZ, wPx, hPx, wPt, hPt) {
+  const enc = new TextEncoder();
+  const chunks = []; const offsets = []; let len = 0;
+  const put = (x) => { const b = typeof x === 'string' ? enc.encode(x) : x; chunks.push(b); len += b.length; };
+  const num = (n) => String(Math.round(n * 1000) / 1000);
+  const obj = (n, head, stream) => {
+    offsets[n] = len;
+    put(n + ' 0 obj\n' + head + '\n');
+    if (stream) { put('stream\n'); put(stream); put('\nendstream\n'); }
+    put('endobj\n');
+  };
+  put('%PDF-1.4\n');
+  put(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a])); // marca binaria (comentario)
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + num(wPt) + ' ' + num(hPt) + '] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>');
+  const content = enc.encode('q ' + num(wPt) + ' 0 0 ' + num(hPt) + ' 0 0 cm /Im0 Do Q');
+  obj(4, '<< /Length ' + content.length + ' >>', content);
+  obj(5, '<< /Type /XObject /Subtype /Image /Width ' + wPx + ' /Height ' + hPx + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ' + rgbZ.length + ' >>', rgbZ);
+  const xref = len;
+  put('xref\n0 6\n0000000000 65535 f \n' + offsets.slice(1).map((o) => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+  put('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+  const out = new Uint8Array(len); let o = 0;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  return out;
+}
+
+/** zlib (RFC 1950, lo que espera FlateDecode) con el CompressionStream nativo. */
+export async function deflateZlib(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * Pipeline completo: <svg> → { svg, png, tiff, pdf } con tamaño físico.
  * @param {number} [o.widthMm]  ancho físico deseado (p.ej. 89/183mm Nature,
  *        85/174mm Cell). Sin especificar, se reinterpreta el tamaño actual
  *        en px como si fueran px CSS a 96ppp — "el tamaño de siempre", solo
@@ -340,12 +382,25 @@ export async function exportFigure(svg, { widthMm, dpi = 300, scheme = 'light', 
   const wPx = Math.round(effWidthMm / 25.4 * dpi);
   const hPx = Math.round(wPx * s.height / s.width);
   const res = { svg: s.svg, widthMm: s.widthMm, heightMm: s.heightMm, widthPx: wPx, heightPx: hPx, dpi };
-  if (formats.includes('png') || formats.includes('tiff')) {
+  if (formats.includes('png') || formats.includes('tiff') || formats.includes('pdf')) {
     const cv = await rasterize(s.svg, wPx, hPx, { transparent: background === 'transparent' });
     if (formats.includes('png')) res.png = canvasToPng(cv, dpi);
     if (formats.includes('tiff')) {
       const id = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height);
       res.tiff = encodeTiff(id, dpi, { alpha: background === 'transparent' });
+    }
+    if (formats.includes('pdf')) {
+      // PDF sin canal alfa: se aplana sobre blanco aunque se pida transparente
+      const { data } = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height);
+      const rgb = new Uint8Array(cv.width * cv.height * 3);
+      for (let i = 0, j = 0; i < data.length; i += 4, j += 3) {
+        const a = data[i + 3] / 255;
+        rgb[j] = Math.round(data[i] * a + 255 * (1 - a));
+        rgb[j + 1] = Math.round(data[i + 1] * a + 255 * (1 - a));
+        rgb[j + 2] = Math.round(data[i + 2] * a + 255 * (1 - a));
+      }
+      const wPt = effWidthMm / 25.4 * 72;
+      res.pdf = encodePdf(await deflateZlib(rgb), cv.width, cv.height, wPt, wPt * cv.height / cv.width);
     }
   }
   return res;

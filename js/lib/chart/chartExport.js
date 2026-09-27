@@ -327,5 +327,22 @@ export function createExport(ctx) {
     return res;
   }
 
-  return { downloadPng, downloadSvg, downloadTiff, getExportWidthMm, serialize, setExportWidthMm };
+  // PDF de una página: la figura rasterizada a 300 ppp al tamaño físico
+  // (no vectorial — para editar trazos, el SVG). Ver encodePdf().
+  async function downloadPdf() {
+    const res = await exportFigure(svg, { formats: ['pdf'], scheme: 'light', background: 'white', dpi: 300, widthMm: getExportWidthMm() });
+    triggerDownload(res.pdf, 'application/pdf', downloadFilename('pdf'));
+    return res;
+  }
+
+  /** Descarga en el formato elegido en el desplegable de la barra. */
+  function downloadAs(fmt) {
+    const fn = { svg: downloadSvg, png: downloadPng, tiff: downloadTiff, pdf: downloadPdf }[fmt];
+    return fn ? fn() : undefined;
+  }
+
+  return {
+    downloadAs, downloadPdf, downloadPng, downloadSvg, downloadTiff, getExportWidthMm, serialize,
+    setExportWidthMm,
+  };
 }

@@ -162,6 +162,17 @@ export { openChartEditor } from './chartLegacyDialog.js';
  *        arrastrándose libremente. `dx`/`dy` son ABSOLUTOS (mismo sistema
  *        que ya usa el arrastre), no relativos a la posición actual.
  */
+// Formatos del desplegable de descarga y el último elegido (por navegador).
+const EXPORT_FORMATS = ['svg', 'png', 'tiff', 'pdf'];
+const EXPORT_FORMAT_LSKEY = 'smart-175.exportFormat';
+function readExportFormat() {
+  try { const v = localStorage.getItem(EXPORT_FORMAT_LSKEY); return EXPORT_FORMATS.includes(v) ? v : 'svg'; }
+  catch (e) { return 'svg'; }
+}
+function writeExportFormat(v) {
+  try { localStorage.setItem(EXPORT_FORMAT_LSKEY, v); } catch (e) { /* modo privado */ }
+}
+
 // Foco pendiente tras un repintado "de recálculo" (estadística/escala de
 // color/estructura): esas secciones fuerzan cfg.onStatsChange/
 // onColorScaleChange/... -> paint() del módulo -> destroy() de esta
@@ -243,7 +254,7 @@ export function attachChartEditor(cfg) {
   const {
     closePanel, decorate, onDocDown, onKey, sync, syncSelection,
   } = register(createElements(ctx));
-  const { downloadPng, downloadSvg, downloadTiff, serialize } = register(createExport(ctx));
+  const { downloadAs, downloadPng, downloadSvg, serialize } = register(createExport(ctx));
   const { renderPresetsSection } = register(createPresets(ctx));
 
   function readStore() {
@@ -339,17 +350,27 @@ export function attachChartEditor(cfg) {
     bFull.className = 'ql-btn' + (fsHandle ? ' ce-on' : '');
     toolbar.appendChild(bFull);
 
-    const bDl = mkBtn(CE_ICONS.download, T.download, downloadSvg);
-    bDl.className = 'ql-btn';
-    toolbar.appendChild(bDl);
-
-    const bPng = mkBtn(CE_ICONS.download, T.downloadPng, downloadPng);
-    bPng.className = 'ql-btn';
-    toolbar.appendChild(bPng);
-
-    const bTiff = mkBtn(CE_ICONS.download, T.downloadTiff, downloadTiff);
-    bTiff.className = 'ql-btn';
-    toolbar.appendChild(bTiff);
+    // exportación: un desplegable de formato + un solo botón (Fase 1). El
+    // último formato elegido se recuerda por navegador, no por figura (no
+    // es estilo de la figura: no debe contar para isDirty ni "Restablecer").
+    const dlWrap = document.createElement('span');
+    dlWrap.className = 'ce-download';
+    const fmtSel = document.createElement('select');
+    fmtSel.className = 'ce-export-format';
+    fmtSel.setAttribute('aria-label', T.exportFormatLabel);
+    const fmt = readExportFormat();
+    EXPORT_FORMATS.forEach((f) => {
+      const o = document.createElement('option');
+      o.value = f; o.textContent = T.exportFormats[f];
+      if (f === fmt) o.selected = true;
+      fmtSel.appendChild(o);
+    });
+    fmtSel.value = fmt;
+    fmtSel.addEventListener('change', () => writeExportFormat(fmtSel.value));
+    const bDl = mkBtn(CE_ICONS.download, T.downloadBtn, () => downloadAs(fmtSel.value));
+    bDl.className = 'ql-btn ce-download-btn';
+    dlWrap.appendChild(fmtSel); dlWrap.appendChild(bDl);
+    toolbar.appendChild(dlWrap);
 
     if (Object.keys(ctx.store).length) {
       const bReset = mkBtn(CE_ICONS.reset, T.reset, resetAll);

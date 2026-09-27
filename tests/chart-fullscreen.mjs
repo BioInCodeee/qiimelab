@@ -65,8 +65,11 @@ async function testModule(route, svgSelector) {
   // la descarga de SVG sigue funcionando desde dentro del modal
   const dl = await c.ev(`(async () => {
     const dlg = document.querySelector('.ql-modal-wide');
-    const btn = [...dlg.querySelectorAll('.ce-toolbar button')].find((b) => /Descargar SVG|Download SVG/.test(b.textContent));
-    if (!btn) return { err: 'no hay botón de descarga en el modal' };
+    // formato SVG en el desplegable + botón Descargar (Fase 1)
+    const sel = dlg.querySelector('.ce-toolbar .ce-export-format');
+    const btn = dlg.querySelector('.ce-toolbar .ce-download-btn');
+    if (!sel || !btn) return { err: 'no hay desplegable/botón de descarga en el modal' };
+    sel.value = 'svg';
     let captured = null;
     const orig = URL.createObjectURL;
     URL.createObjectURL = (blob) => { captured = blob; return orig.call(URL, blob); };
@@ -77,7 +80,7 @@ async function testModule(route, svgSelector) {
     const text = await captured.text();
     return { type: captured.type, size: captured.size, looksLikeSvg: /<svg[\\s>]/.test(text) };
   })()`);
-  check(route + ': "Descargar SVG" sigue funcionando desde el modal (produce un .svg real)',
+  check(route + ': descargar en SVG sigue funcionando desde el modal (produce un .svg real)',
     dl.looksLikeSvg === true && dl.size > 0, JSON.stringify(dl));
 
   // cerrar con Escape y comprobar que vuelve exactamente a su sitio

@@ -127,8 +127,8 @@ try {
 
   console.log('\n-- lo que antes faltaba --');
   await goto('#/diferencial', ['Comparar']);
-  const cmp = await c.ev(`(() => { const tb = document.querySelector('#app-view .ce-toolbar'); return { tb: !!tb, n: tb ? tb.querySelectorAll('button').length : 0 }; })()`);
-  check('el Venn de "Comparar varias" ya tiene la barra del editor', cmp.tb && cmp.n >= 5, JSON.stringify(cmp));
+  const cmp = await c.ev(`(() => { const tb = document.querySelector('#app-view .ce-toolbar'); return { tb: !!tb, n: tb ? tb.querySelectorAll('button').length : 0, fmt: !!(tb && tb.querySelector('.ce-export-format')) }; })()`);
+  check('el Venn de "Comparar varias" ya tiene la barra del editor (Personalizar, pantalla completa, formato + Descargar)', cmp.tb && cmp.n >= 3 && cmp.fmt, JSON.stringify(cmp));
 
   await goto('#/inferencia', ['Diagrama Aluvial']);
   await clickBtn('/Personalizar/'); await sleep(400);

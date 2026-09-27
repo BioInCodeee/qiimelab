@@ -5,9 +5,9 @@
 // sin cambios de comportamiento). Reparto y patrón `ctx`: js/lib/chart/chartEditor.js.
 
 const I18N = {
-  es: { customize: 'Personalizar', groupData: 'Datos y estructura', groupDataHint: 'Ejes, orden, tamaños, estadística y escala de color. Estos cambios recalculan el gráfico.', groupLook: 'Apariencia', groupLookHint: 'Títulos, tipografía, colores y presets. Solo cambian cómo se ve.', done: 'Terminar', reset: 'Restablecer', download: 'Descargar SVG', downloadPng: 'Descargar PNG', downloadTiff: 'Descargar TIFF',
+  es: { customize: 'Personalizar', groupData: 'Datos y estructura', groupDataHint: 'Ejes, orden, tamaños, estadística y escala de color. Estos cambios recalculan el gráfico.', groupLook: 'Apariencia', groupLookHint: 'Títulos, tipografía, colores y presets. Solo cambian cómo se ve.', done: 'Terminar', reset: 'Restablecer', downloadBtn: 'Descargar', exportFormatLabel: 'Formato de descarga', exportFormats: { svg: 'SVG (vectorial)', png: 'PNG (300 ppp)', tiff: 'TIFF (300 ppp)', pdf: 'PDF (imagen, 300 ppp)' },
         hint: 'Arrastra los textos (o enfócalos con el tabulador y muévelos con las flechas). Haz clic o pulsa Intro para cambiar su estilo.',
-        lead: 'Esta figura es editable:', leadRest: 'cambia textos, colores y posiciones, y descárgala en SVG o PNG.',
+        lead: 'Esta figura es editable:', leadRest: 'cambia textos, colores y posiciones, y descárgala en SVG, PNG, TIFF o PDF.',
         text: 'Texto', color: 'Color', hex: 'Hex', font: 'Fuente', size: 'Tamaño', bold: 'Negrita', italic: 'Cursiva', close: 'Cerrar',
         handle: (name) => name + ', elemento arrastrable: muévelo con las flechas (Mayús = paso mayor), Intro para editar su estilo',
         paletteTitle: 'Paleta de la figura', paletteCategorical: 'Categórica', paletteSequential: 'Secuencial', paletteDivergent: 'Divergente',
@@ -54,9 +54,9 @@ const I18N = {
         presetJournalTitle: 'Presets de revista', presetJournalHelp: 'Fuente/tamaño/grosor/ancho según la especificación oficial — aplicar reemplaza el estilo actual.',
         presetNatureLabel: (mm) => 'Nature (' + mm + ' mm)', presetCellLabel: (mm) => 'Cell (' + mm + ' mm)',
         exportWidthLabel: 'Ancho de exportación (mm)', exportWidthHelp: 'Vacío = tamaño natural en píxeles.' },
-  en: { customize: 'Customise', groupData: 'Data and structure', groupDataHint: 'Axes, order, sizes, statistics and colour scale. These changes recalculate the chart.', groupLook: 'Appearance', groupLookHint: 'Titles, typography, colours and presets. They only change how it looks.', done: 'Done', reset: 'Reset', download: 'Download SVG', downloadPng: 'Download PNG', downloadTiff: 'Download TIFF',
+  en: { customize: 'Customise', groupData: 'Data and structure', groupDataHint: 'Axes, order, sizes, statistics and colour scale. These changes recalculate the chart.', groupLook: 'Appearance', groupLookHint: 'Titles, typography, colours and presets. They only change how it looks.', done: 'Done', reset: 'Reset', downloadBtn: 'Download', exportFormatLabel: 'Download format', exportFormats: { svg: 'SVG (vector)', png: 'PNG (300 dpi)', tiff: 'TIFF (300 dpi)', pdf: 'PDF (image, 300 dpi)' },
         hint: 'Drag the labels (or focus them with Tab and move them with the arrow keys). Click or press Enter to change the style.',
-        lead: 'This figure is editable:', leadRest: 'change text, colours and positions, then download it as SVG or PNG.',
+        lead: 'This figure is editable:', leadRest: 'change text, colours and positions, then download it as SVG, PNG, TIFF or PDF.',
         text: 'Text', color: 'Colour', hex: 'Hex', font: 'Font', size: 'Size', bold: 'Bold', italic: 'Italic', close: 'Close',
         handle: (name) => name + ', draggable element: move it with the arrow keys (Shift = larger step), Enter to edit its style',
         paletteTitle: 'Figure palette', paletteCategorical: 'Categorical', paletteSequential: 'Sequential', paletteDivergent: 'Divergent',

@@ -24,6 +24,8 @@ export function injectStyles() {
 .ce-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid var(--border-strong); }
 .ce-toolbar .ce-lead { font-size:12px; color:var(--ink-2); flex:1 1 100%; margin:0 0 4px; }
 .ce-toolbar .ce-lead strong { color:var(--ink); font-weight:600; }
+.ce-download { display:inline-flex; align-items:center; gap:6px; }
+.ce-download .ce-export-format { width:auto; min-width:0; }
 /* panel único (Fase 1): dos bloques, "Datos y estructura" y "Apariencia" */
 .ce-group { flex:1 1 100%; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-top:12px; padding:10px 12px 12px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
 .ce-group-title { flex:1 1 100%; margin:0; font-size:12.5px; font-weight:600; color:var(--ink); }
