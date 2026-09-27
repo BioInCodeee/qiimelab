@@ -16,7 +16,8 @@ import {
 import { t, getLang } from '../lib/i18n.js';
 import { groupColor, drawGroupStripPlot, drawGroupViolin, legendPositionLabel } from '../lib/groupBoxplot.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
-import { attachChartEditor } from '../lib/chartEditor.js';
+import { attachChartEditor, getFigureOptions } from '../lib/chartEditor.js';
+import { orderCategories } from '../lib/categoryOrder.js';
 import { ingestFile } from '../lib/ingest.js';
 import { parseTable } from '../lib/csv.js';
 import { summariseCountSeries, splitByFacet } from '../lib/countStats.js';
@@ -25,7 +26,7 @@ import { drawSignificanceBrackets, countBracketRows } from '../lib/statAnnotatio
 import {
   loadExampleMicrobialCountsPlate, loadExampleMicrobialCountsMPN, exampleDownloadBlock,
 } from '../lib/exampleData.js';
-import { svgEl, escapeHtml, moreDetailsHtml } from '../lib/dom.js';
+import { svgEl, escapeHtml, moreDetailsHtml, plotClip } from '../lib/dom.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { createTooltip, hideTooltip, showTooltip } from '../lib/tooltip.js';
 function fmt(v, d) {
@@ -536,7 +537,15 @@ export function render(container) {
 
   function renderOneBlock(s, level, showHeading) {
     const summary = summariseCountSeries(s);
-    const usable = summary.groups.filter((g) => g.n > 0);
+    let usable = summary.groups.filter((g) => g.n > 0);
+    // orden de los grupos (Ajustes > Estructura). Se aplica ANTES de fisherLSD:
+    // las letras y los corchetes se indexan por posición de grupo. Solo en la
+    // vista de barras: puntos/violín ordenan por su cuenta en groupBoxplot.js.
+    if (plotStyle === 'bars') {
+      const byKey = new Map(usable.map((g) => [g.key, g]));
+      const so = getFigureOptions('microbialCounts' + (level ? '-' + level : ''));
+      usable = orderCategories(usable.map((g) => g.key), (k) => byKey.get(k).meanLog, so.categoryOrder).map((k) => byKey.get(k));
+    }
 
     if (showHeading) {
       const h = document.createElement('h2');
@@ -787,6 +796,13 @@ export function render(container) {
     yMax = Math.ceil((yMax + span * 0.12) * 2) / 2;
     yMin = Math.max(0, Math.floor((yMin - span * 0.12) * 2) / 2);
     if (yMax - yMin < 0.5) yMax = yMin + 0.5;
+    // rango manual del eje Y (Ajustes > Estructura); por defecto el automático
+    const blockKey = 'microbialCounts' + (level ? '-' + level : '');
+    const autoY = [yMin, yMax];
+    const so = getFigureOptions(blockKey);
+    if (so.axisMin != null) yMin = so.axisMin;
+    if (so.axisMax != null) yMax = so.axisMax;
+    if (!(yMax > yMin)) { yMin = autoY[0]; yMax = autoY[1]; }
 
     const n = groups.length;
     const slotW = Math.max(70, Math.min(150, 620 / n));
@@ -829,6 +845,9 @@ export function render(container) {
     svg.appendChild(svgEl('line', { x1: marginL, x2: W - marginR, y1: marginT + innerH, y2: marginT + innerH, class: 'ql-baseline-line' }));
 
     const barW = Math.min(54, slotW * 0.56);
+    // barras y barras de error recortadas al área de trazado (rango manual)
+    const dataLayer = svgEl('g', { 'clip-path': plotClip(svg, 'ql-clip-recuentos', marginL, marginT, W - marginL - marginR, innerH) });
+    svg.appendChild(dataLayer);
     groups.forEach((g, gi) => {
       const cx = marginL + slotW * gi + slotW / 2;
       const col = groupColor(gi);
@@ -846,16 +865,16 @@ export function render(container) {
         ], { svg, W, H, tooltip });
       });
       rect.addEventListener('mouseleave', () => hideTooltip(tooltip));
-      svg.appendChild(rect);
+      dataLayer.appendChild(rect);
 
       // barra de error (solo si n >= 2 → SD/SE definidos)
       const e = err(g);
       let errTopY = yTop;
       if (g.n >= 2 && e > 0) {
         const yHi = yScale(g.meanLog + e), yLo = yScale(Math.max(yMin, g.meanLog - e));
-        svg.appendChild(svgEl('line', { x1: cx, x2: cx, y1: yHi, y2: yLo, class: 'ql-errorbar-line', stroke: 'var(--ink)', 'stroke-width': 1.5, 'data-ce-role': 'line' }));
-        svg.appendChild(svgEl('line', { x1: cx - 7, x2: cx + 7, y1: yHi, y2: yHi, class: 'ql-errorbar-line', stroke: 'var(--ink)', 'stroke-width': 1.5, 'data-ce-role': 'line' }));
-        svg.appendChild(svgEl('line', { x1: cx - 7, x2: cx + 7, y1: yLo, y2: yLo, class: 'ql-errorbar-line', stroke: 'var(--ink)', 'stroke-width': 1.5, 'data-ce-role': 'line' }));
+        dataLayer.appendChild(svgEl('line', { x1: cx, x2: cx, y1: yHi, y2: yLo, class: 'ql-errorbar-line', stroke: 'var(--ink)', 'stroke-width': 1.5, 'data-ce-role': 'line' }));
+        dataLayer.appendChild(svgEl('line', { x1: cx - 7, x2: cx + 7, y1: yHi, y2: yHi, class: 'ql-errorbar-line', stroke: 'var(--ink)', 'stroke-width': 1.5, 'data-ce-role': 'line' }));
+        dataLayer.appendChild(svgEl('line', { x1: cx - 7, x2: cx + 7, y1: yLo, y2: yLo, class: 'ql-errorbar-line', stroke: 'var(--ink)', 'stroke-width': 1.5, 'data-ce-role': 'line' }));
         errTopY = yHi;
       }
 
@@ -909,7 +928,6 @@ export function render(container) {
     legG.setAttribute('transform', 'translate(' + (marginL + 8) + ',' + (marginT - 20) + ')');
     svg.appendChild(legG);
 
-    const blockKey = 'microbialCounts' + (level ? '-' + level : '');
     const blockTitle = (s.label || t('recuentos.title')) + (level ? ' — ' + level : '');
     editors.push(attachChartEditor({
       key: blockKey, svg, mount: chartPanel,
@@ -923,6 +941,8 @@ export function render(container) {
       ],
       paletteSeries: groups.map((g, i) => ({ id: 's' + i, label: g.key })),
       paletteType: 'categorical',
+      figureOptions: { axis: { domain: autoY }, categoryOrder: true },
+      onFigureOptionsChange: () => paint(),
       onReset: () => paint(),
       startEditing: wasEditingAny,
     }));

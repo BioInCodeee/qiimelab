@@ -14,6 +14,7 @@ import { attachChartEditor, getFigureOptions } from '../lib/chartEditor.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
 import { groupColor, CAT_VARS } from '../lib/groupBoxplot.js';
 import { svgEl, escapeHtml, delegateHover, plotClip } from '../lib/dom.js';
+import { orderCategories } from '../lib/categoryOrder.js';
 
 // Colores de serie: la paleta categórica de la app (--cat-N, la misma que usan
 // barplots/alfa/beta...) en vez de los hex fijos de antes, para que el editor
@@ -884,10 +885,12 @@ export function render(container) {
   function renderStackedBarplot(card, matrix, opts) {
     card.innerHTML = '';
     const isPhenotypes = selectedDbType === 'phenotypes';
+    const bso = getFigureOptions('inference-barplot');
     const grouped = groupTaxaByAbundance(matrix, opts.minAbundance, opts.topN, {
       minPrev: opts.minPrev,
       isPercentage: true,
       sampleKey: matrix.sampleKey,
+      categoryOrder: bso.categoryOrder,
     });
 
     const { topTaxa, series, hasOther } = grouped;
@@ -934,11 +937,15 @@ export function render(container) {
       class: 'ql-baseline-line',
     }));
 
-    // Ticks eje Y (0% a 100%)
-    [0, 25, 50, 75, 100].forEach((pct) => {
-      const y = margin.top + innerH - (pct / 100) * innerH;
-      // pct=0 coincide con el eje X ya dibujado arriba — no duplicar la línea
-      if (pct > 0) {
+    // rango manual del eje de porcentaje (Ajustes > Estructura); 0-100 por defecto
+    const pLo = bso.axisMin != null ? bso.axisMin : 0, pHi = bso.axisMax != null ? bso.axisMax : 100;
+    const yP = (pct) => margin.top + innerH - ((pct - pLo) / ((pHi - pLo) || 1)) * innerH;
+    const barClip = plotClip(svg, 'ql-clip-infbar', margin.left, margin.top, innerW, innerH);
+    // Ticks eje Y (5 marcas entre el mínimo y el máximo del rango)
+    [0, 0.25, 0.5, 0.75, 1].map((f) => pLo + f * (pHi - pLo)).forEach((pct, ti) => {
+      const y = yP(pct);
+      // la marca del mínimo coincide con el eje X ya dibujado arriba — no duplicar la línea
+      if (ti > 0) {
         axesG.appendChild(svgEl('line', {
           x1: margin.left - 5, y1: y,
           x2: margin.left + innerW, y2: y,
@@ -951,7 +958,7 @@ export function render(container) {
         class: 'ql-tick-label',
         'text-anchor': 'end',
       });
-      label.textContent = pct + '%';
+      label.textContent = (Math.abs(pct - Math.round(pct)) < 0.05 ? String(Math.round(pct)) : pct.toFixed(1)) + '%';
       axesG.appendChild(label);
     });
 
@@ -1013,15 +1020,16 @@ export function render(container) {
         const frac = val / 100;
         if (frac <= 0) return;
 
-        const h = frac * innerH;
-        const y = margin.top + innerH - (curYFrac + frac) * innerH;
+        const yTopB = yP((curYFrac + frac) * 100), yBotB = yP(curYFrac * 100);
+        const h = yBotB - yTopB;
+        const y = yTopB;
         curYFrac += frac;
 
         const rect = svgEl('rect', {
           x, y,
           width: barWidth,
           height: Math.max(0.5, h),
-          'data-ce-role': 'bar',
+          'data-ce-role': 'bar', 'clip-path': barClip,
           fill: sObj.isOther ? OTHER_COLOR : getSeriesColor(cIdx, sObj.isOther),
           ...seriesTag(cIdx, sObj.isOther),
           stroke: 'var(--surface)',
@@ -1122,6 +1130,8 @@ export function render(container) {
       ],
       paletteSeries: paletteSeriesFor(series),
       paletteType: 'categorical',
+      figureOptions: { categoryOrder: true, axis: { domain: [0, 100] } },
+      onFigureOptionsChange: () => paint(),
       startEditing: wasEditing,
     });
   }
@@ -1146,7 +1156,8 @@ export function render(container) {
       ? Array.from(new Set(rows.map((r) => resolveGroup(r[matrix.sampleKey])).filter(Boolean))).sort()
       : null;
 
-    const values = series.map((sObj) => {
+    const lso = getFigureOptions('inference-lollipop');
+    let values = series.map((sObj) => {
       const all = rows.map((r) => parseFloat(r[sObj.key]) || 0);
       const overall = all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0;
       let byGroup = null;
@@ -1159,6 +1170,11 @@ export function render(container) {
       }
       return { sObj, overall, byGroup };
     }).sort((a, b) => b.overall - a.overall);
+    // orden de las filas (Ajustes > Estructura); 'original' = abundancia descendente
+    {
+      const byKey = new Map(values.map((v) => [v.sObj.key, v]));
+      values = orderCategories(values.map((v) => v.sObj.key), (k) => byKey.get(k).overall, lso.categoryOrder).map((k) => byKey.get(k));
+    }
 
     const n = values.length;
     const margin = { top: 40, right: groupNames ? 170 : 40, bottom: 50, left: 210 };
@@ -1177,7 +1193,6 @@ export function render(container) {
     });
 
     const maxVal = Math.max(1e-9, ...values.map((v) => Math.max(v.overall, ...(v.byGroup ? Object.values(v.byGroup) : [0]))));
-    const lso = getFigureOptions('inference-lollipop');
     const xLo = lso.axisXMin != null ? lso.axisXMin : 0, xHi = lso.axisXMax != null ? lso.axisXMax : maxVal;
     const xScale = (v) => margin.left + ((v - xLo) / ((xHi - xLo) || 1)) * innerW;
     const lclip = plotClip(svg, 'ql-clip-inflolli', margin.left, margin.top, innerW, innerH);
@@ -1297,7 +1312,7 @@ export function render(container) {
         ...(groupNames ? groupNames.map((g, gi) => ({ id: 'g' + gi, label: g })) : paletteSeriesFor(values.map((v) => v.sObj))),
         { id: 'stick', label: t('inference.lollipopStick') || 'Palillo' },
       ],
-      figureOptions: { axisX: { domain: [0, maxVal] } },
+      figureOptions: { axisX: { domain: [0, maxVal] }, categoryOrder: true },
       onFigureOptionsChange: () => paint(),
       paletteType: 'categorical',
       startEditing: wasEditing,
@@ -1338,7 +1353,12 @@ export function render(container) {
     // (con key/label/colorVar por taxón — grouped.series ya lo trae, igual
     // que usan renderStackedBarplot/renderLollipop más arriba en este mismo
     // archivo) el layout iteraba 0 taxones y no dibujaba ningún nodo/flujo.
-    const layout = computeAlluvialLayout({ ...groupMatrixRes, taxa: series }, {
+    const layout = computeAlluvialLayout({
+      ...groupMatrixRes,
+      // orden de las columnas (Ajustes > Estructura); 'original' = el de siempre
+      groups: orderCategories(groupMatrixRes.groups, null, getFigureOptions('inference-alluvial').categoryOrder),
+      taxa: series,
+    }, {
       width: W,
       height: H,
       margin,
@@ -1533,6 +1553,8 @@ export function render(container) {
       ],
       paletteSeries: paletteSeriesFor(series),
       paletteType: 'categorical',
+      figureOptions: { categoryOrder: ['original', 'alpha-asc', 'alpha-desc'] },
+      onFigureOptionsChange: () => paint(),
       startEditing: wasEditing,
     });
   }

@@ -23,7 +23,7 @@ export function createAxes(ctx) {
     const c = figureOptionsCfg || {};
     return {
       axis: c.axis || false, axisX: c.axisX || false,
-      categoryOrder: !!c.categoryOrder, gridMinor: !!c.gridMinor,
+      categoryOrder: c.categoryOrder || false, gridMinor: !!c.gridMinor,
       margins: c.margins || { generic: true, base: { top: 0, right: 0, bottom: 0, left: 0 } },
     };
   })();
@@ -98,10 +98,14 @@ export function createAxes(ctx) {
 
     if (structCfg.categoryOrder) {
       const sel = document.createElement('select');
+      // categoryOrder: true → los 5 modos de siempre; un array → solo esos
+      // (p. ej. un aluvial solo tiene sentido con original/alfabético, y un
+      // correlograma añade 'cluster')
+      const allowedModes = Array.isArray(structCfg.categoryOrder) ? structCfg.categoryOrder : ['original', 'alpha-asc', 'alpha-desc', 'value-asc', 'value-desc'];
       [
         ['original', T.orderOriginal], ['alpha-asc', T.orderAlphaAsc], ['alpha-desc', T.orderAlphaDesc],
-        ['value-asc', T.orderValueAsc], ['value-desc', T.orderValueDesc],
-      ].forEach(([val, label]) => {
+        ['value-asc', T.orderValueAsc], ['value-desc', T.orderValueDesc], ['cluster', T.orderCluster],
+      ].filter(([val]) => allowedModes.includes(val)).forEach(([val, label]) => {
         const o = document.createElement('option'); o.value = val; o.textContent = label;
         if ((s.categoryOrder || 'original') === val) o.selected = true;
         sel.appendChild(o);

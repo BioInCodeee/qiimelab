@@ -15,10 +15,11 @@
 
 import { state, subscribe } from '../state.js';
 import { t, getLang } from '../lib/i18n.js';
-import { pearson, spearman, formatP } from '../lib/stats.js';
+import { pearson, spearman, formatP, upgma, leafOrder } from '../lib/stats.js';
+import { orderCategories } from '../lib/categoryOrder.js';
 import { matchSampleId } from '../lib/sampleMatch.js';
 import { taxaRelativeAbundance } from '../lib/taxaAbundance.js';
-import { attachChartEditor, getColorScaleOptions, getStatsOptions } from '../lib/chartEditor.js';
+import { attachChartEditor, getColorScaleOptions, getStatsOptions, getFigureOptions } from '../lib/chartEditor.js';
 import { formatPStyled } from '../lib/pFormat.js';
 import { makeColorScale } from '../lib/colorScale.js';
 import { paletteColorsOf } from '../lib/palettes.js';
@@ -391,7 +392,35 @@ export function render(container) {
   //  VISTA MATRIZ — mapa de calor divergente + tabla de todas las parejas
   // =====================================================================
   function renderMatrix(ctx) {
-    const { svg, chartPanel, chartWrap, tooltip, tableCard, chosen, results, k, nLabel } = ctx;
+    const { svg, chartPanel, chartWrap, tooltip, tableCard, k, nLabel } = ctx;
+    let { chosen, results } = ctx;
+
+    // orden de las variables (Ajustes > Estructura). Se permutan a la vez la
+    // lista y la matriz de resultados, así todo lo de abajo (celdas, etiquetas,
+    // tooltips) sigue siendo coherente. 'cluster' = clustering jerárquico UPGMA
+    // con distancia 1-|r| (el orden 'hclust' habitual de corrplot).
+    {
+      const mode = getFigureOptions(matrixStyle === 'bubbles' ? 'correlogram-bubbles' : 'correlogram').categoryOrder;
+      if (mode && mode !== 'original' && k > 1) {
+        const SEP = '\u0001';
+        const names = chosen.map((v, i) => v.label + SEP + i);
+        const idxOf = (nm) => +nm.split(SEP).pop();
+        const meanAbs = (nm) => {
+          const i = idxOf(nm); let sum = 0, cnt = 0;
+          for (let j = 0; j < k; j++) if (j !== i && isFinite(results[i][j].r)) { sum += Math.abs(results[i][j].r); cnt++; }
+          return cnt ? sum / cnt : NaN;
+        };
+        let clusterOrder = null;
+        if (mode === 'cluster' && k > 2) {
+          const D = results.map((row, i) => row.map((r, j) => (i === j ? 0 : (isFinite(r.r) ? 1 - Math.abs(r.r) : 1))));
+          clusterOrder = leafOrder(upgma(D, names));
+        }
+        const perm = orderCategories(names, meanAbs, mode, clusterOrder).map(idxOf);
+        const oldChosen = chosen, oldResults = results;
+        chosen = perm.map((i) => oldChosen[i]);
+        results = perm.map((i) => perm.map((j) => oldResults[i][j]));
+      }
+    }
 
     const cell = Math.max(16, Math.min(34, 560 / k));
     const labelChars = Math.max(...chosen.map((v) => v.label.length));
@@ -597,6 +626,8 @@ export function render(container) {
       // celda es una correlación independiente, no hay comparación múltiple
       // que corregir).
       ...(isBubbles ? {} : { statsControls: { hasMultiGroup: false }, onStatsChange: () => paint() }),
+      figureOptions: { categoryOrder: ['original', 'alpha-asc', 'alpha-desc', 'value-asc', 'value-desc', 'cluster'] },
+      onFigureOptionsChange: () => paint(),
       onReset: () => paint(),
       startEditing: wasEditing,
     });

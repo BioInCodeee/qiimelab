@@ -9,7 +9,8 @@ import { ancomBC } from '../lib/ancomBC.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { randomForest } from '../lib/randomForest.js';
 import { computeGroupTaxaMatrix, computeAlluvialLayout } from '../lib/alluvial.js';
-import { svgEl, escapeHtml, delegateHover, moreDetailsHtml } from '../lib/dom.js';
+import { svgEl, escapeHtml, delegateHover, moreDetailsHtml, plotClip } from '../lib/dom.js';
+import { orderCategories } from '../lib/categoryOrder.js';
 import { showTooltip as showTooltipCentral, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
 import { normalizeHeader } from '../lib/csv.js';
@@ -678,7 +679,10 @@ export function render(container) {
       // variante esté activa ahora mismo (burbujas/horizontal) — esas 2 no
       // tienen su propia sección "Estructura" todavía (evita guardar la
       // preferencia en 2-3 sitios inconsistentes a la vez).
-      const barplotStructOpts = getFigureOptions('taxaBarplot');
+      // Ahora cada vista (vertical, horizontal, burbujas) tiene su propia
+      // sección Estructura y lee el orden de SU clave — el panel siempre
+      // muestra lo que de verdad se aplica en esa vista.
+      const barplotStructOpts = getFigureOptions(plotStyle === 'bubbles' ? 'taxaBarplot-bubbles' : (orientation === 'horizontal' ? 'taxaBarplot-horizontal' : 'taxaBarplot'));
       const grouped = groupTaxaByAbundance(table, minAbundance, topN, { minPrev, isPercentage: true, categoryOrder: barplotStructOpts.categoryOrder });
       const { topTaxa, otherTaxa, preAggOtherHeaders, series, means, hasOther } = grouped;
       const colorsRepeat = topTaxa.length > CAT_VARS.length;
@@ -770,7 +774,8 @@ export function render(container) {
 
         const layout = computeAlluvialLayout(
           {
-            groups: groupMatrixData.groups,
+            // orden de las columnas (Ajustes > Estructura); 'original' = el de siempre
+            groups: orderCategories(groupMatrixData.groups, null, getFigureOptions(ALLUVIAL_CE_KEY).categoryOrder),
             taxa: series,
             matrix: groupMatrixData.matrix,
             sampleCounts: groupMatrixData.sampleCounts,
@@ -993,6 +998,8 @@ export function render(container) {
           { id: 'nodeGap', label: t('chartEditor.nodeGap') || 'Separación entre nodos', min: 0, max: 15, step: 1, value: alluvialNodeGap, unit: 'px' },
           { id: 'linkOpacity', label: t('chartEditor.linkOpacity') || 'Opacidad de los flujos', min: 0.1, max: 0.95, step: 0.05, value: alluvialLinkOpacity, isPercent: true },
         ],
+        figureOptions: { categoryOrder: ['original', 'alpha-asc', 'alpha-desc'] },
+        onFigureOptionsChange: () => paint(),
         onGeometryChange: (id, val) => {
           if (id === 'nodeWidth') alluvialNodeWidth = Number(val);
           else if (id === 'nodeGap') alluvialNodeGap = Number(val);
@@ -1175,16 +1182,25 @@ export function render(container) {
       svg.style.maxWidth = 'none';
       while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-      // gridlines y-axis (0/25/50/75/100 %)
+      // rango manual del eje de porcentaje (Ajustes > Estructura); 0-100 por defecto
+      const vso = getFigureOptions('taxaBarplot');
+      const fLo = (vso.axisMin != null ? vso.axisMin : 0) / 100, fHi = (vso.axisMax != null ? vso.axisMax : 100) / 100;
+      const fSpan = (fHi - fLo) || 1;
+      const yF = (f) => marginT + innerH - ((f - fLo) / fSpan) * innerH;
+      const pctLabel = (p) => (Math.abs(p - Math.round(p)) < 0.05 ? String(Math.round(p)) : p.toFixed(1)) + '%';
+      // gridlines y-axis (5 marcas entre el mínimo y el máximo del rango)
       [0, 0.25, 0.5, 0.75, 1].forEach((frac) => {
-        const y = marginT + innerH - frac * innerH;
+        const f = fLo + frac * fSpan;
+        const y = yF(f);
         svg.appendChild(svgEl('line', { x1: marginL, x2: W - marginR, y1: y, y2: y, class: 'ql-gridline' }));
         const tk = svgEl('text', { x: marginL - 8, y: y + 3, class: 'ql-tick-label', 'text-anchor': 'end' });
-        tk.textContent = Math.round(frac * 100) + '%';
+        tk.textContent = pctLabel(f * 100);
         svg.appendChild(tk);
       });
       svg.appendChild(svgEl('line', { x1: marginL, x2: marginL, y1: marginT, y2: marginT + innerH, class: 'ql-baseline-line' }));
 
+      const barsLayer = svgEl('g', { 'clip-path': plotClip(svg, 'ql-clip-barplot', marginL, marginT, W - marginL - marginR, innerH) });
+      svg.appendChild(barsLayer);
       sampleOrder.forEach((sampleId, si) => {
         const row = rowsBySample[sampleId];
         if (!row) return;
@@ -1196,8 +1212,8 @@ export function render(container) {
           if (s.key === '__other__') val = otherRaw(row) / total;
           else val = (parseFloat(row[s.key]) || 0) / total;
           if (val <= 0) return;
-          const yTop = marginT + innerH - (cumulative + val) * innerH;
-          const yBot = marginT + innerH - cumulative * innerH;
+          const yTop = yF(cumulative + val);
+          const yBot = yF(cumulative);
           const h = Math.max(0, yBot - yTop - gap);
           const fillCol = (s.key === '__other__') ? OTHER_COLOR : (seriesColorOverrides[s.key] || (s.colorVar ? 'var(' + s.colorVar + ')' : '#2a78d6'));
           const rect = svgEl('rect', {
@@ -1210,7 +1226,7 @@ export function render(container) {
             'data-cy': yTop,
             ...(s.key === '__other__' ? {} : { 'data-ce-series-fill': 's' + CAT_VARS.indexOf(s.colorVar) }),
           });
-          svg.appendChild(rect);
+          barsLayer.appendChild(rect);
           cumulative += val;
         });
       });
@@ -1260,16 +1276,24 @@ export function render(container) {
       svg.style.maxWidth = '';
       while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-      // gridlines eje de valor (0/25/50/75/100 %), arriba de las barras
+      // rango manual del eje de porcentaje (Ajustes > Estructura); 0-100 por defecto
+      const hso = getFigureOptions('taxaBarplot-horizontal');
+      const fLo = (hso.axisMin != null ? hso.axisMin : 0) / 100, fHi = (hso.axisMax != null ? hso.axisMax : 100) / 100;
+      const fSpan = (fHi - fLo) || 1;
+      const xF = (f) => marginL + ((f - fLo) / fSpan) * innerW;
+      const pctLabel = (p) => (Math.abs(p - Math.round(p)) < 0.05 ? String(Math.round(p)) : p.toFixed(1)) + '%';
+      // gridlines eje de valor (5 marcas entre mínimo y máximo), arriba de las barras
       [0, 0.25, 0.5, 0.75, 1].forEach((frac) => {
         const x = marginL + frac * innerW;
         svg.appendChild(svgEl('line', { x1: x, x2: x, y1: marginT, y2: marginT + innerCat, class: 'ql-gridline' }));
         const tk = svgEl('text', { x, y: marginT - 8, class: 'ql-tick-label', 'text-anchor': 'middle' });
-        tk.textContent = Math.round(frac * 100) + '%';
+        tk.textContent = pctLabel((fLo + frac * fSpan) * 100);
         svg.appendChild(tk);
       });
       svg.appendChild(svgEl('line', { x1: marginL, x2: marginL, y1: marginT, y2: marginT + innerCat, class: 'ql-baseline-line' }));
 
+      const barsLayerH = svgEl('g', { 'clip-path': plotClip(svg, 'ql-clip-barplot-h', marginL, marginT, innerW, innerCat) });
+      svg.appendChild(barsLayerH);
       sampleOrder.forEach((sampleId, si) => {
         const row = rowsBySample[sampleId];
         if (!row) return;
@@ -1281,8 +1305,8 @@ export function render(container) {
           if (s.key === '__other__') val = otherRaw(row) / total;
           else val = (parseFloat(row[s.key]) || 0) / total;
           if (val <= 0) return;
-          const xL = marginL + cumulative * innerW;
-          const xR = marginL + (cumulative + val) * innerW;
+          const xL = xF(cumulative);
+          const xR = xF(cumulative + val);
           const w = Math.max(0, xR - xL - gap);
           const fillCol = (s.key === '__other__') ? OTHER_COLOR : (seriesColorOverrides[s.key] || (s.colorVar ? 'var(' + s.colorVar + ')' : '#2a78d6'));
           const rect = svgEl('rect', {
@@ -1295,7 +1319,7 @@ export function render(container) {
             'data-cy': cy,
             ...(s.key === '__other__' ? {} : { 'data-ce-series-fill': 's' + CAT_VARS.indexOf(s.colorVar) }),
           });
-          svg.appendChild(rect);
+          barsLayerH.appendChild(rect);
           cumulative += val;
         });
       });
@@ -1387,10 +1411,9 @@ export function render(container) {
       // clave con independencia de la vista activa (ver arriba), así que
       // mostrar el control en 2-3 vistas a la vez guardaría en cubos
       // separados y desincronizaría el panel de lo que de verdad se aplica.
-      ...(plotStyle !== 'bubbles' && !horizontal ? {
-        figureOptions: { categoryOrder: true },
-        onFigureOptionsChange: () => paint(),
-      } : {}),
+      // (actualizado: ahora cada vista lee el orden de SU clave, ver más arriba)
+      figureOptions: plotStyle === 'bubbles' ? { categoryOrder: true } : { categoryOrder: true, axis: { domain: [0, 100] } },
+      onFigureOptionsChange: () => paint(),
       onReset: () => paint(),
       startEditing: wasEditing,
     });
@@ -2372,12 +2395,21 @@ export function render(container) {
 
     const scoreOf = (s) => (bmScore === 'lda' ? s.ldaScore : bmScore === 'ancom' ? s.ancomLog2FC : bmScore === 'rf' ? s.rfImportance : s.delta);
     const maxAbs = Math.max(...sig.map((s) => Math.abs(scoreOf(s))), 0.2);
-    const x = (d) => marginL + (Math.abs(d) / maxAbs) * innerW;
+    // orden de las filas y rango del eje (Ajustes > Estructura); 'original' =
+    // el orden ya calculado (score descendente), rango por defecto 0..máximo
+    const bmso = getFigureOptions('taxaBiomarkers');
+    {
+      const byLabel = new Map(sig.map((s) => [s.label, s]));
+      sig = orderCategories(sig.map((s) => s.label), (k) => Math.abs(scoreOf(byLabel.get(k))), bmso.categoryOrder).map((k) => byLabel.get(k));
+    }
+    const xLo = bmso.axisXMin != null ? bmso.axisXMin : 0, xHi = bmso.axisXMax != null ? bmso.axisXMax : maxAbs;
+    const x = (d) => marginL + ((Math.abs(d) - xLo) / ((xHi - xLo) || 1)) * innerW;
+    const bmClip = plotClip(svg, 'ql-clip-bm', marginL, marginT - 6, innerW, barsBottom - marginT + 6);
 
     // rejilla vertical + eje
     const ticks = 4;
     for (let i = 0; i <= ticks; i++) {
-      const dv = (i / ticks) * maxAbs;
+      const dv = xLo + (i / ticks) * (xHi - xLo);
       const xx = marginL + (i / ticks) * innerW;
       svg.appendChild(svgEl('line', { x1: xx, x2: xx, y1: marginT - 6, y2: barsBottom, class: 'ql-gridline' }));
       const tk = svgEl('text', { x: xx, y: tickY, class: 'ql-tick-label', 'text-anchor': 'middle' });
@@ -2404,7 +2436,7 @@ export function render(container) {
       const sv = scoreOf(s);
       const w = Math.max(1.5, x(sv) - marginL);
       const rect = svgEl('rect', {
-        x: marginL, y: y + 3, width: w, height: bh, rx: 2, 'data-ce-role': 'barh',
+        x: marginL, y: y + 3, width: w, height: bh, rx: 2, 'data-ce-role': 'barh', 'clip-path': bmClip,
         fill: groupColor(s.enrichedIdx), 'fill-opacity': 0.85,
         'data-ce-series-fill': 's' + s.enrichedIdx,
       });
@@ -2456,6 +2488,8 @@ export function render(container) {
       ],
       paletteSeries: groups.map((g, i) => ({ id: 's' + i, label: g })),
       paletteType: 'categorical',
+      figureOptions: { axisX: { domain: [0, maxAbs] }, categoryOrder: true },
+      onFigureOptionsChange: () => paint(),
       onReset: () => paint(),
       startEditing: wasEditing,
     });
