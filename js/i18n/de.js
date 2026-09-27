@@ -12,7 +12,7 @@ export default {
     sessionData: 'Daten in dieser Sitzung',
     groupData: 'Daten und Qualität', groupComposition: 'Zusammensetzung und Diversität', groupStats: 'Erweiterte Statistik',
     groupCounts: 'Laborzählungen', groupPrimers: 'Primers und Sanger', groupResources: 'Ressourcen und Referenz',
-    footer: 'Alles läuft in deinem Browser — nichts wird auf einen Server hochgeladen.',
+    footer: 'Die Analysen laufen in deinem Browser; deine Dateien werden auf keinen Server von uns hochgeladen. Nur das optionale BLAST (Sanger) sendet eine Sequenz an NCBI.',
     noData: 'keine Daten', language: 'Sprache',
     menu: 'Menü',
     settings: 'Einstellungen', greeting: 'Hallo, {name}',
@@ -40,7 +40,7 @@ export default {
   },
   home: {
     eyebrow: 'Mikrobiom-Analyse · ohne Server',
-    subtitle: 'Umfassende 100% clientseitige Bioinformatik-Plattform. Analysiere Metabarcoding, verarbeite Sanger-Chromatogramme, führe Smith-Waterman-Alignments durch und visualisiere Phylogenien und zeitliche Dynamiken. Absolute Privatsphäre: Alle Berechnungen erfolgen lokal in deinem Browser.',
+    subtitle: 'Bioinformatik-Plattform, die in deinem Browser läuft (Dateien werden nicht an unsere Server gesendet; nur das optionale BLAST im Sanger-Modul sendet die Sequenz an NCBI). Analysiere Metabarcoding, verarbeite Sanger-Chromatogramme, führe Smith-Waterman-Alignments durch und visualisiere Phylogenien und zeitliche Dynamiken. Absolute Privatsphäre: Alle Berechnungen erfolgen lokal in deinem Browser.',
     ctaLoadedTitle: 'Du hast in dieser Sitzung bereits Daten geladen',
     ctaLoadedNote: 'Öffne ein Modul im Menü, um die Analyse zu sehen, oder lade weitere Dateien hoch.',
     ctaEmptyTitle: 'Beginne mit dem Hochladen deiner QIIME2-Ergebnisse',

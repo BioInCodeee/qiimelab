@@ -7,9 +7,11 @@ navegador: barplots taxonómicos, diversidad alfa y beta, abundancia
 diferencial, diagramas de Venn/UpSet, correlograma entre variables, índices
 funcionales de PICRUSt2 y control de calidad de secuencias estilo FastQC.
 
-**Sin backend. Sin instalación. Sin subir datos a ningún sitio** — se abre el
-archivo, se parsea con JavaScript y se dibuja al momento. Todo el cálculo
-ocurre en tu máquina.
+**Sin backend. Sin instalación.** Los análisis se ejecutan localmente: se
+abre el archivo, se parsea con JavaScript y se dibuja al momento, y los
+archivos no se envían a nuestros servidores. Una función opcional (BLAST en el
+módulo Sanger) abre una consulta a NCBI y envía la secuencia introducida a ese
+servicio externo.
 
 Interfaz en **español, inglés, italiano, alemán y chino** (selector en la
 barra lateral).
@@ -87,10 +89,11 @@ biom convert -i exported/feature-table.biom -o feature-table.tsv --to-tsv
 ## Dependencias
 
 **Ninguna a nivel de código** — son módulos ES nativos, sin `npm install`, sin
-bundler. **Cero peticiones externas**: la tipografía **IBM Plex** se sirve
-desde el propio repo (`fonts/` + `css/fonts.css`, subconjuntos latin/latin-ext,
-~256 KB), así que la app carga y funciona 100 % sin conexión desde la primera
-visita cacheada. Si una fuente faltara, el CSS degrada a la del sistema.
+bundler. **Cero peticiones externas al cargar y analizar**: la tipografía
+**IBM Plex** se sirve desde el propio repo (`fonts/` + `css/fonts.css`,
+subconjuntos latin/latin-ext, ~256 KB), así que la app carga y funciona sin
+conexión desde la primera visita cacheada. La única excepción es el BLAST
+opcional del módulo Sanger, que sí necesita red y envía la secuencia a NCBI. Si una fuente faltara, el CSS degrada a la del sistema.
 
 ## Datos de ejemplo (`datos-ejemplo/`)
 

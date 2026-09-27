@@ -12,7 +12,7 @@ export default {
     sessionData: '本次会话的数据',
     groupData: '数据与质量', groupComposition: '组成与多样性', groupStats: '高级统计',
     groupCounts: '实验室计数', groupPrimers: '引物与 Sanger', groupResources: '资源与参考',
-    footer: '所有处理都在你的浏览器中进行——不会上传到任何服务器。',
+    footer: '分析在你的浏览器中运行；你的文件不会上传到我们的任何服务器。只有可选的 BLAST（Sanger）会把一条序列发送到 NCBI。',
     noData: '无数据', language: '语言',
     menu: '菜单',
     settings: '设置', greeting: '你好，{name}',
@@ -40,7 +40,7 @@ export default {
   },
   home: {
     eyebrow: '微生物组分析 · 无服务器',
-    subtitle: '全功能 100% 客户端生物信息学平台。分析宏条形码、处理 Sanger 色谱图、执行 Smith-Waterman 比对，并可视化系统发育与时间动态。绝对隐私：所有计算均在浏览器本地完成。',
+    subtitle: '在你的浏览器中运行的生物信息学平台（文件不会发送到我们的服务器；只有 Sanger 模块中可选的 BLAST 会把序列发送到 NCBI）。分析宏条形码、处理 Sanger 色谱图、执行 Smith-Waterman 比对，并可视化系统发育与时间动态。绝对隐私：所有计算均在浏览器本地完成。',
     ctaLoadedTitle: '本次会话已加载数据',
     ctaLoadedNote: '从菜单打开一个模块查看分析，或上传更多文件。',
     ctaEmptyTitle: '先上传你的 QIIME2 结果',

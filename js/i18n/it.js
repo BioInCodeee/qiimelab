@@ -12,7 +12,7 @@ export default {
     sessionData: 'Dati in questa sessione',
     groupData: 'Dati e qualità', groupComposition: 'Composizione e diversità', groupStats: 'Statistica avanzata',
     groupCounts: 'Conteggi di laboratorio', groupPrimers: 'Primers e Sanger', groupResources: 'Risorse e riferimento',
-    footer: 'Tutto viene eseguito nel tuo browser — nulla viene caricato su un server.',
+    footer: 'Le analisi si eseguono nel tuo browser; i tuoi file non vengono caricati su nessun nostro server. Solo il BLAST opzionale (Sanger) invia una sequenza a NCBI.',
     noData: 'nessun dato', language: 'Lingua',
     menu: 'Menu',
     settings: 'Impostazioni', greeting: 'Ciao, {name}',
@@ -40,7 +40,7 @@ export default {
   },
   home: {
     eyebrow: 'Analisi del microbioma · senza server',
-    subtitle: 'Piattaforma bioinformatica completa al 100% lato client. Analizza metabarcoding, elabora cromatogrammi Sanger, esegue allineamenti Smith-Waterman e visualizza filogenesi e dinamiche temporali. Privacy assoluta: tutti i calcoli vengono eseguiti localmente nel tuo browser.',
+    subtitle: 'Piattaforma bioinformatica che si esegue nel tuo browser (i file non vengono inviati ai nostri server; solo il BLAST opzionale di Sanger invia la sequenza a NCBI). Analizza metabarcoding, elabora cromatogrammi Sanger, esegue allineamenti Smith-Waterman e visualizza filogenesi e dinamiche temporali. Privacy assoluta: tutti i calcoli vengono eseguiti localmente nel tuo browser.',
     ctaLoadedTitle: 'Hai già dei dati caricati in questa sessione',
     ctaLoadedNote: "Apri un modulo dal menu per vedere l'analisi, oppure carica altri file.",
     ctaEmptyTitle: 'Inizia caricando i risultati di QIIME2',

@@ -1,7 +1,7 @@
 {
   "name": "Smart-175 — plataforma bioinformática integral",
   "short_name": "Smart-175",
-  "description": "Plataforma bioinformática integral 100% en cliente. Analiza metabarcoding, procesa cromatogramas Sanger, ejecuta alineamientos Smith-Waterman y visualiza filogenias y dinámicas temporales. Privacidad absoluta: todos los cálculos se realizan localmente en tu navegador.",
+  "description": "Plataforma bioinformática que se ejecuta en tu navegador (los archivos no se envían a ningún servidor). Analiza metabarcoding, procesa cromatogramas Sanger, ejecuta alineamientos Smith-Waterman y visualiza filogenias y dinámicas temporales. Privacidad absoluta: todos los cálculos se realizan localmente en tu navegador.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",
