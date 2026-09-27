@@ -27,7 +27,7 @@ export function render(container) {
   let metric = null;
   let groupCol = null;
   let view = 'boxplot'; // 'boxplot' | 'rarefaction'
-  let plotStyle = 'box'; // 'box' | 'jitter' — solo dentro de view === 'boxplot'
+  let plotStyle = 'box'; // 'box' | 'box-nopoints' | 'jitter' | 'violin' — solo dentro de view === 'boxplot'
   let editor = null;
   let wasEditing = false; // ver cfg.startEditing en chartEditor.js — capturado en paint() antes de
                            // destruir el editor, leído por renderRarefaction/drawChart (funciones
@@ -104,7 +104,7 @@ export function render(container) {
     const chartPanel = document.createElement('section');
     chartPanel.className = 'ql-card ql-panel';
     chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' +
-      t(plotStyle === 'jitter' ? 'alpha.jitterNote' : plotStyle === 'violin' ? 'alpha.violinNote' : 'alpha.chartNote') + '</p>';
+      t(plotStyle === 'jitter' ? 'alpha.jitterNote' : plotStyle === 'violin' ? 'alpha.violinNote' : plotStyle === 'box-nopoints' ? 'alpha.chartNoteNoPoints' : 'alpha.chartNote') + '</p>';
     const chartWrap = document.createElement('div');
     chartWrap.className = 'ql-chartwrap';
     const svg = svgEl('svg', { class: 'ql-svg', role: 'img', 'aria-label': t('a11y.chartBoxplotAlpha') });
@@ -164,6 +164,7 @@ export function render(container) {
       labelKey: 'alpha.plotStyleLabel',
       options: [
         { value: 'box', labelKey: 'alpha.plotStyleBox' },
+        { value: 'box-nopoints', labelKey: 'alpha.plotStyleBoxNoPoints' },
         { value: 'jitter', labelKey: 'alpha.plotStyleJitter' },
         { value: 'violin', labelKey: 'alpha.plotStyleViolin' },
       ],
@@ -235,6 +236,9 @@ export function render(container) {
       svg, chartWrap, tooltip, groupNames, groupData, key: ceKey,
       title: t('alpha.title'), xTitle: groupCol, yTitle: curMetric.label, valueLabel: curMetric.label,
       valueDecimals: decimals,
+      // "Cajas sin puntos": el mismo boxplot (misma clave de editor) sin los
+      // puntos de cada muestra encima
+      showPoints: plotStyle !== 'box-nopoints',
     });
 
     statsBox.innerHTML =

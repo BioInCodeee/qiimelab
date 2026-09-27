@@ -138,6 +138,8 @@ function computeGroupStats(groupNames, groupData, key) {
  * @param {string}          o.yTitle      rótulo del eje Y
  * @param {string}          o.valueLabel  etiqueta del valor en el tooltip
  * @param {number}          [o.valueDecimals=3]
+ * @param {boolean}         [o.showPoints=true]  false = solo cajas y bigotes,
+ *        sin los puntos de cada muestra encima
  * @param {string}          o.key  clave de persistencia del editor de gráficos
  *        (misma que se pasará a `attachChartEditor` — de aquí lee las
  *        opciones de anotación estadística del Paso 3, ANTES de calcular
@@ -225,7 +227,7 @@ export function drawGroupBoxplot(o) {
       'data-ce-series-stroke': seriesId, 'data-ce-role': 'line',
     }));
 
-    vals.forEach((v) => {
+    if (o.showPoints !== false) vals.forEach((v) => {
       const jitter = (rnd() - 0.5) * boxW * 0.7;
       const c = svgEl('circle', {
         cx: cx + jitter, cy: yScale(v), r: 3.2, fill: 'var(' + colorVar + ')', stroke: 'var(--surface)', 'stroke-width': 1,

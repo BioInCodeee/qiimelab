@@ -90,13 +90,32 @@ export function createStats(ctx) {
     // llano y se deja el selector manual para forzar otro test.
     if (statsControls.diagnostic) {
       const d = statsControls.diagnostic;
+      // qué test se aplica DE VERDAD y por qué (no solo "recomendado"): el
+      // automático nombra el que eligió; si se fuerza otro a mano, se dice y
+      // se mantiene visible lo que habría elegido el automático
+      const TEST_NAME = {
+        student: T.statsTestStudent, welch: T.statsTestWelch, mannwhitney: T.statsTestMW,
+        'paired-t': T.statsTestPairedT, 'wilcoxon-signed': T.statsTestWilcoxonSigned,
+        'anova-tukey': T.statsTestAnovaTukey, 'welch-anova-gh': T.statsTestWelchGH, 'kruskal-dunn': T.statsTestKruskalDunn,
+      };
+      const autoName = TEST_NAME[d.recommended] || null;
+      const forced = s.testOverride && TEST_NAME[s.testOverride];
       const box = document.createElement('div');
       box.className = 'ce-stats-diagnostic';
-      box.textContent = d.reason;
+      const applied = document.createElement('p');
+      applied.className = 'ce-stats-applied';
+      const strong = document.createElement('strong');
+      strong.textContent = forced || autoName || '—';
+      applied.append(T.statsApplied + ' ', strong, ' ' + (forced ? T.statsAppliedManual : T.statsAppliedAuto));
+      box.appendChild(applied);
+      const why = document.createElement('p');
+      why.textContent = (forced && autoName ? T.statsAutoWouldBe(autoName) : T.statsWhy) + ' ' + d.reason;
+      box.appendChild(why);
       rows.appendChild(box);
 
-      const testOptions2 = [['auto', T.statsTestAuto], ['student', T.statsTestStudent], ['welch', T.statsTestWelch], ['mannwhitney', T.statsTestMW]];
-      const testOptionsK = [['auto', T.statsTestAuto], ['anova-tukey', T.statsTestAnovaTukey], ['welch-anova-gh', T.statsTestWelchGH], ['kruskal-dunn', T.statsTestKruskalDunn]];
+      const autoLabel = autoName ? T.statsTestAutoApplied(autoName) : T.statsTestAuto;
+      const testOptions2 = [['auto', autoLabel], ['student', T.statsTestStudent], ['welch', T.statsTestWelch], ['mannwhitney', T.statsTestMW]];
+      const testOptionsK = [['auto', autoLabel], ['anova-tukey', T.statsTestAnovaTukey], ['welch-anova-gh', T.statsTestWelchGH], ['kruskal-dunn', T.statsTestKruskalDunn]];
       rows.appendChild(statsRow(T.statsTestLabel, statsSelect(s.testOverride || 'auto', statsControls.hasMultiGroup ? testOptionsK : testOptions2,
         (v) => setStatsValue('testOverride', v === 'auto' ? '' : v))));
     }

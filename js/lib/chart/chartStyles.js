@@ -129,6 +129,8 @@ text.ce-title { font-family:var(--font-display); font-size:15px; font-weight:600
 .ce-stats-row { display:flex; align-items:center; gap:8px; }
 .ce-stats-row label { flex:0 0 auto; min-width:150px; font-size:12px; color:var(--ink-2); }
 .ce-stats-row select { flex:1; min-width:0; }
+.ce-stats-diagnostic p { margin:0; }
+.ce-stats-diagnostic .ce-stats-applied { margin-bottom:4px; color:var(--ink); }
 .ce-stats-diagnostic { font-size:11.5px; color:var(--ink-2); line-height:1.4; background:var(--page); border:1px solid var(--border); border-radius:6px; padding:8px 10px; }
 .ce-stats-row input[type=number] { width:72px; flex:none; }
 .ce-colorscale { flex:1 1 100%; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
