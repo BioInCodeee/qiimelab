@@ -2218,6 +2218,20 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   transform: scale(1.15);
 }
 
+/* ---------- Aviso de equivalencia científica (js/lib/methodEquivalence.js) ---------- */
+.ql-method-notices { margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+.ql-method-notice { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+.ql-method-notice strong { color: var(--ink); font-weight: 600; }
+.ql-method-c {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--warning) 60%, var(--border-strong));
+  border-left: 5px solid var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, var(--panel));
+  color: var(--ink-1);
+}
+.ql-method-b { padding-left: 10px; border-left: 3px solid var(--border-strong); }
+
 /* ---------- Inferencia Funcional ---------- */
 .ql-alert-warning,
 .ql-inference-banner {

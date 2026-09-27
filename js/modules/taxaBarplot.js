@@ -14,6 +14,7 @@ import { orderCategories } from '../lib/categoryOrder.js';
 import { showTooltip as showTooltipCentral, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
 import { normalizeHeader } from '../lib/csv.js';
+import { methodNotice } from '../lib/methodEquivalence.js';
 import { paletteColorAt } from '../lib/palettes.js';
 import {
   createSunburstRoot, insertTaxon, buildLineageIndex, lineageToPath,
@@ -1794,12 +1795,11 @@ export function render(container) {
   //  Toda la estadística está ya verificada en stats.js / ancomBC.js.
   // =========================================================================
   function renderBiomarkers(table, levels, groupOptions) {
-    // aviso honesto: esto NO es LEfSe
-    const disc = document.createElement('p');
-    disc.className = 'ql-panel-note';
-    disc.style.margin = '0 0 14px';
-    disc.textContent = t('barplots.bmDisclaimer');
-    container.appendChild(disc);
+    // aviso de equivalencia (Nivel C, js/lib/methodEquivalence.js): ninguno
+    // de los tres métodos reproduce la herramienta de la que toma la idea;
+    // la vista de consenso los junta, así que avisa de los tres
+    const bmMethodId = { kw: 'lefse-like', ancombc: 'ancombc-like', rf: 'rf-biomarkers' };
+    container.appendChild(methodNotice(bmView === 'consensus' ? Object.values(bmMethodId) : bmMethodId[bmMethod]));
     container.insertAdjacentHTML('beforeend', glossaryLinkHtml('biomarkers'));
 
     container.appendChild(chartTypeField({

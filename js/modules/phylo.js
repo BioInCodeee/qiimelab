@@ -26,6 +26,7 @@ import { CATEGORICAL } from '../lib/palettes.js';
 import { makeGroupResolver } from '../lib/sampleMatch.js';
 import { svgEl, escapeHtml } from '../lib/dom.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
+import { methodNoticeHtml } from '../lib/methodEquivalence.js';
 
 const STORE_KEY = 'smart-175.phylo';
 const LEGACY_STORE_KEY = 'qiimelab.phylo';
@@ -575,7 +576,7 @@ export function render(container) {
     const honestyCard = document.createElement('section');
     honestyCard.className = 'ql-card ql-panel';
     honestyCard.innerHTML =
-      '<h2>' + t('phylo.honestyTitle') + '</h2><p class="ql-panel-note">' + t('phylo.honestyNote') + '</p>' +
+      '<h2>' + t('phylo.honestyTitle') + '</h2>' + methodNoticeHtml(['msa-progressive', 'nj']) +
       glossaryLinkHtml('msa') +
       '<p class="ql-field-help" style="margin-top:10px;"><strong>' + t('phylo.scopeTitle') + '</strong> — ' + t('phylo.scopeNote') + '</p>' +
       glossaryLinkHtml('neighborJoiningTerm');

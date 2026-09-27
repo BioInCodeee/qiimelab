@@ -41,6 +41,7 @@ const SUITE = [
   { name: 'inference-lollipop-editor', file: 'inference-lollipop-editor.mjs', kind: 'navegador' },
   { name: 'chartpresets', file: 'chartpresets.mjs', kind: 'navegador' },
   { name: 'globalfont', file: 'globalfont.mjs', kind: 'navegador' },
+  { name: 'methodequivalence', file: 'methodequivalence.mjs', kind: 'navegador' },
   { name: 'temporal', file: 'temporal.mjs', kind: 'navegador' },
   { name: 'ui-fixes-editor-alluvial', file: 'ui-fixes-editor-alluvial.mjs', kind: 'navegador' },
   { name: 'chart-consistency', file: 'chart-consistency.mjs', kind: 'navegador' },

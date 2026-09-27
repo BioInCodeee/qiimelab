@@ -13,6 +13,7 @@ import { makeColorScale } from '../lib/colorScale.js';
 import { svgEl, escapeHtml, delegateHover, plotClip } from '../lib/dom.js';
 import { showTooltip, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
+import { methodNoticeHtml } from '../lib/methodEquivalence.js';
 
 const CAT_VARS = ['--cat-1', '--cat-2', '--cat-3', '--cat-4', '--cat-5', '--cat-6', '--cat-7'];
 const NUM_RE = /^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
@@ -272,6 +273,7 @@ export function render(container) {
     disc.style.fontStyle = 'italic';
     disc.textContent = t('beta.permDisclaimer');
     card.appendChild(disc);
+    card.insertAdjacentHTML('beforeend', methodNoticeHtml('permanova'));
 
     container.appendChild(card);
   }
@@ -585,7 +587,7 @@ export function render(container) {
         pct: (res.proportionExplained.slice(0, 2).reduce((a, b) => a + b, 0) * 100).toFixed(1),
         pctC: (res.proportionConstrained * 100).toFixed(1),
       }) + '</p>' +
-      '<p class="ql-field-help" style="font-style:italic;">' + t('beta.rdaDisclaimer') + '</p>' +
+      methodNoticeHtml(rdaMethod) +
       glossaryLinkHtml(rdaMethod);
     container.appendChild(summary);
 
