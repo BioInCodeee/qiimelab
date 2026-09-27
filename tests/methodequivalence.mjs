@@ -54,7 +54,7 @@ try {
   await sleep(1500);
 
   await c.ev(`location.hash = '#/barplots'`); await sleep(1800);
-  check('existe la pestaña del panel de taxa candidatos/biomarcadores', await click('#app-view .ql-tab', '/Biomarc|candidat/i'));
+  check('existe la pestaña del panel de taxa candidatos', await click('#app-view .ql-tab', '/Taxa candidatos/'));
   await sleep(2500);
   const kw = await notices();
   check('Kruskal-Wallis (por defecto) → aviso Nivel C "inspirado en LEfSe"', kw.some((n) => /^C:.*LEfSe/.test(n)), JSON.stringify(kw));

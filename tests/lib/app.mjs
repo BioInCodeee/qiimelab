@@ -37,7 +37,7 @@ export async function waitQC(c) {
 const TABS_FOR = {
   '#/alfa': ['rarefac', 'Boxplot'],
   '#/beta': ['PCoA', 'RDA/CCA', 'Mapa de calor'],
-  '#/barplots': ['Biomarc', 'Random Forest', 'Consenso', 'Barplot'],
+  '#/barplots': ['Taxa candidatos', 'Random Forest', 'Consenso', 'Barplot'],
   '#/diferencial': ['Comparar', 'Lollipop', 'calor', 'Volcano', 'Individual'],
   '#/correlograma': ['Red', 'Matriz'],
   '#/recuentos': ['Coliformes', 'Aerobios'],
