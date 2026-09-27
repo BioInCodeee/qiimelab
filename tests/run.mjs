@@ -64,6 +64,7 @@ const SUITE = [
   { name: 'taxagrouping', file: 'taxagrouping.mjs', kind: 'estático' },
   { name: 'dom_tooltip', file: 'dom_tooltip.mjs', kind: 'estático' },
   { name: 'glosario-links', file: 'glosario-links.mjs', kind: 'estático' },
+  { name: 'i18n-parity', file: 'i18n-parity.mjs', kind: 'estático' },
   { name: 'pformat', file: 'pformat.mjs', kind: 'estático' },
   { name: 'stats/diversity', file: 'stats/diversity.mjs', kind: 'R' },
   { name: 'stats/rarefaction', file: 'stats/rarefaction.mjs', kind: 'R' },

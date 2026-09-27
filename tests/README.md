@@ -27,6 +27,7 @@ Chrome, R, un paquete de R, o Biopython). El runner sale ≠ 0 solo si algo
 | `session-ui.mjs` | navegador | Los botones de guardar/cargar sesión en `#/cargar` + el modal de confirmación de carga: `role=dialog`, `aria-modal`, `aria-labelledby` real, foco en el botón de aceptar, Escape cierra resolviendo `false`. |
 | `compare-overlap.mjs` | navegador | Vista “Comparar varias”: recalcula el solapamiento de significativos (`padj < 0.05`) desde los 3 CSV de `datos-ejemplo/` y comprueba que las regiones del diagrama de Venn y el histograma “sig. en N de M” de la UI coinciden. |
 | `glosario-links.mjs` | estático | Integridad de los enlaces al glosario: cada término de `glosario.js` tiene título y definición no vacía en ES y EN; todo `#/glosario?t=<id>` y cada `glos:` de las tarjetas de `home.js` (más los ids que `taxaBarplot.js`/`betaDiversity.js` construyen con una variable, declarados en el test) apunta a un id real; y ninguna cadena promete "ver ¿qué significa esto?" en texto plano en lugar de enlazar. |
+| `i18n-parity.mjs` | estático | Paridad de claves entre `js/i18n/es.js` y `en`/`it`/`de`/`zh`: lista las claves que faltan (se verían en español), las que sobran y las que no conservan los mismos `{marcadores}`. **Informativo**: sale con 0 aunque haya huecos; `--strict` sale con 1, `--all` lista todas las claves. |
 | `datahealth.mjs` | estático | Fixtures de `checkDataHealth()`: id duplicado, muestra de más/menos, celda de grupo vacía, los 4 a la vez, tolerancia de sufijos → encuentra **exactamente** cada fallo. |
 | `primerdimers.mjs` | estático | `scanDimer()`/`scanHairpin()` (`js/lib/primerDimers.js`): un primer con un palíndromo GC fuerte (auto-dímero) frente a otro sin ninguna base complementaria a sí misma (poli-A); una horquilla diseñada a mano (dos brazos GC con un bucle) frente al mismo poli-A; una pareja con cola 3' complementaria frente a una pareja sin relación; y que `buildDimerMatrix()` no recalcule cada pareja dos veces. |
 | `primertemplate.mjs` | estático | `parseFasta()`/`findPrimerSites()`/`findAmplicons()` (`js/lib/primerTemplate.js`): plantilla construida a mano con un primer insertado literal (hebra `+`) y otro como su complementario inverso (hebra `-`) → posición exacta y amplicón correcto; un mismatch introducido a propósito en el extremo 3' desaparece con tolerancia 0 y aparece marcado como crítico con tolerancia 1. |
@@ -109,8 +110,10 @@ R instalado.
   de quedarse con las más abundantes, quitar una secuencia a mano de la lista,
   y que cambiar p-distance↔Jukes-Cantor NO repita el alineamiento (cacheado
   aparte), se verificaron a mano una vez, no de forma persistida.
-- **i18n**: no se comprueba que existan todas las claves en `es`/`en` ni que
-  `it`/`de`/`zh` caigan a `es` sin huecos.
+- **i18n**: `i18n-parity.mjs` reporta los huecos de claves entre idiomas pero
+  no falla por ellos (salvo con `--strict`); no se revisa la calidad de la
+  traducción ni la pluralización (`{n} elementos` en idiomas con otras reglas).
+  Las cadenas propias de `chartEditor` (su objeto `I18N`) quedan fuera del check.
 - **Rendimiento**: `perf-stress.mjs` mide las 4 operaciones pesadas y verifica
   que las migradas a worker no bloqueen; no hay presupuesto de tiempo para el
   resto de rutas ni medición de memoria.

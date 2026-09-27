@@ -10,7 +10,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import vm from 'node:vm';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = false;
@@ -19,18 +18,9 @@ const check = (name, ok, extra = '') => {
   if (!ok) failed = true;
 };
 
-// --- diccionarios (DICTS no se exporta: se evalúa el literal aislado) ---
-const i18nSrc = readFileSync(join(ROOT, 'js/lib/i18n.js'), 'utf8');
-const start = i18nSrc.indexOf('const DICTS = {') + 'const DICTS = '.length;
-let depth = 0, i = start, inStr = null, esc = false;
-for (; i < i18nSrc.length; i++) {
-  const c = i18nSrc[i];
-  if (inStr) { if (esc) { esc = false; continue; } if (c === '\\') { esc = true; continue; } if (c === inStr) inStr = null; continue; }
-  if (c === '"' || c === "'" || c === '`') { inStr = c; continue; }
-  if (c === '{') depth++;
-  else if (c === '}') { depth--; if (depth === 0) { i++; break; } }
-}
-const DICTS = vm.runInNewContext('(' + i18nSrc.slice(start, i) + ')');
+// --- diccionarios (un archivo por idioma en js/i18n/) ---
+const DICTS = {};
+for (const lang of ['es', 'en']) DICTS[lang] = (await import('../js/i18n/' + lang + '.js')).default;
 const get = (lang, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), DICTS[lang]);
 
 // --- términos del glosario (id + def opcional) ---
