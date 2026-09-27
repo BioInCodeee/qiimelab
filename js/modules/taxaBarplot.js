@@ -391,7 +391,7 @@ export function render(container) {
       return;
     }
 
-    // pestañas: Barplot (Barras clásicas) | Flujos (Aluvial) | Biomarcadores
+    // pestañas: Barras | Flujos (Aluvial) | Sunburst | Taxa candidatos
     const tabs = document.createElement('div');
     tabs.className = 'ql-tabs';
     [['barplot', t('barplots.tabBarplot')], ['alluvial', t('barplots.tabAlluvial')], ['sunburst', t('barplots.tabSunburst')], ['biomarkers', t('barplots.tabBiomarkers')]].forEach(([v, label]) => {

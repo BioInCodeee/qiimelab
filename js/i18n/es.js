@@ -1222,7 +1222,7 @@ export default {
     prevApplied: 'Filtro de prevalencia ≥ {pct} %: {n} de {total} taxones quedan agrupados en «Otros».',
     axisTaxa: 'Taxones',
     colorsRepeat: 'Con más de 7 taxones los colores se repiten — identifica cada uno por la leyenda o el tooltip.',
-    tabBarplot: 'Barras clásicas',
+    tabBarplot: 'Barras',
     tabAlluvial: 'Flujos (Aluvial)',
     tabSunburst: 'Sunburst',
     tabBiomarkers: 'Taxa candidatos',

@@ -47,7 +47,7 @@ try {
 
   console.log('-- todas las gráficas: Personalizar + Estructura + Geometría --');
   const CASES = [
-    ['#/barplots', ['Barras clásicas']], ['#/barplots', ['Flujos']], ['#/barplots', ['Sunburst']], ['#/barplots', ['Taxa candidatos']], ['#/barplots', ['Burbujas']],
+    ['#/barplots', ['Barras']], ['#/barplots', ['Flujos']], ['#/barplots', ['Sunburst']], ['#/barplots', ['Taxa candidatos']], ['#/barplots', ['Burbujas']],
     ['#/alfa', ['Boxplot']], ['#/alfa', ['Curvas']], ['#/alfa', ['Violín']],
     ['#/beta', ['Mapa de calor']], ['#/beta', ['PCoA']], ['#/beta', ['RDA']],
     ['#/diferencial', ['Individual', 'Volcano']], ['#/diferencial', ['Individual', 'Lollipop']], ['#/diferencial', ['Individual', 'Mapa de calor']], ['#/diferencial', ['Individual', 'Cajas']], ['#/diferencial', ['Comparar']],
@@ -78,7 +78,7 @@ try {
   check('el panel sigue abierto tras el cambio', (await sections()).includes('Geometría'));
 
   // anchura de barras (Barplots apiladas)
-  await goto('#/barplots', ['Barras clásicas']);
+  await goto('#/barplots', ['Barras']);
   await clickBtn('/Personalizar/'); await sleep(300);
   const w0 = await c.ev(`(() => +document.querySelector('#app-view svg rect[data-ce-role="bar"]').getAttribute('width'))()`);
   await setGeo('/barras|Bar/i', 0.5); await sleep(400);

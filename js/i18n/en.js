@@ -1219,7 +1219,7 @@ export default {
     prevApplied: 'Prevalence filter ≥ {pct}%: {n} of {total} taxa are folded into “Other”.',
     axisTaxa: 'Taxa',
     colorsRepeat: 'With more than 7 taxa the colours repeat — identify each one from the legend or the tooltip.',
-    tabBarplot: 'Classic Bars',
+    tabBarplot: 'Bars',
     tabAlluvial: 'Flows (Alluvial)',
     tabSunburst: 'Sunburst',
     tabBiomarkers: 'Candidate taxa',
