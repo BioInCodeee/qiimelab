@@ -29,6 +29,10 @@ barra lateral).
   Hace falta servirlo por HTTP: los `<script type="module">` no funcionan
   abriendo `index.html` con doble clic (`file://`).
 
+  Si tienes Node, `npm run serve` hace lo mismo y `npm test` corre la suite
+  (`package.json` es solo esa interfaz de desarrollo: sin dependencias y sin
+  build, no hace falta `npm install`).
+
 - **En VS Code**: clic derecho sobre `index.html` → "Open with Live Server".
 
 - **En GitHub Pages / Netlify / cualquier hosting estático**: sube la carpeta

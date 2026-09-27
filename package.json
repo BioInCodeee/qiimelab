@@ -1,0 +1,13 @@
+{
+  "name": "qiimelab",
+  "private": true,
+  "description": "QiimeLab — análisis de resultados QIIME2 en el navegador. Este package.json es solo la interfaz de desarrollo: sin dependencias, sin build; la app son módulos ES nativos servidos tal cual.",
+  "license": "MIT",
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "test": "node tests/run.mjs",
+    "test:stats": "node tests/run.mjs stats",
+    "test:smoke": "node tests/server-smoke.mjs",
+    "check:i18n": "node tests/i18n-parity.mjs"
+  }
+}
