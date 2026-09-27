@@ -1,10 +1,10 @@
 // tests/charteditor.mjs — Test unitario y de integración para:
-// 1. Editor gráfico global (openChartEditor en js/lib/chartEditor.js).
+// 1. Editor gráfico (attachChartEditor): títulos desde la barra Personalizar.
+//    (El modal legacy openChartEditor se retiró en la Fase 1, 27 sep 2026.)
 // 2. Limpieza UI con botones de icono cuadrado (.ql-btn-icon-sq) en la tabla Sanger.
 // 3. Integración en el diagrama aluvial con parámetros geométricos y reactividad.
 
 import {
-  openChartEditor,
   attachChartEditor,
   exportSvg,
   exportPng,
@@ -410,164 +410,13 @@ function createMockDOM() {
   return { doc, makeEl };
 }
 
-console.log('\n--- 1. Pruebas de infraestructura: openChartEditor en js/lib/chartEditor.js ---');
+console.log('\n--- 1. attachChartEditor: títulos desde la barra Personalizar ---');
 {
   const { doc, makeEl } = createMockDOM();
   globalThis.document = doc;
   globalThis.window = {
     getComputedStyle: () => ({ getPropertyValue: () => '#2a78d6' }),
   };
-
-  const dummySvg = makeEl('svg');
-  const dummyMainTitle = makeEl('text');
-  dummyMainTitle.className = 'ql-chart-main-title';
-  dummyMainTitle.textContent = 'Título Original de Prueba';
-  dummySvg.appendChild(dummyMainTitle);
-
-  const dummyXTitle = makeEl('text');
-  dummyXTitle.className = 'ql-chart-x-title';
-  dummyXTitle.textContent = 'Muestras Original';
-  dummySvg.appendChild(dummyXTitle);
-
-  const dummyYTitle = makeEl('text');
-  dummyYTitle.className = 'ql-chart-y-title';
-  dummyYTitle.textContent = 'Abundancia Original';
-  dummySvg.appendChild(dummyYTitle);
-
-  const updates = [];
-  const initialConfig = {
-    title: 'Ajustes del gráfico',
-    typography: {
-      fontFamily: 'var(--font-body)',
-      fontSize: 14,
-      isBold: false,
-      isItalic: false,
-    },
-    colors: {
-      series: [
-        { id: 'tax1', label: 'Bacteroides', color: '#2a78d6' },
-        { id: 'tax2', label: 'Prevotella', color: '#d97706' },
-      ],
-      linkOpacity: 0.4,
-    },
-    geometry: {
-      sliders: [
-        { id: 'nodeWidth', label: 'Ancho de nodos', min: 10, max: 50, step: 2, value: 20, unit: 'px' },
-        { id: 'nodeGap', label: 'Espaciado vertical', min: 0, max: 10, step: 1, value: 2, unit: 'px' },
-        { id: 'linkOpacity', label: 'Opacidad', min: 0.1, max: 0.9, step: 0.05, value: 0.4, isPercent: true },
-      ],
-    },
-  };
-
-  const editorInstance = openChartEditor(dummySvg, initialConfig, (action, payload, fullCfg) => {
-    updates.push({ action, payload, fullCfg });
-  });
-
-  const dialog = doc.body.querySelector('.ql-chart-editor-dialog');
-  check('crea elemento dialog con clase ql-chart-editor-dialog', Boolean(dialog));
-  check('el diálogo está abierto (showModal invocado)', dialog && dialog.open === true);
-
-  // Navegación de pestañas
-  const tabBtns = dialog.querySelectorAll('.ql-ce-tab-btn');
-  check('contiene 3 pestañas (Geometría, Tipografía, Colores)', tabBtns.length === 3);
-
-  const panels = dialog.querySelectorAll('.ql-ce-tab-panel');
-  check('contiene 3 paneles asociados a las pestañas', panels.length === 3);
-
-  // Comprobar cambio de pestaña
-  const typoTabBtn = Array.from(tabBtns).find((b) => b.getAttribute('data-tab') === 'typography');
-  check('existe botón de pestaña Tipografía', Boolean(typoTabBtn));
-  if (typoTabBtn) {
-    typoTabBtn.dispatchEvent('click');
-    check('pestaña Tipografía se activa al pulsar', typoTabBtn.classList.contains('is-active'));
-  }
-
-  // Comprobar campos de edición de títulos en el diálogo
-  const titleInp = dialog.querySelector('#ql-ce-title-input');
-  const xtitleInp = dialog.querySelector('#ql-ce-xtitle-input');
-  const ytitleInp = dialog.querySelector('#ql-ce-ytitle-input');
-
-  check('campo de texto para Título del Gráfico presente (#ql-ce-title-input)', Boolean(titleInp));
-  check('campo de texto para Título Eje X presente (#ql-ce-xtitle-input)', Boolean(xtitleInp));
-  check('campo de texto para Título Eje Y presente (#ql-ce-ytitle-input)', Boolean(ytitleInp));
-
-  if (titleInp) {
-    check('campo Título carga valor del SVG', titleInp.value === 'Título Original de Prueba');
-    titleInp.value = 'Composición de Microbiota Renal';
-    titleInp.dispatchEvent('input');
-    check('evento input en #ql-ce-title-input actualiza inmediatamente .ql-chart-main-title',
-      dummyMainTitle.textContent === 'Composición de Microbiota Renal');
-    const lastUpdate = updates[updates.length - 1];
-    check('evento input dispara onUpdate("title", valor)',
-      lastUpdate && lastUpdate.action === 'title' && lastUpdate.payload === 'Composición de Microbiota Renal');
-  }
-
-  if (xtitleInp) {
-    xtitleInp.value = 'Grupos Clínicos';
-    xtitleInp.dispatchEvent('input');
-    check('evento input en #ql-ce-xtitle-input actualiza inmediatamente .ql-chart-x-title',
-      dummyXTitle.textContent === 'Grupos Clínicos');
-    const lastUpdate = updates[updates.length - 1];
-    check('evento input dispara onUpdate("xtitle", valor)',
-      lastUpdate && lastUpdate.action === 'xtitle' && lastUpdate.payload === 'Grupos Clínicos');
-  }
-
-  if (ytitleInp) {
-    ytitleInp.value = 'Abundancia Relativa Funcional (%)';
-    ytitleInp.dispatchEvent('input');
-    check('evento input en #ql-ce-ytitle-input actualiza inmediatamente .ql-chart-y-title',
-      dummyYTitle.textContent === 'Abundancia Relativa Funcional (%)');
-    const lastUpdate = updates[updates.length - 1];
-    check('evento input dispara onUpdate("ytitle", valor)',
-      lastUpdate && lastUpdate.action === 'ytitle' && lastUpdate.payload === 'Abundancia Relativa Funcional (%)');
-  }
-
-  // Comprobar interacción de sliders de geometría
-  const nodeWidthSlider = dialog.querySelector('#ql-ce-sl-nodeWidth-r');
-  check('slider de ancho de nodos presente', Boolean(nodeWidthSlider));
-  if (nodeWidthSlider) {
-    nodeWidthSlider.value = 36;
-    nodeWidthSlider.dispatchEvent('input');
-    const lastUpdate = updates[updates.length - 1];
-    check('mover slider nodeWidth dispara callback onUpdate con valor numérico 36',
-      lastUpdate && lastUpdate.action === 'nodeWidth' && lastUpdate.payload === 36);
-  }
-
-  const linkOpacitySlider = dialog.querySelector('#ql-ce-sl-linkOpacity-r');
-  check('slider de opacidad de flujos presente', Boolean(linkOpacitySlider));
-  if (linkOpacitySlider) {
-    linkOpacitySlider.value = 75; // 75%
-    linkOpacitySlider.dispatchEvent('input');
-    const lastUpdate = updates[updates.length - 1];
-    check('mover slider linkOpacity (porcentual) convierte a fracción 0.75',
-      lastUpdate && lastUpdate.action === 'linkOpacity' && Math.abs(lastUpdate.payload - 0.75) < 1e-4);
-  }
-
-  // Comprobar tipografía
-  const fontSelect = dialog.querySelector('#ql-ce-font-select');
-  check('selector de fuente presente', Boolean(fontSelect));
-  if (fontSelect) {
-    fontSelect.value = 'var(--font-mono)';
-    fontSelect.dispatchEvent('change');
-    const lastUpdate = updates[updates.length - 1];
-    check('cambiar fuente dispara onUpdate(fontFamily)',
-      lastUpdate && lastUpdate.action === 'fontFamily' && lastUpdate.payload === 'var(--font-mono)');
-  }
-
-  // Comprobar checkbox de negrita
-  const boldChk = dialog.querySelector('input[type="checkbox"]');
-  check('checkbox de estilo presente', Boolean(boldChk));
-  if (boldChk) {
-    boldChk.checked = true;
-    boldChk.dispatchEvent('change');
-    const lastUpdate = updates[updates.length - 1];
-    check('marcar negrita dispara onUpdate(isBold, true)',
-      lastUpdate && lastUpdate.action === 'isBold' && lastUpdate.payload === true);
-  }
-
-  // Cierre del diálogo
-  editorInstance.close();
-  check('cerrar diálogo lo retira del body', !doc.body.querySelector('.ql-chart-editor-dialog'));
 
   // Comprobar attachChartEditor en modo Personalizar (Global Text Editor)
   const mountAttach = makeEl('div');
@@ -851,45 +700,6 @@ console.log('\n--- 4. Motor de exportación vectorial (SVG) y rasterizado (PNG 3
   }
 
   editorTb.destroy();
-
-  // 4.6 Botones de exportación en el diálogo modal (openChartEditor)
-  const svgModal = makeEl('svg');
-  svgModal.setAttribute('viewBox', '0 0 700 500');
-
-  const modalInstance = openChartEditor(svgModal, {
-    title: 'Ajustes de prueba para exportación',
-    filename: 'smart175_modal_export',
-  });
-
-  const modalDialog = doc.body.querySelector('.ql-chart-editor-dialog');
-  const modalSvgBtn = Array.from(modalDialog.querySelectorAll('button')).find(
-    (b) => b.textContent && b.textContent.includes('Descargar SVG')
-  );
-  const modalPngBtn = Array.from(modalDialog.querySelectorAll('button')).find(
-    (b) => b.textContent && b.textContent.includes('Descargar PNG')
-  );
-
-  check('openChartEditor footer contiene botón "Descargar SVG"', Boolean(modalSvgBtn));
-  check('openChartEditor footer contiene botón "Descargar PNG"', Boolean(modalPngBtn));
-
-  if (modalSvgBtn) {
-    doc._downloads = [];
-    modalSvgBtn.dispatchEvent('click');
-    const dl = doc._downloads[doc._downloads.length - 1];
-    check('clic en "Descargar SVG" en modal dispara descarga vectorial',
-      dl && dl.download === 'smart175_modal_export.svg');
-  }
-
-  if (modalPngBtn) {
-    doc._downloads = [];
-    modalPngBtn.dispatchEvent('click');
-    await new Promise((r) => setTimeout(r, 20));
-    const dl = doc._downloads[doc._downloads.length - 1];
-    check('clic en "Descargar PNG" en modal dispara descarga rasterizada de alta resolución',
-      dl && dl.download === 'smart175_modal_export.png');
-  }
-
-  modalInstance.close();
 }
 
 console.log('\n--- 5. Resumen de resultados ---');

@@ -1,64 +1,41 @@
 // chartEditor.js — motor de personalización de figuras, compartido por los
-// módulos de gráficos.
+// módulos de gráficos (attachChartEditor es la única vía de edición).
 //
 // Qué hace:
-//  - Modo "Personalizar" (botón). Con él apagado no interfiere en nada.
-//  - Arrastra con el ratón SOLO elementos de texto/anotación (título de la
-//    figura, títulos de eje, bloque de leyenda). Los marcadores de datos
-//    (puntos, barras, líneas) NO se mueven nunca.
-//  - Panel flotante por elemento: color de texto, familia de fuente (las 3
-//    ya cargadas + genéricas del sistema), negrita/cursiva, tamaño.
-//  - Persistencia en localStorage por módulo (smart-175.chartStyle.<key>),
-//    re-aplicada al recargar. Botón "Restablecer".
-//  - Sección "Estilo de la figura": motor de variables CSS de rol (--fig-*,
-//    ver css/components.css) para rejilla/eje/marcas/título de eje/fuente.
-//    Solo variables CSS con fallback al tema actual — no repinta nada, así
-//    que a diferencia de la paleta o la geometría no hace falta cfg por
-//    módulo: aparece en las ~28 vistas en cuanto usan las clases de rol
-//    (.ql-gridline/.ql-baseline-line/.ql-tick-label/.ql-axis-label).
-//  - "Descargar SVG/PNG/TIFF" (attachChartEditor): pasan por
-//    js/lib/figureExport.js (Paso 3 de qiimelab-prompt-editor-fase-0-
-//    fundamentos.md) — resuelven SIEMPRE en esquema claro (legible con
-//    independencia del tema activo) y sin var()/color() residual (el bug de
-//    color-mix() en mapas de calor/degradados). PNG/TIFF llevan dpi real
-//    embebido (300 por defecto). `openChartEditor` (legacy, ver más abajo)
-//    sigue con el pipeline antiguo (serializeSvg/exportSvg/exportPng): no
-//    se le ha portado el arreglo por no ganar casos de uso nuevos.
-//
-//  - "Descargar SVG" (openChartEditor, legacy): exporta la figura tal cual
-//    se ve, con los estilos inline resueltos (sin depender de la hoja de
-//    estilos de la app).
-//
-//  - Paleta de color para las SERIES de datos (no solo el texto): botones de
-//    paleta completa (categórica/secuencial/divergente) + una fila por serie
-//    con swatch nativo + campo de texto #RRGGBB, con aviso suave (no
-//    bloqueante) si el color chocaría con otro de la misma figura. Dos
-//    mecanismos según el tipo de gráfico (ver cfg.paletteSeries más abajo):
-//    directo por atributo `data-ce-series-fill/-stroke="<id>"` en los nodos
-//    ya dibujados (sin repintar — la mayoría de gráficos: barras, cajas,
-//    puntos, dímeros…), o lectura de `getPaletteOverrides(key)` ANTES de
-//    calcular colores, para las figuras con degradado continuo (mapas de
-//    calor, matriz de correlación) que sí necesitan repintar al cambiar.
+//  - Barra bajo cada figura: Personalizar/Terminar, pantalla completa, un
+//    desplegable de formato (SVG/PNG/TIFF/PDF) + "Descargar" y Restablecer.
+//  - "Personalizar" abre UN solo panel (Fase 1, 27 sep 2026; antes eran dos
+//    exclusivos, Personalizar y la rueda Ajustes), agrupado por lo que
+//    controla cada sección:
+//      · Datos y estructura (recalculan la figura): Estructura (ejes, orden
+//        de categorías, rejilla menor, márgenes), Geometría, Significación
+//        estadística y Escala de color — las tres últimas si el módulo las
+//        activa por cfg.
+//      · Apariencia (solo cambian cómo se ve): Títulos, Estilo de la figura
+//        (motor de variables CSS de rol --fig-* + tipografía global), Paleta
+//        de series (si el módulo declara cfg.paletteSeries), Exportación
+//        (ancho físico en mm) y Presets propios.
+//    Con el panel cerrado no interfiere en nada.
+//  - Con el panel abierto se arrastran SOLO los textos/anotaciones (título,
+//    títulos de eje, leyenda); los marcadores de datos no se mueven nunca.
+//    Cada texto tiene su panel flotante (color, fuente, negrita/cursiva,
+//    tamaño).
+//  - Persistencia en localStorage por figura (smart-175.chartStyle.<key>,
+//    ver chartState.js), re-aplicada al recargar.
+//  - Exportación vía js/lib/figureExport.js: siempre en esquema claro y sin
+//    var()/color() residual; PNG/TIFF con dpi real embebido (300), PDF de una
+//    página con la figura rasterizada al tamaño físico (no vectorial).
+//  - Paleta de las SERIES de datos: directo por atributo
+//    `data-ce-series-fill/-stroke="<id>"` en los nodos ya dibujados (sin
+//    repintar), o leyendo `getPaletteOverrides(key)` ANTES de calcular
+//    colores en las figuras con degradado continuo (heatmaps).
 //
 // Sin dependencias, sin build step. No toca datos ni escalas.
 //
-// DECISIÓN DE ARQUITECTURA (22 sep 2026, ver Claude outputs/estudio-editor-
-// graficas-nivel-biorender.md sección 2 y qiimelab-prompt-editor-fase-0-
-// fundamentos.md Paso 1): este archivo tenía dos vías de edición no
-// unificadas. `attachChartEditor` (abajo) es ahora la ÚNICA vía — la usan
-// las ~28 vistas de gráfico de la app. `openChartEditor` (modal aparte con
-// pestañas geometría/tipografía/colores, más abajo en el archivo) queda
-// documentado como LEGACY: se retiró su único uso (el diagrama aluvial de
-// taxaBarplot.js) en favor de `attachChartEditor` + `cfg.geometrySliders`
-// (nueva sección "Geometría" del panel, mismo patrón que la paleta y los
-// títulos). No se ha borrado el código de `openChartEditor` todavía —
-// queda como referencia/red de seguridad un tiempo — pero no debe ganar
-// ningún caso de uso nuevo; cualquier control nuevo va en `attachChartEditor`.
-//
-// ESTRUCTURA (Fase 0b, 27 sep 2026): este archivo solo orquesta. El código
-// vive troceado en js/lib/chart/ (un archivo por sección del editor) y
-// js/lib/chartEditor.js es una fachada de una línea que re-exporta desde
-// aquí, así que ningún módulo cambia su import:
+// ESTRUCTURA (Fase 0b): este archivo solo orquesta. El código vive troceado
+// en js/lib/chart/ (un archivo por sección del editor) y js/lib/chartEditor.js
+// es una fachada de una línea que re-exporta desde aquí, así que ningún
+// módulo cambia su import:
 //   chartEditor.js      attachChartEditor: estado de la instancia, barra de
 //                       herramientas, títulos, pantalla completa, reset, init
 //   chartElements.js    elementos editables, arrastre y panel de estilo
@@ -67,12 +44,15 @@
 //   chartAxes.js        estructura/ejes   · chartGeometry.js    geometría/márgenes
 //   chartFigureStyle.js --fig-*/fuentes   · chartPresets.js     presets propios
 //   chartExport.js      descargas         · chartState.js       lectura persistida
-//   chartI18n.js · chartStyles.js · chartLegacyDialog.js (openChartEditor)
+//   chartI18n.js · chartStyles.js
 // Cada sección es una fábrica `createX(ctx)` que se invoca una vez por
 // instancia; ver el comentario de `ctx` dentro de attachChartEditor.
+// (El antiguo modal openChartEditor, sin usos desde el 22 sep, se borró en
+// la Fase 1.)
 
 import { openPanel as openModalPanel } from '../modal.js';
 import { tr } from './chartI18n.js';
+import { CHARTSTYLE_PREFIX, LEGACY_CHARTSTYLE_PREFIX } from './chartState.js';
 import { CE_ICONS, injectStyles } from './chartStyles.js';
 import { createColors } from './chartColors.js';
 import { createSeriesStyle } from './chartSeriesStyle.js';
@@ -92,7 +72,6 @@ export {
 } from './chartState.js';
 export { readPresets } from './chartPresets.js';
 export { sanitizeFilename, inlineComputedStyles, serializeSvg, exportSvg, exportPng } from './chartExport.js';
-export { openChartEditor } from './chartLegacyDialog.js';
 
 /**
  * @param {object} cfg
@@ -203,8 +182,8 @@ export function attachChartEditor(cfg) {
   const figureOptionsCfg = cfg.figureOptions || null;
   const lang = cfg.lang || 'es';
   const T = tr(lang);
-  const LSKEY = 'smart-175.chartStyle.' + key;
-  const LEGACY_LSKEY = 'qiimelab.chartStyle.' + key;
+  const LSKEY = CHARTSTYLE_PREFIX + key;
+  const LEGACY_LSKEY = LEGACY_CHARTSTYLE_PREFIX + key;
 
   // Contexto compartido con las secciones (js/lib/chart/*.js). Cada fábrica
   // createX(ctx) destructura al empezar lo que ya existe y no cambia (cfg,

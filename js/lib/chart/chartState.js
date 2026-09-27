@@ -6,8 +6,10 @@
 // Parte del editor de figuras troceado desde js/lib/chartEditor.js (Fase 0b,
 // sin cambios de comportamiento). Reparto y patrón `ctx`: js/lib/chart/chartEditor.js.
 
-const CHARTSTYLE_PREFIX = 'smart-175.chartStyle.';
-const LEGACY_CHARTSTYLE_PREFIX = 'qiimelab.chartStyle.';
+// prefijos de la clave localStorage de cada figura (<prefijo><key>); el
+// antiguo solo se lee y se limpia, nunca se escribe
+export const CHARTSTYLE_PREFIX = 'smart-175.chartStyle.';
+export const LEGACY_CHARTSTYLE_PREFIX = 'qiimelab.chartStyle.';
 
 function readChartStyleRaw(key) {
   try {

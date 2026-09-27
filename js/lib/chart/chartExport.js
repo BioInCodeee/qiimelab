@@ -1,6 +1,7 @@
 // chartExport.js — exportación: descargas SVG/PNG/TIFF de attachChartEditor
 // (vía js/lib/figureExport.js, ancho físico en mm) y el pipeline antiguo
-// serializeSvg/exportSvg/exportPng que sigue usando openChartEditor.
+// serializeSvg/exportSvg/exportPng (API pública; sin usos en la app desde que
+// se borró openChartEditor, solo en tests/charteditor.mjs).
 //
 // Parte del editor de figuras troceado desde js/lib/chartEditor.js (Fase 0b,
 // sin cambios de comportamiento). Reparto y patrón `ctx`: js/lib/chart/chartEditor.js.
