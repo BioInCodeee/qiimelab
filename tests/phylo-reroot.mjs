@@ -23,14 +23,29 @@ if (!server) skip('no se pudo servir la app (¿python3?)');
 const c = await connect({ url: server.url + '/index.html', label: 'phylo-reroot' });
 let failed = false;
 const check = (name, ok, extra = '') => { console.log((ok ? '  ✓ ' : '  ✗ ') + name + (extra ? '  ' + extra : '')); if (!ok) failed = true; };
+// espera activa (no un sleep fijo) a que `expr` sea verdadera; si no llega,
+// para con un mensaje de precondición en vez de seguir y reventar con
+// "Cannot set properties of null" más abajo (fallo de la auditoría del
+// 27 sep: el síntoma encaja con una pestaña en chrome-error:// o con un
+// servidor ajeno en :8931 sirviendo un checkout viejo — ver server-smoke)
+const waitFor = async (expr, what, ms = 20000) => {
+  for (let t = 0; t < ms; t += 200) {
+    if (await c.ev(expr).catch(() => false)) return;
+    await sleep(200);
+  }
+  const where = await c.ev('location.href').catch(() => '?');
+  throw new Error(`PRECONDICIÓN: ${what} no apareció en ${ms / 1000}s (página: ${where})`);
+};
 
 try {
   await c.goto();
   await sleep(1500);
   await c.ev(`location.hash = '#/arbol'`);
   await sleep(1000);
+  await waitFor(`[...document.querySelectorAll('button')].some((x) => /Cargar ejemplo|Load example/.test(x.textContent))`, 'el botón "Cargar ejemplo" de #/arbol');
   await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /Cargar ejemplo|Load example/.test(x.textContent)); if (b) b.click(); })()`);
-  await sleep(2000);
+  // el alineamiento corre en un worker: esperar al árbol dibujado y a los controles de enraizado
+  await waitFor(`document.querySelectorAll('svg.ql-svg text.ql-phylo-leaflabel').length === 16 && [...document.querySelectorAll('.ql-seg-btn')].some((b) => /Sin enraizar|Unrooted/.test(b.textContent))`, 'el árbol de ejemplo (16 hojas) con los controles de enraizado');
 
   // ================= "sin enraizar" es el estado inicial por defecto =================
   console.log('-- estado inicial: árbol sin enraizar --');
@@ -43,7 +58,7 @@ try {
   // ================= elegir "Enraizado (cepa de referencia)" despliega el selector =================
   console.log('\n-- elegir "cepa de referencia" despliega el selector de hojas --');
   await c.ev(`(() => { const b = [...document.querySelectorAll('.ql-seg-btn')].find((x) => /cepa de referencia|reference strain/i.test(x.textContent)); if (b) b.click(); })()`);
-  await sleep(800);
+  await waitFor(`!!document.querySelector('#phylo-reference-leaf')`, 'el selector de hoja de referencia', 8000).catch((e) => console.log('  · ' + e.message));
   const selectorSetup = await c.ev(`(() => {
     const sel = document.querySelector('#phylo-reference-leaf');
     if (!sel) return { err: 'no apareció el selector de hoja de referencia' };
