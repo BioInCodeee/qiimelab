@@ -7,7 +7,7 @@
 
 gate() {
   label=$1; dir=$2; shift 2
-  log="${TMPDIR:-/tmp}/smart175-gate-$(echo "$label" | tr -c 'A-Za-z0-9' '-').log"
+  log="${TMPDIR:-/tmp}/smart175-gate-$(printf '%s' "$label" | tr -c 'A-Za-z0-9' '-').log"
   if ! command -v node >/dev/null 2>&1; then
     echo "✗ BLOQUEADO ($label): no se encuentra 'node' para correr los tests."
     echo "  Saltarlo conscientemente: ver \"Gate de tests\" en tests/README.md"
@@ -20,7 +20,8 @@ gate() {
   fi
   echo ""
   echo "✗ BLOQUEADO ($label): la suite de tests no pasa entera."
-  fails=$(grep -E '^  FALLA ' "$log" | sed 's/^  FALLA */    · /')
+  # solo el bloque RESUMEN del runner (la salida de cada test puede contener "FALLA")
+  fails=$(sed -n '/^RESUMEN$/,$p' "$log" | grep -E '^  FALLA ' | sed 's/^  FALLA */    · /')
   if [ -n "$fails" ]; then
     echo "  Tests que fallan:"
     echo "$fails"
