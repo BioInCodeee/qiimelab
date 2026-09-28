@@ -276,19 +276,32 @@ export function ptukey(q, k, nu) {
   // en t lleva un factor u de más: u^ν en vez de u^(ν-1).
   const halfNu = nu / 2;
   const logConst = Math.log(2) + halfNu * Math.log(halfNu) - lnGamma(halfNu);
-  // la densidad de u se concentra cerca de 1 para ν grande (u=1 exacto en
-  // el límite); un rango de log(u) en [-1.2, 1.2] (u en ~[0.30, 3.32])
-  // cubre con margen incluso ν pequeño (2-5), donde la dispersión es
-  // mayor -- verificado empíricamente contra R (ver tests/stats/*).
-  const HALF_RANGE = nu < 10 ? 2.2 : Math.min(2.2, 6 / Math.sqrt(nu) + 0.3);
-  const tLo = -HALF_RANGE, tHi = HALF_RANGE;
+  // Rango y cuadratura de la integral en t=log(u), ajustados a ν (antes era
+  // un rango fijo de ±2.2 con 32 nodos, que perdía la cola izquierda con ν
+  // pequeño -- los gl fraccionarios de Games-Howell, error ~1e-3 en p -- y
+  // no resolvía el pico con ν grande: error de hasta 0.37 con ν=4000;
+  // detectado al comparar con stats::ptukey de R el script de "Descargar
+  // script R"). El log-integrando ν·t − ν·e^{2t}/2 tiene su máximo en t=0:
+  //  · cerca del pico cae como −ν·t² → anchura ~1/sqrt(2ν);
+  //  · a la izquierda, como ν·t → hace falta |t| > 40/ν para e^-40;
+  //  · a la derecha, como −ν·e^{2t}/2.
+  // Se integra con Gauss-Legendre compuesto (12 tramos × 32 nodos).
+  const sdT = 1 / Math.sqrt(2 * nu);
+  const tLo = -Math.min(12, Math.max(9 * sdT, 40 / nu));
+  const tHi = Math.max(9 * sdT, 0.5 * Math.log((80 + nu) / nu));
+  const PANELS = 12;
+  const h = (tHi - tLo) / PANELS;
   let sum = 0;
-  for (let i = 0; i < GL32.x.length; i++) {
-    const t = tLo + (tHi - tLo) * (GL32.x[i] + 1) / 2;
-    const u = Math.exp(t);
-    const logIntegrandT = logConst + nu * Math.log(u) - nu * u * u / 2; // = log(f_u(u)) + log(u)
-    const fu = Math.exp(logIntegrandT);
-    sum += GL32.w[i] * fu * rangeIntegral(q * u, k) * (tHi - tLo) / 2;
+  for (let pnl = 0; pnl < PANELS; pnl++) {
+    const a = tLo + pnl * h;
+    for (let i = 0; i < GL32.x.length; i++) {
+      const t = a + h * (GL32.x[i] + 1) / 2;
+      const u = Math.exp(t);
+      const logIntegrandT = logConst + nu * t - nu * u * u / 2; // = log(f_u(u)) + log(u)
+      const fu = Math.exp(logIntegrandT);
+      if (fu < 1e-300) continue;
+      sum += GL32.w[i] * fu * rangeIntegral(q * u, k) * h / 2;
+    }
   }
   return Math.min(1, Math.max(0, sum));
 }
