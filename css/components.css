@@ -1140,10 +1140,7 @@ select:focus-visible {
   a { color: inherit; text-decoration: none; }
   body { background: #fff; }
   svg.ce-editing .ce-outline, svg.ce-editing .ce-hit { display: none !important; }
-  /* un salto de página antes de cada sección del informe (salvo la primera) */
-  .ql-report-section { break-before: page; page-break-before: always; border-top: none; }
-  .ql-report-section:first-of-type { break-before: auto; page-break-before: auto; }
-  .ql-report-fig, .ql-report-table { break-inside: avoid; page-break-inside: avoid; }
+  /* el informe completo (#/informe) tiene su propia hoja: css/print.css */
 }
 
 /* ---------- file-row / list interactions ---------- */

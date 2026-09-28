@@ -1,0 +1,99 @@
+/* print.css — impresión / "Guardar como PDF" del informe completo (#/informe).
+ *
+ * Se enlaza con media="print" desde index.html y se inlinea en el HTML
+ * autocontenido del informe; por eso todo va dentro de @media print.
+ * Las reglas generales de impresión de cualquier módulo (ocultar barra
+ * lateral, botones…) siguen en components.css; aquí solo lo del informe,
+ * acotado con :has(.ql-report) para no tocar la impresión de otras páginas.
+ *
+ * El tema: informe.js pone data-theme="light" en beforeprint (y lo restaura
+ * en afterprint), así que los tokens ya valen los del tema claro; aquí se
+ * fuerza además negro sobre blanco en el texto del informe.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 16mm 20mm;
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font: 9pt "IBM Plex Sans", Arial, sans-serif;
+      color: #555;
+    }
+  }
+
+  /* ---- solo el informe: fuera toda la interfaz de la app ---- */
+  body:has(.ql-report):not(.ql-standalone) > :not(.ql-shell),
+  body:has(.ql-report) .ql-sidebar,
+  body:has(.ql-report) .ql-main-col > :not(.ql-main),
+  body:has(.ql-report) .ql-report-screen,
+  body:has(.ql-report) .ql-report-actions { display: none !important; }
+  html:has(.ql-report), body:has(.ql-report) { background: #fff !important; }
+  body:has(.ql-report) .ql-shell,
+  body:has(.ql-report) .ql-main-col { display: block; min-height: 0; padding: 0; margin: 0; }
+  body:has(.ql-report) .ql-main { max-width: none; padding: 0; margin: 0; }
+
+  .ql-report {
+    max-width: none; margin: 0;
+    color: #000; background: #fff;
+    font-size: 10.5pt; line-height: 1.45;
+  }
+  .ql-report h1, .ql-report h2, .ql-report h3,
+  .ql-report dt, .ql-report dd, .ql-report p, .ql-report li,
+  .ql-report figcaption, .ql-report strong { color: #000 !important; }
+
+  /* ---- portada: su propia página ---- */
+  .ql-report-cover { border-top: none; padding-top: 30mm; margin-top: 0; }
+  .ql-report-brand { color: #000 !important; }
+  .ql-report-title { font-size: 24pt; }
+  .ql-report-meta { font-size: 10.5pt; }
+  .ql-report-note { color: #333 !important; }
+
+  /* ---- una sección principal por página ---- */
+  .ql-report-section {
+    break-before: page; page-break-before: always;
+    border-top: none; margin-top: 0; padding-top: 0;
+  }
+  .ql-report-section > h2 {
+    font-size: 15pt; margin-bottom: 8pt; padding-bottom: 4pt;
+    border-bottom: 1px solid #000;
+    break-after: avoid; page-break-after: avoid;
+  }
+  .ql-report-para { font-size: 10.5pt; }
+  .ql-report-disclaimer { color: #333 !important; }
+
+  /* ---- avisos de equivalencia: sin fondos de color, borde gris ---- */
+  .ql-report .ql-method-notice {
+    background: none !important; color: #000 !important;
+    border: 1px solid #888 !important; border-left: 4px solid #444 !important;
+    border-radius: 0; padding: 5pt 8pt; font-size: 9.5pt;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+
+  /* ---- figuras: nunca partidas; caben en una página ---- */
+  .ql-report-fig { margin: 6pt 0 12pt; break-inside: avoid; page-break-inside: avoid; }
+  .ql-report-img {
+    border: none; border-radius: 0;
+    width: auto; max-width: 100%; max-height: 205mm;
+  }
+  .ql-report-fig figcaption { font-size: 9pt; color: #333 !important; }
+
+  /* ---- tablas: legibles, sin cortar filas, cabecera repetida ---- */
+  .ql-report-table {
+    max-height: none !important; overflow: visible !important;
+    border: none; margin-top: 8pt;
+  }
+  .ql-report .ql-table {
+    width: 100%; border-collapse: collapse; font-size: 8.5pt;
+    color: #000; background: #fff;
+  }
+  .ql-report .ql-table thead { display: table-header-group; }
+  .ql-report .ql-table th, .ql-report .ql-table td {
+    color: #000 !important; background: none !important;
+    border: 1px solid #999 !important; padding: 2pt 4pt;
+    position: static !important; overflow-wrap: anywhere;
+  }
+  .ql-report .ql-table th { font-weight: 600; }
+  .ql-report .ql-table tr { break-inside: avoid; page-break-inside: avoid; }
+  /* tablas cortas (≤ 25 filas): mejor enteras en la página siguiente que partidas */
+  .ql-report-table { break-inside: avoid; page-break-inside: avoid; }
+}

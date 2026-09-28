@@ -35,6 +35,7 @@ const SHELL = [
   './css/tokens.css',
   './css/base.css',
   './css/components.css',
+  './css/print.css',
   './css/fonts.css',
   './fonts/IBMPlexSans-var.latin.woff2',
   './fonts/IBMPlexSans-var.latin-ext.woff2',

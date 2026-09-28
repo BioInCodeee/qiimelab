@@ -115,7 +115,7 @@ async function inlineFontsCss() {
 }
 
 async function buildStandaloneHtml(reportEl, lang) {
-  const cssFiles = ['css/tokens.css', 'css/base.css', 'css/components.css'];
+  const cssFiles = ['css/tokens.css', 'css/base.css', 'css/components.css', 'css/print.css'];
   const [styles, fontsCss] = await Promise.all([
     Promise.all(cssFiles.map(async (f) => {
       try { return await (await fetch(f)).text(); } catch (e) { return ''; }
