@@ -30,7 +30,7 @@ export function injectStyles() {
 svg.ce-global-font text, svg.ce-global-font tspan { font-family:var(--fig-global-font) !important; }
 .ce-globalfont .ce-hint { margin:0 0 4px; }
 /* panel único (Fase 1): dos bloques, "Datos y estructura" y "Apariencia" */
-.ce-group { flex:1 1 100%; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-top:12px; padding:10px 12px 12px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+.ce-group { flex:1 1 100%; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-top:12px; padding:10px 12px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); }
 .ce-group-title { flex:1 1 100%; margin:0; font-size:12.5px; font-weight:600; color:var(--ink); }
 .ce-group-hint { flex:1 1 100%; margin:0 0 2px; }
 .ce-group > :nth-child(3) { margin-top:0; padding-top:0; border-top:0; }
@@ -45,7 +45,7 @@ svg.ce-global-font text, svg.ce-global-font tspan { font-family:var(--fig-global
 .ce-toolbar .ce-cta:hover { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 18%, var(--surface)); }
 svg.ce-editing { }
 svg.ce-editing .ce-el { cursor: move; }
-.ce-outline { fill:none; stroke:var(--accent); stroke-width:1; stroke-dasharray:4 3; pointer-events:none; opacity:0; transition:opacity .1s ease; }
+.ce-outline { fill:none; stroke:var(--accent); stroke-width:1; stroke-dasharray:4 3; pointer-events:none; opacity:0; transition:opacity var(--dur) var(--ease); }
 svg.ce-editing .ce-el:hover .ce-outline, svg.ce-editing .ce-el.ce-selected .ce-outline { opacity:1; }
 svg.ce-editing .ce-el.ce-selected .ce-outline { stroke-width:1.4; stroke-dasharray:none; }
 .ce-hit { fill:transparent; pointer-events:none; }

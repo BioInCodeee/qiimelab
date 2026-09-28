@@ -172,6 +172,8 @@ svg.ql-brand-mark {
   .ql-has-drawer.ql-nav-open .ql-nav-backdrop { visibility: visible; opacity: 1; }
 
   @media (prefers-reduced-motion: no-preference) {
+    /* 0.22s a propósito (más lento que --dur): el cajón recorre toda la
+       pantalla, y el retardo de visibility tiene que ser el mismo valor */
     .ql-has-drawer .ql-shell > #sidebar { transition: transform 0.22s var(--ease), visibility 0s linear 0.22s; }
     .ql-has-drawer .ql-shell > #sidebar.is-open { transition-delay: 0s; }
     .ql-has-drawer .ql-nav-backdrop { transition: opacity 0.22s var(--ease), visibility 0s linear 0.22s; }
@@ -238,7 +240,7 @@ svg.ql-brand-mark {
   padding: 9px 16px;
   font-size: 12.5px;
   line-height: 1.35;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--ink-2);
@@ -249,7 +251,7 @@ svg.ql-brand-mark {
   flex: none;
   font: inherit; font-size: 12px; font-weight: 600;
   color: var(--accent-ink); background: var(--accent); cursor: pointer;
-  border: none; border-radius: 7px;
+  border: none; border-radius: var(--radius-sm);
   padding: 5px 12px;
 }
 .ql-pwa-reload:hover { background: var(--accent-2); }
@@ -915,12 +917,12 @@ input.ql-num-small { width: 104px; flex: none; }
   color: var(--surface);
   font-size: 12px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   line-height: 1.5;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   transform: translate(-50%, calc(-100% - 12px));
   opacity: 0;
-  transition: opacity .08s ease;
+  transition: opacity var(--dur) var(--ease);
   z-index: 5;
   white-space: nowrap;
 }
@@ -1415,7 +1417,7 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   user-select: all;
   line-height: 1;
   color: #ffffff;
-  transition: transform 0.08s ease;
+  transition: transform var(--dur) var(--ease);
 }
 
 .ql-ds-col:hover .ql-ds-block:not(.ql-ds-empty) {
@@ -1686,7 +1688,7 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   white-space: nowrap;
   line-height: 1.4;
   user-select: none;
-  transition: opacity 0.08s ease;
+  transition: opacity var(--dur) var(--ease);
 }
 
 .ql-chroma-crosshair {
@@ -1725,12 +1727,12 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
 /* --- Diagramas Aluviales Temporales (SVG puro) --- */
 .ql-alluvial-link {
   fill-opacity: 0.4;
-  transition: opacity 0.18s ease, fill-opacity 0.18s ease;
+  transition: opacity var(--dur) var(--ease), fill-opacity var(--dur) var(--ease);
   cursor: pointer;
 }
 
 .ql-alluvial-node {
-  transition: opacity 0.18s ease, stroke 0.18s ease;
+  transition: opacity var(--dur) var(--ease), stroke var(--dur) var(--ease);
   cursor: pointer;
 }
 
@@ -2206,7 +2208,7 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   border: 2px solid var(--surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   cursor: grab;
-  transition: transform 0.1s ease;
+  transition: transform var(--dur) var(--ease);
 }
 
 .ql-range::-webkit-slider-thumb:active {
@@ -2222,7 +2224,7 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   border: 2px solid var(--surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   cursor: grab;
-  transition: transform 0.1s ease;
+  transition: transform var(--dur) var(--ease);
 }
 
 .ql-range::-moz-range-thumb:active {
