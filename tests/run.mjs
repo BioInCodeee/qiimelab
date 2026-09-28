@@ -45,6 +45,7 @@ const SUITE = [
   { name: 'alpha-boxstats', file: 'alpha-boxstats.mjs', kind: 'navegador' },
   { name: 'venn-sets', file: 'venn-sets.mjs', kind: 'navegador' },
   { name: 'correlogram-pie-split', file: 'correlogram-pie-split.mjs', kind: 'navegador' },
+  { name: 'biomarker-volcano', file: 'biomarker-volcano.mjs', kind: 'navegador' },
   { name: 'phylo-sunburst', file: 'phylo-sunburst.mjs', kind: 'navegador' },
   { name: 'storage-migration', file: 'storage-migration.mjs', kind: 'navegador' },
   { name: 'security-headers', file: 'security-headers.mjs', kind: 'navegador' },

@@ -342,7 +342,7 @@ export function render(container) {
   let bmMethod = 'kw';         // 'kw' (Kruskal-Wallis, de siempre) | 'ancombc' (composicional) | 'rf' (Random Forest) — decide de dónde sale la significancia (p/q, o el umbral de las variables sombra en 'rf')
   let bmScore = 'cliffs';      // 'cliffs' | 'lda' | 'ancom' — qué score manda en el gráfico y el orden por defecto
   let bmSort = { key: 'delta', dir: 'desc' };
-  let bmView = 'single';       // 'single' (un método, el de siempre) | 'consensus' (panel taxón × método)
+  let bmView = 'single';       // 'single' (un método, el de siempre) | 'volcano' (δ de Cliff × −log10 q, mismo método y umbral) | 'consensus' (panel taxón × método)
   let bmConsSort = { key: 'count', dir: 'desc' };
   let editor = null;
   let wasEditing = false; // ver cfg.startEditing en chartEditor.js — capturado al principio de
@@ -1804,23 +1804,34 @@ export function render(container) {
 
     container.appendChild(chartTypeField({
       labelKey: 'barplots.bmViewLabel',
-      options: [{ value: 'single', labelKey: 'barplots.bmViewSingle' }, { value: 'consensus', labelKey: 'barplots.bmViewConsensus' }],
+      options: [
+        { value: 'single', labelKey: 'barplots.bmViewSingle' },
+        { value: 'volcano', labelKey: 'barplots.bmViewVolcano' },
+        { value: 'consensus', labelKey: 'barplots.bmViewConsensus' },
+      ],
       active: bmView,
-      onChange: (v) => { bmView = v; paint(); },
-      helpKey: bmView === 'consensus' ? 'barplots.bmViewConsensusHelp' : undefined,
+      onChange: (v) => {
+        bmView = v;
+        // Random Forest no da p-valor (da importancia): el volcano no tiene
+        // eje Y con él, así que entrar al volcano vuelve a Kruskal-Wallis
+        if (v === 'volcano' && bmMethod === 'rf') { bmMethod = 'kw'; bmScore = 'cliffs'; bmSort = { key: 'delta', dir: 'desc' }; }
+        paint();
+      },
+      helpKey: bmView === 'consensus' ? 'barplots.bmViewConsensusHelp' : bmView === 'volcano' ? 'barplots.bmViewVolcanoHelp' : undefined,
     }));
 
     if (bmView === 'consensus') { renderBiomarkerConsensus(table, levels, groupOptions); return; }
+    const isVolcano = bmView === 'volcano';
 
     const grid = document.createElement('div');
     grid.className = 'ql-grid-2';
 
     const chartPanel = document.createElement('section');
     chartPanel.className = 'ql-card ql-panel';
-    chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' + t('barplots.bmChartNote') + '</p>';
+    chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' + t(isVolcano ? 'barplots.bmVolcanoNote' : 'barplots.bmChartNote') + '</p>';
     const chartWrap = document.createElement('div');
     chartWrap.className = 'ql-chartwrap';
-    const svg = svgEl('svg', { class: 'ql-svg', role: 'img', 'aria-label': t('a11y.chartBiomarkers') });
+    const svg = svgEl('svg', { class: 'ql-svg', role: 'img', 'aria-label': t(isVolcano ? 'a11y.chartBiomarkersVolcano' : 'a11y.chartBiomarkers') });
     const tooltip = document.createElement('div');
     tooltip.className = 'ql-tooltip';
     chartWrap.appendChild(svg); chartWrap.appendChild(tooltip);
@@ -1881,6 +1892,7 @@ export function render(container) {
       b.className = 'ql-seg-btn' + (bmMethod === v ? ' is-on' : '');
       b.textContent = lbl;
       b.title = t(v === 'ancombc' ? 'barplots.bmMethodAncombcHelp' : v === 'rf' ? 'barplots.bmMethodRfHelp' : 'barplots.bmMethodKwHelp');
+      if (isVolcano && v === 'rf') { b.disabled = true; b.title = t('barplots.bmVolcanoNoRf'); }
       b.addEventListener('click', () => {
         if (bmMethod === v) return;
         bmMethod = v;
@@ -1892,6 +1904,7 @@ export function render(container) {
       methodSeg.appendChild(b);
     });
     methodField.appendChild(methodSeg);
+    if (isVolcano) methodField.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + t('barplots.bmVolcanoNoRf') + '</p>');
     const methodHelpKey = bmMethod === 'ancombc' ? 'barplots.bmMethodAncombcHelp' : bmMethod === 'rf' ? 'barplots.bmMethodRfHelp' : 'barplots.bmMethodKwHelp';
     methodField.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + t(methodHelpKey) + '</p>');
     const methodGlosId = bmMethod === 'ancombc' ? 'ancombc' : bmMethod === 'rf' ? 'randomforest' : bmMethod === 'kw' ? 'kruskal' : null;
@@ -1953,7 +1966,10 @@ export function render(container) {
     scoreField.appendChild(scoreSeg);
     const scoreHelpKey = bmScore === 'lda' ? 'barplots.bmScoreLdaHelp' : bmScore === 'ancom' ? 'barplots.bmScoreAncomHelp' : bmScore === 'rf' ? 'barplots.bmScoreRfHelp' : 'barplots.bmScoreCliffsHelp';
     scoreField.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + t(scoreHelpKey) + '</p>');
-    controls.appendChild(scoreField);
+    // el volcano tiene el δ de Cliff fijo en el eje X (umbrales de efecto
+    // con convención publicada); el selector de score solo manda en barras
+    if (!isVolcano) controls.appendChild(scoreField);
+    else controls.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + t('barplots.bmVolcanoAxisHelp') + '</p>');
 
     const method = document.createElement('p');
     method.className = 'ql-field-help';
@@ -2082,7 +2098,7 @@ export function render(container) {
     // enriquecido es el de mediana más alta (one-vs-rest); con ANCOM-BC es
     // el que su propio modelo ya identificó como tal, para que toda la fila
     // (grupo, δ, LDA, log2FC, q) hable del mismo contraste. ---
-    const sig = tested.filter((x) => (bmMethod === 'rf' ? x.rfImportance > rfShadowMax : x.q < qThresh)).map((x) => {
+    const enrichmentOf = (x) => {
       let bi;
       if (x.ancomGroupIdx != null) {
         bi = x.ancomGroupIdx;
@@ -2093,10 +2109,15 @@ export function render(container) {
       }
       const inGroup = x.perGroup[bi];
       const rest = x.perGroup.filter((_, i) => i !== bi).flat();
+      return { bi, inGroup, rest, delta: cliffsDelta(inGroup, rest) };
+    };
+    const isSig = (x) => (bmMethod === 'rf' ? x.rfImportance > rfShadowMax : x.q < qThresh);
+    const sig = tested.filter(isSig).map((x) => {
+      const { bi, inGroup, rest, delta } = enrichmentOf(x);
       const lda = lefseLdaScore(inGroup, rest);
       return {
         ...x, enrichedGroup: groups[bi], enrichedIdx: bi,
-        delta: cliffsDelta(inGroup, rest),
+        delta,
         ldaScore: lda.error ? null : lda.score,
       };
     });
@@ -2111,7 +2132,7 @@ export function render(container) {
       chartPanel.insertAdjacentHTML('beforeend',
         '<p class="ql-field-help">' + t('barplots.bmRfOob', { pct: (rfOobAccuracy * 100).toFixed(1) }) + '</p>');
     }
-    if (bmScore === 'lda' && ldaMissing > 0) {
+    if (!isVolcano && bmScore === 'lda' && ldaMissing > 0) {
       chartPanel.insertAdjacentHTML('beforeend',
         '<p class="ql-field-help">' + t('barplots.bmLdaMissing', { n: ldaMissing }) + '</p>');
     }
@@ -2119,7 +2140,19 @@ export function render(container) {
     // --- gráfico: barras horizontales tipo LEfSe ---
     const sigForChart = bmScore === 'lda' ? sig.filter((x) => x.ldaScore != null)
       : bmScore === 'ancom' ? sig.filter((x) => x.ancomLog2FC != null) : sig;
-    drawBiomarkerBars(svg, chartPanel, chartWrap, tooltip, sigForChart, groups, bmScore);
+    if (isVolcano) {
+      // TODOS los taxones testados, no solo los significativos: el volcano
+      // enseña también lo que se queda por debajo del umbral. Grupo
+      // enriquecido y δ salen de la misma función que la tabla de abajo, así
+      // que un punto de color es exactamente una fila de esa tabla.
+      const points = tested.map((x) => {
+        const { bi, delta } = enrichmentOf(x);
+        return { ...x, enrichedGroup: groups[bi], enrichedIdx: bi, delta, sig: isSig(x) };
+      });
+      drawBiomarkerVolcano(svg, chartPanel, chartWrap, tooltip, points, groups);
+    } else {
+      drawBiomarkerBars(svg, chartPanel, chartWrap, tooltip, sigForChart, groups, bmScore);
+    }
 
     // --- tabla ordenable ---
     const scrollDiv = document.createElement('div');
@@ -2489,6 +2522,185 @@ export function render(container) {
       paletteSeries: groups.map((g, i) => ({ id: 's' + i, label: g })),
       paletteType: 'categorical',
       figureOptions: { axisX: { domain: [0, maxAbs] }, categoryOrder: true },
+      onFigureOptionsChange: () => paint(),
+      onReset: () => paint(),
+      startEditing: wasEditing,
+    });
+  }
+
+  // =========================================================================
+  //  VOLCANO del panel de biomarcadores — una vista más del MISMO cálculo
+  //  (ningún estadístico nuevo): X = δ de Cliff del grupo enriquecido frente
+  //  al resto (el de la tabla), Y = −log10 q (BH) del método elegido (KW o
+  //  ANCOM-BC). Color = significativo con el MISMO criterio que la tabla
+  //  (q < qThresh), en el color del grupo enriquecido; gris si no.
+  //  Con 2 grupos el eje lleva signo (izquierda = 1.er grupo, derecha = 2.º);
+  //  con 3 o más, one-vs-rest, así que casi todo queda en δ ≥ 0.
+  //  Umbrales de |δ|: 0.11 / 0.28 / 0.43 = pequeño / mediano / grande
+  //  (Vargha & Delaney 2000, su A = 0.56/0.64/0.71 pasado a δ = 2A − 1).
+  // =========================================================================
+  function drawBiomarkerVolcano(svg, mount, chartWrap, tooltip, points, groups) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const CE_KEY = 'taxaBiomarkersVolcano';
+    const two = groups.length === 2;
+    const xOf = (p) => (two && p.enrichedIdx === 0 ? -p.delta : p.delta);
+    const yOf = (p) => -Math.log10(Math.max(p.q, 1e-300));
+    const qY = -Math.log10(qThresh);
+
+    // leyenda al pie (no significativo + un color por grupo enriquecido presente)
+    const shown = [...new Set(points.filter((p) => p.sig).map((p) => p.enrichedIdx))].sort((a, b) => a - b);
+    const legItems = [{ gi: null, text: t('barplots.bmVolcanoNs', { q: qThresh }) }]
+      .concat(shown.map((gi) => ({ gi, text: t('barplots.bmEnrichedIn', { group: groups[gi] }) })));
+    const M = { l: 62, r: 22, t: 44 };
+    const innerW = 500, innerH = 330;
+    const W = M.l + innerW + M.r;
+    let legRows = 1, lx = 0;
+    legItems.forEach((it) => {
+      const w = 15 + it.text.length * 6 + 18;
+      if (lx + w > innerW && lx > 0) { legRows++; lx = 0; }
+      it._x = lx; it._row = legRows - 1; lx += w;
+    });
+    const plotBottom = M.t + innerH;
+    const sideY = plotBottom + 32, axisY = plotBottom + (two ? 50 : 36), legY = axisY + 20;
+    const H = legY + legRows * 15 + 8;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.style.width = '';
+    svg.style.maxWidth = '';
+
+    const xs = points.map(xOf), ys = points.map(yOf);
+    // un 5 % de aire más allá de ±1 para que un δ = ±1 (separación total) no quede medio recortado
+    const autoX = two ? [-1.05, 1.05] : [Math.min(-0.1, Math.floor((Math.min(0, ...xs) - 0.05) * 10) / 10), 1.05];
+    const autoY = [0, Math.max(1, qY * 1.3, (Math.max(0, ...ys) * 1.1) || 0)];
+    const fo = getFigureOptions(CE_KEY);
+    const xLo = fo.axisXMin != null ? fo.axisXMin : autoX[0], xHi = fo.axisXMax != null ? fo.axisXMax : autoX[1];
+    const yLo = fo.axisMin != null ? fo.axisMin : autoY[0], yHi = fo.axisMax != null ? fo.axisMax : autoY[1];
+    const sx = (v) => M.l + ((v - xLo) / ((xHi - xLo) || 1)) * innerW;
+    const sy = (v) => plotBottom - ((v - yLo) / ((yHi - yLo) || 1)) * innerH;
+    const niceStep = (range, n) => {
+      if (!(range > 0)) return 1;
+      const raw = range / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), nm = raw / mag;
+      return (nm < 1.5 ? 1 : nm < 3 ? 2 : nm < 7 ? 5 : 10) * mag;
+    };
+
+    // rejilla + ticks
+    const xStep = niceStep(xHi - xLo, 8);
+    for (let v = Math.ceil(xLo / xStep) * xStep; v <= xHi + 1e-9; v += xStep) {
+      const xp = sx(v);
+      svg.appendChild(svgEl('line', { x1: xp, x2: xp, y1: M.t, y2: plotBottom, class: 'ql-gridline' }));
+      const tk = svgEl('text', { x: xp, y: plotBottom + 16, class: 'ql-tick-label', 'text-anchor': 'middle' });
+      tk.textContent = (Math.round(v * 100) / 100).toString();
+      svg.appendChild(tk);
+    }
+    const yStep = niceStep(yHi - yLo, 5);
+    for (let v = Math.ceil(yLo / yStep) * yStep; v <= yHi + 1e-9; v += yStep) {
+      const yp = sy(v);
+      svg.appendChild(svgEl('line', { x1: M.l, x2: M.l + innerW, y1: yp, y2: yp, class: 'ql-gridline' }));
+      const tk = svgEl('text', { x: M.l - 8, y: yp + 3, class: 'ql-tick-label', 'text-anchor': 'end' });
+      tk.textContent = (Math.round(v * 10) / 10).toString();
+      svg.appendChild(tk);
+    }
+    svg.appendChild(svgEl('line', { x1: M.l, x2: M.l + innerW, y1: plotBottom, y2: plotBottom, class: 'ql-baseline-line' }));
+    svg.appendChild(svgEl('line', { x1: M.l, x2: M.l, y1: M.t, y2: plotBottom, class: 'ql-baseline-line' }));
+
+    // líneas de referencia: umbrales de |δ| (tenues, rotuladas en vertical)
+    // y el umbral q del panel (la misma línea que decide el color)
+    const refG = svgEl('g', { 'data-ce': 'refs' });
+    [[0.11, 'bmVolcanoSmall'], [0.28, 'bmVolcanoMedium'], [0.43, 'bmVolcanoLarge']].forEach(([d, key]) => {
+      [d, -d].forEach((v) => {
+        if (v <= xLo || v >= xHi) return;
+        const xp = sx(v);
+        refG.appendChild(svgEl('line', { x1: xp, x2: xp, y1: M.t, y2: plotBottom, class: 'ql-threshold-line', 'stroke-dasharray': '2 4', opacity: 0.55 }));
+        const lt = svgEl('text', { x: xp - 3, y: M.t + 4, class: 'ql-tick-label', 'text-anchor': 'end', 'font-size': 9, fill: 'var(--ink-muted)', transform: 'rotate(-90 ' + (xp - 3) + ' ' + (M.t + 4) + ')' });
+        lt.textContent = '|δ| ' + d + ' · ' + t('barplots.' + key);
+        refG.appendChild(lt);
+      });
+    });
+    if (qY > yLo && qY < yHi) {
+      const yp = sy(qY);
+      refG.appendChild(svgEl('line', { x1: M.l, x2: M.l + innerW, y1: yp, y2: yp, class: 'ql-threshold-line' }));
+      const lt = svgEl('text', { x: M.l + innerW - 4, y: yp - 4, class: 'ql-tick-label', 'text-anchor': 'end', 'font-size': 10 });
+      lt.textContent = 'q = ' + qThresh;
+      refG.appendChild(lt);
+    }
+    svg.appendChild(refG);
+
+    // puntos: primero los no significativos, encima los significativos
+    const ptsG = svgEl('g', { 'clip-path': plotClip(svg, 'ql-clip-bm-volcano', M.l, M.t, innerW, innerH), 'data-ce': 'points' });
+    const order = points.map((_, i) => i).sort((a, b) => (points[a].sig ? 1 : 0) - (points[b].sig ? 1 : 0));
+    order.forEach((i) => {
+      const p = points[i];
+      ptsG.appendChild(svgEl('circle', {
+        cx: sx(xs[i]), cy: sy(ys[i]), r: p.sig ? 4.8 : 3.8,
+        fill: p.sig ? groupColor(p.enrichedIdx) : 'var(--ink-muted)',
+        opacity: p.sig ? 0.92 : 0.45, stroke: 'var(--surface)', 'stroke-width': 1.2,
+        'data-ce-role': 'marker', 'data-pi': i,
+        ...(p.sig ? { 'data-ce-series-fill': 's' + p.enrichedIdx } : {}),
+      }));
+    });
+    svg.appendChild(ptsG);
+    delegateHover(svg, 'circle[data-pi]', {
+      onEnter: (el) => {
+        const i = +el.dataset.pi, p = points[i];
+        showTooltipCentral(chartWrap, sx(xs[i]), sy(ys[i]), p.label, [
+          t('barplots.bmEnrichedIn', { group: p.enrichedGroup }) + ' · δ = ' + p.delta.toFixed(3),
+          'q = ' + formatP(p.q) + ' · p = ' + formatP(p.p) +
+          (p.ancomLog2FC == null ? '' : ' · log2FC = ' + p.ancomLog2FC.toFixed(3)),
+        ], { svg, W, H, tooltip });
+      },
+      onLeave: () => hideTooltip(tooltip),
+    });
+
+    // títulos de eje (+ qué lado es qué grupo, con 2 grupos)
+    const axT = svgEl('text', { x: M.l + innerW / 2, y: axisY, class: 'ql-axis-label', 'text-anchor': 'middle', 'data-ce': 'xtitle' });
+    axT.textContent = t(two ? 'barplots.bmVolcanoAxisX2' : 'barplots.bmVolcanoAxisXn');
+    svg.appendChild(axT);
+    if (two) {
+      const sideG = svgEl('g', { 'data-ce': 'sides' });
+      [[M.l, 'start', '← ' + t('barplots.bmVolcanoHigherIn', { group: groups[0] })], [M.l + innerW, 'end', t('barplots.bmVolcanoHigherIn', { group: groups[1] }) + ' →']].forEach(([x, anchor, txt]) => {
+        const st = svgEl('text', { x, y: sideY, class: 'ql-tick-label', 'text-anchor': anchor, fill: 'var(--ink-muted)' });
+        st.textContent = txt;
+        sideG.appendChild(st);
+      });
+      svg.appendChild(sideG);
+    }
+    const yT = svgEl('text', { x: 16, y: M.t + innerH / 2, class: 'ql-axis-label', 'text-anchor': 'middle', transform: 'rotate(-90 16 ' + (M.t + innerH / 2) + ')', 'data-ce': 'ytitle' });
+    yT.textContent = t('barplots.bmVolcanoAxisY');
+    svg.appendChild(yT);
+
+    const legG = svgEl('g', { 'data-ce': 'legend' });
+    legItems.forEach((it) => {
+      const xx = it._x, yy = it._row * 15;
+      legG.appendChild(svgEl('circle', {
+        cx: xx + 5, cy: yy - 3, r: 5,
+        fill: it.gi == null ? 'var(--ink-muted)' : groupColor(it.gi), opacity: it.gi == null ? 0.45 : 0.92,
+        ...(it.gi == null ? {} : { 'data-ce-series-fill': 's' + it.gi }),
+      }));
+      const lt = svgEl('text', { x: xx + 15, y: yy, class: 'ql-tick-label' });
+      lt.textContent = it.text;
+      legG.appendChild(lt);
+    });
+    legG.setAttribute('transform', 'translate(' + M.l + ',' + legY + ')');
+    svg.appendChild(legG);
+
+    if (!points.length) {
+      const tx = svgEl('text', { x: M.l + innerW / 2, y: M.t + innerH / 2, 'text-anchor': 'middle', class: 'ql-axis-label', fill: 'var(--ink-muted)' });
+      tx.textContent = t('barplots.bmNone');
+      svg.appendChild(tx);
+    }
+
+    wasEditing = editor && editor.isEditing ? editor.isEditing() : false;
+    if (editor) { editor.destroy(); editor = null; }
+    editor = attachChartEditor({
+      key: CE_KEY, svg, mount, filename: t('barplots.bmTitle') + '-volcano', lang: getLang(),
+      elements: [
+        { id: 'title', create: { text: t('barplots.bmVolcanoTitle'), x: W / 2, y: 22, anchor: 'middle', cls: 'ce-title' } },
+        { id: 'xtitle', selector: '[data-ce="xtitle"]' },
+        { id: 'ytitle', selector: '[data-ce="ytitle"]' },
+        { id: 'legend', selector: '[data-ce="legend"]', kind: 'group' },
+      ],
+      paletteSeries: groups.map((g, i) => ({ id: 's' + i, label: g })),
+      paletteType: 'categorical',
+      figureOptions: { axis: { domain: autoY }, axisX: { domain: autoX } },
       onFigureOptionsChange: () => paint(),
       onReset: () => paint(),
       startEditing: wasEditing,
