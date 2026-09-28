@@ -1,8 +1,8 @@
 <svg width="512" height="512" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="q" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1c7d77"/>
-      <stop offset="1" stop-color="#0d514e"/>
+      <stop offset="0" stop-color="#1b2fa3"/>
+      <stop offset="1" stop-color="#00107c"/>
     </linearGradient>
   </defs>
   <!-- fondo a sangre completa: sin esquinas redondeadas, para que el

@@ -8,8 +8,8 @@
   "id": "./",
   "display": "standalone",
   "orientation": "any",
-  "theme_color": "#12615f",
-  "background_color": "#fcfcfb",
+  "theme_color": "#00107c",
+  "background_color": "#0c1018",
   "categories": ["science", "education", "productivity"],
   "icons": [
     {

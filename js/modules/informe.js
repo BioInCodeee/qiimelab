@@ -134,7 +134,7 @@ async function buildStandaloneHtml(reportEl, lang) {
     + '<style>' + fontsCss + '</style>'
     + styles.map((s) => '<style>' + s + '</style>').join('')
     + '<style>' + extra + '</style>'
-    + '</head><body class="ql-standalone">' + clone.outerHTML + '</body></html>';
+    + '</head><body class="ql-standalone" data-ds="v2">' + clone.outerHTML + '</body></html>';
 }
 
 function download(name, text, mime) {

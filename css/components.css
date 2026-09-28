@@ -381,6 +381,7 @@ svg.ql-brand-mark {
 .ql-btn {
   font: inherit;
   font-size: 13.5px;
+  text-decoration: none; /* <a class="ql-btn"> (p. ej. «Cargar datos») salía subrayado */
   font-weight: 600;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
@@ -2328,10 +2329,10 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
 }
 
 /* ============================================================
-   SISTEMA DE DISEÑO v2 — PILOTO: portada (js/modules/home.js)
-   Tokens en css/tokens.css ([data-ds="v2"]); origen y decisiones en
-   design-system/smart-175/MASTER.md + design-system/README.md.
-   Todo va acotado a [data-ds="v2"]: fuera de la portada nada cambia.
+   SISTEMA DE DISEÑO v2 — nació como piloto de la portada; desde la fase
+   global (28 sep 2026) data-ds="v2" va en <body> y estas reglas valen en
+   toda la app. Tokens en css/tokens.css ([data-ds="v2"]); origen y
+   decisiones en design-system/smart-175/MASTER.md + design-system/README.md.
    Estilo "Data-Dense Dashboard", densidad 6: menos aire en el hero, tarjetas
    planas con borde y sombra corta, rótulos pequeños en versalitas, estados
    como indicador + texto legible (no color de texto a secas).
@@ -2378,16 +2379,20 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--ink-muted); margin-bottom: 6px; line-height: 1.35;
 }
-[data-ds="v2"] .ql-stat-value {
+/* cifra de KPI (el caso general en los módulos): Fira Code, tinta plena */
+[data-ds="v2"] .ql-stat-value { font-family: var(--font-mono); font-weight: 600; font-size: 20px; color: var(--ink); letter-spacing: -0.01em; }
+/* KPI de ESTADO (portada, «Qué hay cargado»): texto + indicador de punto;
+   el verde de datos es el punto y el texto va en --good-ink (≥ 4,5:1) */
+[data-ds="v2"] .ql-stat-status .ql-stat-value {
   display: flex; align-items: center; gap: 7px;
-  font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--ink-muted);
+  font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--ink-muted); letter-spacing: 0;
 }
-[data-ds="v2"] .ql-stat-value::before {
+[data-ds="v2"] .ql-stat-status .ql-stat-value::before {
   content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%;
   background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-muted);
 }
-[data-ds="v2"] .ql-stat.is-on .ql-stat-value { color: var(--good-ink); }
-[data-ds="v2"] .ql-stat.is-on .ql-stat-value::before { background: var(--good); box-shadow: none; }
+[data-ds="v2"] .ql-stat-status.is-on .ql-stat-value { color: var(--good-ink); }
+[data-ds="v2"] .ql-stat-status.is-on .ql-stat-value::before { background: var(--good); box-shadow: none; }
 
 /* cifras en Fira Code (la única función de la monoespaciada en v2) */
 [data-ds="v2"] .ql-num, [data-ds="v2"] .tabular { font-family: var(--font-mono); }
@@ -2473,4 +2478,40 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   .ql-hero-brand .ql-hero-motif,
   :root[data-theme="dark"] .ql-hero-brand .ql-hero-motif { display: block; width: 125%; right: -45%; }
   .ql-wordmark-hero { font-size: clamp(48px, 15vw, 64px); }
+}
+
+/* ============================================================
+   v2 GLOBAL — cromado común (fase global, 28 sep 2026)
+   ============================================================ */
+/* el fondo de <html> (rebote del scroll) queda fuera de <body>: se iguala a
+   mano al --page de v2 */
+html:has(> body[data-ds="v2"]) { background: #f8fafc; }
+:root[data-theme="dark"]:has(> body[data-ds="v2"]) { background: #0c1018; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):has(> body[data-ds="v2"]) { background: #0c1018; }
+}
+
+/* barra lateral: rótulos de sección y «sin datos» en Fira Sans (Fira Code
+   queda solo para cifras); el ítem activo, con el azul de marca */
+[data-ds="v2"] .ql-sidebar { gap: 18px; }
+[data-ds="v2"] .ql-nav-group-label {
+  font-family: var(--font-body); font-weight: 600; font-size: 10.5px; letter-spacing: 0.08em;
+}
+[data-ds="v2"] .ql-nav-item .ql-nav-soon { font-family: var(--font-body); font-size: 10.5px; letter-spacing: 0.01em; }
+[data-ds="v2"] .ql-nav-item.is-active { background: var(--accent-soft); }
+[data-ds="v2"] .ql-report-cta { border-radius: var(--radius-md); }
+[data-ds="v2"] .ql-footer-inner { font-size: 12px; }
+
+/* ---- figuras: conservan IBM Plex ----
+   Las figuras son salida científica (se exportan a SVG/PNG/TIFF/PDF y el
+   editor deja elegir su fuente: «Sans/Serif/Mono (IBM Plex)» = var(--font-*),
+   guardado en estilos de usuario). Si heredasen Fira Sans/Fira Code del
+   tema de la interfaz, cambiarían figuras ya exportadas y estilos guardados.
+   Dentro de cada <svg> se restauran las tres familias de siempre, y el texto
+   que no declara fuente hereda IBM Plex Sans como antes de v2. */
+[data-ds="v2"] svg {
+  --font-display: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-family: var(--font-body);
 }

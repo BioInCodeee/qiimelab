@@ -24,10 +24,13 @@
   texto sobre blanco: 3,2:1), Fira Sans en toda la interfaz y Fira Code
   solo para cifras, tema oscuro derivado a mano (el MASTER no lo trae) y
   los colores de DATOS de arriba sin tocar (validados para daltonismo).
-  Solo aplica dentro de un elemento con data-ds="v2" — hoy, la portada
-  (home.js). El resto de la app sigue con los valores de :root a propósito
-  hasta que se apruebe extenderlo: se extiende poniendo el atributo más
-  arriba, no cambiando :root.
+  Desde el 28 sep 2026 (fase global) el atributo va en <body> (index.html y
+  el HTML autocontenido del informe), así que cubre toda la app: módulos,
+  barra lateral, cajón móvil, pie e informe. :root sigue con los valores
+  de antes a propósito: es lo que ve cualquier cosa FUERA de <body> (el
+  fondo de <html> en el rebote del scroll) y la base de los colores de
+  DATOS, que v2 no redefine. Las figuras (<svg>) conservan IBM Plex: ver
+  «figuras» al final de components.css.
 */
 
 :root {
