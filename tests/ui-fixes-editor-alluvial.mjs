@@ -1,6 +1,6 @@
 // Regresiones de UI (sesión del 23 sep 2026): foco del editor tras un cambio
 // que reconstruye la barra "Personalizar", selector Barplot/Aluvial
-// duplicado en #/barplots, aluvial de #/inferencia que no dibujaba nada, y
+// duplicado en #/barplots, aluvial de #/inferencia (retirado en la Fase 2), y
 // solape de etiquetas en la leyenda del heatmap de #/beta.
 //
 //   node tests/ui-fixes-editor-alluvial.mjs
@@ -81,18 +81,13 @@ try {
   }))()`);
   check('"Aluvial" aparece solo en las pestañas de arriba, no también en el lateral', bar.tabs === 1 && bar.segs === 0, JSON.stringify(bar));
 
-  console.log('\n-- #/inferencia: el aluvial dibuja flujos y leyenda --');
+  // el aluvial de #/inferencia se retiró en la Fase 2 (B3: no funcionaba);
+  // lo que queda por comprobar es que ya no se ofrece
+  console.log('\n-- #/inferencia: ya no hay vista Aluvial --');
   await c.ev(`location.hash = '#/inferencia'`);
   await sleep(1500);
-  await c.ev(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /Aluvial/.test(x.textContent)); if (b) b.click(); })()`);
-  await sleep(1200);
-  const inf = await c.ev(`(() => ({
-    nodes: document.querySelectorAll('.ql-alluvial-nodes rect').length,
-    links: document.querySelectorAll('.ql-alluvial-links path').length,
-    legendItems: document.querySelectorAll('g[data-legend-key]').length,
-  }))()`);
-  check('dibuja nodos y enlaces (antes: 0)', inf.nodes > 0 && inf.links > 0, JSON.stringify(inf));
-  check('tiene leyenda con una entrada por función', inf.legendItems > 0, JSON.stringify(inf));
+  const infBtns = await c.ev(`[...document.querySelectorAll('#app-view button')].map((x) => x.textContent.trim()).filter((x) => /Aluvial|Alluvial|Lollipop/.test(x))`);
+  check('Inferencia no ofrece la vista Aluvial (sí Lollipop)', !infBtns.some((x) => /Aluvial|Alluvial/.test(x)) && infBtns.some((x) => /Lollipop/.test(x)), JSON.stringify(infBtns));
 
   check('sin errores de consola', c.problems.length === 0, c.problems.join('; '));
 } catch (e) {
