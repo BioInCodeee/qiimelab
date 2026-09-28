@@ -99,3 +99,18 @@
   src: url(../fonts/IBMPlexSerif-SemiBold.latin-ext.woff2) format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
+
+/* Liberation Sans / Serif 2.1.5 — SIL Open Font License 1.1 (fonts/LICENSE-
+   Liberation-OFL.txt). Métricamente compatibles con Arial / Times New Roman:
+   una figura exportada con ellas ocupa lo mismo que en esas fuentes dentro de
+   un documento Word. Solo las usa el selector de tipografía del editor de
+   figuras; el navegador no las descarga hasta que una figura las pide.
+   Fuentes completas (sin subconjunto), re-empaquetadas en woff2 sin pérdida. */
+@font-face { font-family: 'Liberation Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url(../fonts/LiberationSans-Regular.woff2) format('woff2'); }
+@font-face { font-family: 'Liberation Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url(../fonts/LiberationSans-Bold.woff2) format('woff2'); }
+@font-face { font-family: 'Liberation Sans'; font-style: italic; font-weight: 400; font-display: swap; src: url(../fonts/LiberationSans-Italic.woff2) format('woff2'); }
+@font-face { font-family: 'Liberation Sans'; font-style: italic; font-weight: 700; font-display: swap; src: url(../fonts/LiberationSans-BoldItalic.woff2) format('woff2'); }
+@font-face { font-family: 'Liberation Serif'; font-style: normal; font-weight: 400; font-display: swap; src: url(../fonts/LiberationSerif-Regular.woff2) format('woff2'); }
+@font-face { font-family: 'Liberation Serif'; font-style: normal; font-weight: 700; font-display: swap; src: url(../fonts/LiberationSerif-Bold.woff2) format('woff2'); }
+@font-face { font-family: 'Liberation Serif'; font-style: italic; font-weight: 400; font-display: swap; src: url(../fonts/LiberationSerif-Italic.woff2) format('woff2'); }
+@font-face { font-family: 'Liberation Serif'; font-style: italic; font-weight: 700; font-display: swap; src: url(../fonts/LiberationSerif-BoldItalic.woff2) format('woff2'); }

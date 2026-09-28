@@ -6,7 +6,7 @@
 // Parte del editor de figuras troceado desde js/lib/chartEditor.js (Fase 0b,
 // sin cambios de comportamiento). Reparto y patrón `ctx`: js/lib/chart/chartEditor.js.
 
-import { exportFigure, serializeForExport } from '../figureExport.js';
+import { exportFigure, serializeForExport, embedFonts } from '../figureExport.js';
 import { NS } from './chartStyles.js';
 
 /**
@@ -310,8 +310,8 @@ export function createExport(ctx) {
     return serializeForExport(svg, { scheme: 'light', background: 'white', widthMm: getExportWidthMm() }).svg;
   }
 
-  function downloadSvg() {
-    const str = serialize();
+  async function downloadSvg() {
+    const str = await embedFonts(serialize());
     triggerDownload(str, 'image/svg+xml;charset=utf-8', downloadFilename('svg'));
     return str;
   }

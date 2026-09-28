@@ -6,10 +6,16 @@
 
 import { isValidHex } from '../paletteValidator.js';
 
+// [valor CSS, etiqueta, clave opcional de chartI18n para traducir la etiqueta]
 export const FONTS = [
   ['var(--font-body)', 'Sans (IBM Plex)'],
   ['var(--font-display)', 'Serif (IBM Plex)'],
   ['var(--font-mono)', 'Mono (IBM Plex)'],
+  // Liberation (SIL OFL, autoalojadas en fonts/): mismas métricas que Arial /
+  // Times New Roman, para figuras que van a un documento de Word. En la pila,
+  // detrás, la fuente comercial por si se abre el SVG donde no hay Liberation.
+  ['"Liberation Sans", Arial, Helvetica, sans-serif', 'Liberation Sans (compatible con Arial)', 'fontLiberationSans'],
+  ['"Liberation Serif", "Times New Roman", Times, serif', 'Liberation Serif (compatible con Times New Roman)', 'fontLiberationSerif'],
   ['system-ui, sans-serif', 'Sistema'],
   ['Georgia, "Times New Roman", serif', 'Serif del sistema'],
   ['ui-monospace, Menlo, monospace', 'Mono del sistema'],
@@ -146,8 +152,8 @@ export function createFigureStyle(ctx) {
   function fontSelect(id, current) {
     const sel = document.createElement('select');
     sel.id = id;
-    FONTS.forEach(([val, label]) => {
-      const o = document.createElement('option'); o.value = val; o.textContent = label;
+    FONTS.forEach(([val, label, key]) => {
+      const o = document.createElement('option'); o.value = val; o.textContent = (key && T[key]) || label;
       if (current === val) o.selected = true;
       sel.appendChild(o);
     });

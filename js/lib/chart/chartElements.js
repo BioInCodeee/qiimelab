@@ -253,8 +253,8 @@ export function createElements(ctx) {
 
     const rFont = row(T.font);
     const sel = document.createElement('select');
-    FONTS.forEach(([val, label]) => {
-      const o = document.createElement('option'); o.value = val; o.textContent = label;
+    FONTS.forEach(([val, label, key]) => {
+      const o = document.createElement('option'); o.value = val; o.textContent = (key && T[key]) || label;
       if (s.font === val) o.selected = true;
       sel.appendChild(o);
     });

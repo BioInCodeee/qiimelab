@@ -200,6 +200,117 @@ export function serializeForExport(svg, o = {}) {
   return out;
 }
 
+// ------------------------------------------------- fuentes incrustadas ----
+// Un SVG rasterizado como <img> (PNG/TIFF/PDF) es un documento aislado que NO
+// ve las @font-face de la página: sin esto, las figuras en IBM Plex o en
+// Liberation Sans/Serif salían con la fuente de reserva del sistema. Se
+// incrustan como data: (font-src 'self' data: en la CSP) solo las caras
+// autoalojadas que usa de verdad la figura — también en la descarga SVG,
+// para que el archivo se vea igual en cualquier navegador; en Word/Inkscape
+// manda el nombre de familia de la pila (Liberation → Arial/Times).
+
+const _fontData = new Map(); // url absoluta → Promise<string base64>
+
+function unquote(f) { return f.trim().replace(/^["']|["']$/g, ''); }
+
+function weightNum(w) {
+  if (w === 'bold') return 700;
+  if (w === 'normal' || !w) return 400;
+  const n = parseFloat(w);
+  return isFinite(n) ? n : 400;
+}
+
+/** @font-face de las hojas de estilo del mismo origen → [{family, style, wMin, wMax, weight, url, range}] */
+function pageFontFaces() {
+  const out = [];
+  if (typeof document === 'undefined' || !document.styleSheets) return out;
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules;
+    try { rules = sheet.cssRules; } catch (e) { continue; }
+    for (const r of Array.from(rules || [])) {
+      if (typeof CSSFontFaceRule === 'undefined' || !(r instanceof CSSFontFaceRule)) continue;
+      const st = r.style;
+      const m = /url\(\s*["']?([^"')]+)["']?\s*\)/.exec(st.getPropertyValue('src'));
+      if (!m) continue;
+      const wParts = (st.getPropertyValue('font-weight') || '400').trim().split(/\s+/).map(weightNum);
+      out.push({
+        family: unquote(st.getPropertyValue('font-family')),
+        style: (st.getPropertyValue('font-style') || 'normal').trim(),
+        weight: (st.getPropertyValue('font-weight') || '400').trim(),
+        wMin: Math.min(...wParts), wMax: Math.max(...wParts),
+        url: new URL(m[1], sheet.href || document.baseURI).href,
+        range: (st.getPropertyValue('unicode-range') || '').trim(),
+      });
+    }
+  }
+  return out;
+}
+
+/** Caras que necesita un texto (pila de familias + peso + estilo), con la
+ *  misma lógica que el navegador: la primera familia de la pila que exista,
+ *  el estilo pedido (o normal) y el peso más cercano. */
+function pickFaces(faces, familyStack, weight, style) {
+  for (const fam of familyStack.split(',').map(unquote)) {
+    const ofFam = faces.filter((f) => f.family.toLowerCase() === fam.toLowerCase());
+    if (!ofFam.length) continue;
+    const st = ofFam.some((f) => f.style === style) ? style : (ofFam.some((f) => f.style === 'normal') ? 'normal' : ofFam[0].style);
+    const cand = ofFam.filter((f) => f.style === st);
+    const dist = (f) => (weight < f.wMin ? f.wMin - weight : weight > f.wMax ? weight - f.wMax : 0);
+    const best = Math.min(...cand.map(dist));
+    return cand.filter((f) => dist(f) === best);
+  }
+  return [];
+}
+
+function toBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+function fontBase64(url) {
+  if (!_fontData.has(url)) {
+    _fontData.set(url, fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then(toBase64)
+      .catch((e) => { _fontData.delete(url); throw e; }));
+  }
+  return _fontData.get(url);
+}
+
+/**
+ * Incrusta en un SVG ya serializado (serializeForExport) las @font-face
+ * autoalojadas que usan sus textos. Si algo falla, devuelve el SVG tal cual
+ * (la figura sale igual, con la fuente de reserva).
+ * @param {string} svgString
+ * @returns {Promise<string>}
+ */
+export async function embedFonts(svgString) {
+  try {
+    const faces = pageFontFaces();
+    if (!faces.length) return svgString;
+    const wanted = new Map(); // url → cara
+    const attr = (tag, name) => { const m = new RegExp('\\s' + name + '="([^"]*)"').exec(tag); return m ? m[1] : null; };
+    for (const m of svgString.matchAll(/<(?:text|tspan)\b[^>]*>/g)) {
+      const fam = attr(m[0], 'font-family');
+      if (!fam) continue;
+      const w = weightNum(attr(m[0], 'font-weight') || '400');
+      const st = attr(m[0], 'font-style') || 'normal';
+      pickFaces(faces, fam.replace(/&quot;/g, '"'), w, st === 'oblique' ? 'italic' : st).forEach((f) => wanted.set(f.url, f));
+    }
+    if (!wanted.size) return svgString;
+    const css = [];
+    for (const f of wanted.values()) {
+      const b64 = await fontBase64(f.url);
+      css.push('@font-face{font-family:\'' + f.family + '\';font-style:' + f.style + ';font-weight:' + f.weight +
+        ';src:url(data:font/woff2;base64,' + b64 + ') format(\'woff2\')' + (f.range ? ';unicode-range:' + f.range : '') + '}');
+    }
+    const style = '<defs><style type="text/css"><![CDATA[' + css.join('\n') + ']]></style></defs>';
+    return svgString.replace(/(<svg\b[^>]*>)/, '$1' + style);
+  } catch (e) {
+    return svgString;
+  }
+}
+
 // -------------------------------------------------------------- raster ----
 /** SVG (string) → canvas a widthPx×heightPx. Fondo: se pinta solo si no es transparente. */
 export function rasterize(svgString, widthPx, heightPx, { transparent = false } = {}) {
@@ -378,6 +489,7 @@ export async function deflateZlib(bytes) {
  */
 export async function exportFigure(svg, { widthMm, dpi = 300, scheme = 'light', background = 'white', formats = ['svg', 'png', 'tiff'] } = {}) {
   const s = serializeForExport(svg, { scheme, background, widthMm });
+  s.svg = await embedFonts(s.svg);
   const effWidthMm = s.widthMm != null ? s.widthMm : (s.width / 96 * 25.4);
   const wPx = Math.round(effWidthMm / 25.4 * dpi);
   const hPx = Math.round(wPx * s.height / s.width);
