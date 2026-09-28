@@ -72,6 +72,7 @@ Chrome, R, un paquete de R, o Biopython). El runner sale ≠ 0 solo si algo
 | `venn-sets.mjs` | navegador | #/venn con muchos conjuntos: ejemplo sintético de 10 grupos, control "Conjuntos a mostrar" y, para K = 10/6/4/3, cada región de la tabla comparada con un cálculo independiente; 5+ → UpSet (neutro por encima de 7), 4 → rectángulos, 3 → círculos. |
 | `correlogram-pie-split.mjs` | navegador | #/correlograma: glifo "Sectores" (cada sector comparado con su r de la tabla: ángulo y sentido) y matriz "Partida" (▲ Pearson / ▼ Spearman, comprobado con el tooltip de una celda y su simétrica frente a las dos columnas r); Burbujas y Red siguen dibujando. |
 | `phylo-sunburst.mjs` | navegador | #/arbol vista Sunburst: 16 sectores hoja, un sector por clado interno, ángulos de las hojas = 360° y cada clado abarca exactamente las hojas que declara; nota propia; Rectangular/Circular siguen dibujando. |
+| `storage-migration.mjs` | estático + navegador | Migración de localStorage `qiimelab.*` → `smart-175.*` (`js/lib/storageMigration.js`): con un Storage simulado (copia, no pisa una nueva existente, borra la antigua, idempotente, no borra si falla la escritura) y en la app real con claves antiguas escritas a mano (tema, idioma, perfil, estilo de figura, árbol y una clave desconocida): tras recargar están bajo la nueva con el mismo valor, la antigua no existe, la app las aplica y no hay errores de consola. |
 
 ### Modo de los tests de `stats/`
 

@@ -1,6 +1,9 @@
 // Router mínimo basado en hash + arranque de la app. Sin build step: todo
 // son módulos ES nativos que el navegador carga directamente.
 
+// PRIMERO: migra las claves qiimelab.* de localStorage a smart-175.* antes de
+// que ningún otro módulo (i18n, tema, perfil…) lea las suyas al evaluarse
+import './lib/storageMigration.js';
 import { renderShell, subscribeShell } from './modules/shell.js';
 import { renderFooter } from './modules/footer.js';
 import { onLangChange, t } from './lib/i18n.js';
