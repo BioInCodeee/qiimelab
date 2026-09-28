@@ -51,7 +51,14 @@ async function launchChrome(chromeBin, extraArgs = []) {
 
 // chromeArgs: argumentos extra de Chrome para un test concreto (p. ej.
 // tests/button-hover.mjs declara un puntero con hover, que headless no tiene)
-export async function connect({ dark = false, url = 'http://127.0.0.1:8931', label = 'cdp', chromeArgs = [] } = {}) {
+// theme: desde el 28 sep 2026 la app arranca en OSCURO si no hay tema guardado
+// (js/lib/theme.js DEFAULT_THEME). Para que cada test siga probando el tema que
+// dice probar, se guarda uno explícito antes de cada documento — 'light' por
+// defecto, 'dark' con dark:true — solo si la página aún no tiene ninguno (así
+// no pisa lo que siembre el propio test). theme:null = arranque virgen, para
+// probar precisamente el valor por defecto (tests/theme-default.mjs).
+export async function connect({ dark = false, theme, url = 'http://127.0.0.1:8931', label = 'cdp', chromeArgs = [] } = {}) {
+  if (theme === undefined) theme = dark ? 'dark' : 'light';
   const chromeBin = findChrome();
   if (!chromeBin) skip('no se encontró Chrome/Chromium');
 
@@ -86,6 +93,11 @@ export async function connect({ dark = false, url = 'http://127.0.0.1:8931', lab
   await rpc('Runtime.enable', {}, sessionId);
   await rpc('Console.enable', {}, sessionId);
   if (dark) await rpc('Emulation.setEmulatedMedia', { media: '', features: [{ name: 'prefers-color-scheme', value: 'dark' }] }, sessionId);
+  if (theme) {
+    await rpc('Page.addScriptToEvaluateOnNewDocument', {
+      source: `try { if (location.protocol.startsWith('http') && !localStorage.getItem('smart-175.theme') && !localStorage.getItem('qiimelab.theme')) localStorage.setItem('smart-175.theme', ${JSON.stringify(theme)}); } catch (e) {}`,
+    }, sessionId);
+  }
 
   const problems = [];
   let current = label;

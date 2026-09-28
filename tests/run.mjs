@@ -52,6 +52,7 @@ const SUITE = [
   { name: 'correlogram-circular', file: 'correlogram-circular.mjs', kind: 'navegador' },
   { name: 'phylo-sunburst', file: 'phylo-sunburst.mjs', kind: 'navegador' },
   { name: 'storage-migration', file: 'storage-migration.mjs', kind: 'navegador' },
+  { name: 'theme-default', file: 'theme-default.mjs', kind: 'navegador' },
   { name: 'security-headers', file: 'security-headers.mjs', kind: 'navegador' },
   { name: 'button-hover', file: 'button-hover.mjs', kind: 'navegador' },
   { name: 'temporal', file: 'temporal.mjs', kind: 'navegador' },

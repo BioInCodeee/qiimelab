@@ -14,7 +14,7 @@
          envío por lotes a NCBI BLAST (módulo Sanger); los enlaces normales
          (BLAST, KEGG, GitHub) son navegación y no los limita la CSP.
        · referrer no-referrer: ningún enlace de salida envía la URL de la app. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-0YEc3ueYMTvpmdPDFA0GDRHQA8s9eHlaX+2zvfwkMdE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://blast.ncbi.nlm.nih.gov" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-B5/r+j5fxQjCag9huICf69sdgebuHQPhbvdrjlrIkts='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://blast.ncbi.nlm.nih.gov" />
   <meta name="referrer" content="no-referrer" />
   <title>Smart-175 — plataforma bioinformática integral</title>
   <meta name="description" content="Plataforma bioinformática que se ejecuta en tu navegador (los archivos no se envían a ningún servidor). Analiza metabarcoding, procesa cromatogramas Sanger, ejecuta alineamientos Smith-Waterman y visualiza filogenias y dinámicas temporales. Privacidad absoluta: todos los cálculos se realizan localmente en tu navegador." />
@@ -26,11 +26,14 @@
     // Aplica el tema guardado ANTES del primer pintado, para no dar un
     // parpadeo claro→oscuro mientras carga js/app.js (módulo ES, diferido
     // por especificación). js/lib/theme.js hace lo mismo en cada cambio;
-    // esto solo cubre el instante de arranque.
+    // esto solo cubre el instante de arranque. Sin nada guardado: oscuro
+    // (theme.js DEFAULT_THEME); 'auto' = sin atributo, sigue al sistema.
+    var qlTheme = 'dark';
     try {
-      var qlTheme = localStorage.getItem('smart-175.theme') || localStorage.getItem('qiimelab.theme');
-      if (qlTheme === 'light' || qlTheme === 'dark') document.documentElement.setAttribute('data-theme', qlTheme);
+      qlTheme = localStorage.getItem('smart-175.theme') || localStorage.getItem('qiimelab.theme') || 'dark';
     } catch (e) {}
+    if (qlTheme !== 'light' && qlTheme !== 'auto') qlTheme = 'dark';
+    if (qlTheme !== 'auto') document.documentElement.setAttribute('data-theme', qlTheme);
   </script>
   <link rel="preload" href="fonts/IBMPlexSans-var.latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="css/fonts.css" />

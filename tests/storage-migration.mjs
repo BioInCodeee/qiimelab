@@ -69,7 +69,7 @@ const { sleep } = await import('./lib/app.mjs');
 const server = await ensureServer();
 const c = await connect({ url: server.url + '/index.html', label: 'storage-migration' });
 const OLD = {
-  'qiimelab.theme': 'dark',
+  'qiimelab.theme': 'light', // no 'dark': oscuro es ya el valor por defecto y no probaría nada
   'qiimelab.lang': 'en',
   'qiimelab.profileName': 'Tester Antiguo',
   'qiimelab.chartStyle.alphaDiversity': JSON.stringify({ title: { fill: '#aa2266', bold: true } }),
@@ -87,7 +87,7 @@ try {
   check('las 6 aparecen bajo smart-175.* con el mismo valor (incluida una que el código ya no conoce)', same.length === 0, same.join(', '));
 
   const ui = await c.ev(`({ theme: document.documentElement.getAttribute('data-theme'), lang: document.documentElement.lang, nav: (document.querySelector('nav') || document.body).innerText })`);
-  check('la app aplica el tema migrado (data-theme="dark")', ui.theme === 'dark', String(ui.theme));
+  check('la app aplica el tema migrado (data-theme="light", no el oscuro por defecto)', ui.theme === 'light', String(ui.theme));
   check('la app arranca en el idioma migrado (lang="en")', ui.lang === 'en', ui.lang);
   check('el nombre de perfil migrado aparece en la barra lateral', /Tester Antiguo/.test(ui.nav));
 

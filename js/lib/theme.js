@@ -3,18 +3,28 @@
 // módulo solo decide qué atributo poner en <html> y lo persiste — sin
 // cuentas, sin backend, solo localStorage de este navegador (igual que
 // profile.js con el nombre local).
+//
+// Sin nada guardado, el tema es OSCURO (decisión de producto, 28 sep 2026):
+// gana aunque el sistema operativo pida claro — «automático» (seguir al SO)
+// sigue disponible, pero como elección explícita, y por eso ahora se guarda
+// ('auto' en localStorage) en vez de borrarse. Quien ya tenía 'light' o
+// 'dark' guardado lo conserva tal cual. El script en línea de index.html
+// replica esta regla para el primer pintado (y su hash va en la CSP).
 
 const KEY = 'smart-175.theme';
 const LEGACY_KEY = 'qiimelab.theme';
 const VALID = new Set(['light', 'dark', 'auto']);
 const listeners = new Set();
 
-/** Tema guardado, o 'auto' (sigue al sistema operativo) si no hay elección explícita. */
+/** Tema por defecto de quien no ha elegido ninguno. */
+export const DEFAULT_THEME = 'dark';
+
+/** Tema guardado, o DEFAULT_THEME si no hay elección explícita. */
 export function getTheme() {
   try {
     const v = localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY);
-    return VALID.has(v) ? v : 'auto';
-  } catch (e) { return 'auto'; }
+    return VALID.has(v) ? v : DEFAULT_THEME;
+  } catch (e) { return DEFAULT_THEME; }
 }
 
 function applyDataTheme(theme) {
@@ -48,7 +58,7 @@ function applyMetaThemeColor(theme) {
 
 /** Aplica el tema al DOM sin tocar localStorage (llamar al arrancar la app). */
 export function applyTheme(theme) {
-  const v = VALID.has(theme) ? theme : 'auto';
+  const v = VALID.has(theme) ? theme : DEFAULT_THEME;
   applyDataTheme(v);
   applyMetaThemeColor(v);
 }
@@ -58,17 +68,13 @@ export function initTheme() {
   applyTheme(getTheme());
 }
 
-/** Guarda (o borra, si vuelve a 'auto'), aplica y avisa a los suscriptores. */
+/** Guarda (también 'auto': sin nada guardado el tema sería el oscuro por
+ *  defecto, no el del sistema), aplica y avisa a los suscriptores. */
 export function setTheme(theme) {
-  const v = VALID.has(theme) ? theme : 'auto';
+  const v = VALID.has(theme) ? theme : DEFAULT_THEME;
   try {
-    if (v === 'auto') {
-      localStorage.removeItem(KEY);
-      localStorage.removeItem(LEGACY_KEY);
-    } else {
-      localStorage.setItem(KEY, v);
-      localStorage.removeItem(LEGACY_KEY);
-    }
+    localStorage.setItem(KEY, v);
+    localStorage.removeItem(LEGACY_KEY);
   } catch (e) { /* modo privado: se queda en memoria de esta pestaña */ }
   applyTheme(v);
   listeners.forEach((fn) => { try { fn(v); } catch (e) { /* noop */ } });
