@@ -153,10 +153,10 @@ text.ce-title { font-family:var(--font-display); font-size:15px; font-weight:600
 .ce-figstyle-row { display:flex; align-items:center; gap:8px; }
 .ce-figstyle-row label { flex:0 0 auto; min-width:110px; font-size:12px; color:var(--ink-2); }
 .ce-figstyle-row select { flex:1; min-width:0; }
-.ce-figstyle-controls { display:flex; align-items:center; gap:6px; flex:1; flex-wrap:wrap; }
+.ce-figstyle-controls { display:flex; align-items:center; gap:6px; flex:1; flex-wrap:wrap; min-width:0; }
 .ce-figstyle-controls input[type=color] { width:28px; height:24px; padding:0; border:1px solid var(--border); border-radius:5px; background:none; cursor:pointer; flex:none; }
 .ce-figstyle-controls input[type=number] { width:56px; flex:none; }
-.ce-figstyle-controls select { flex:none; width:auto; min-width:96px; }
+.ce-figstyle-controls select { flex:none; width:auto; min-width:96px; max-width:100%; } /* etiquetas largas ("Liberation Serif (compatible con Times New Roman)") no ensanchan la página en móvil */
 .ce-fs-stage { display:flex; flex-direction:column; gap:14px; }
 .ce-fs-svgwrap { flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; background:var(--page); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; }
 .ce-fs-svgwrap svg.ce-fs-svg { width:100% !important; height:auto !important; max-height:calc(100vh - 260px); }
