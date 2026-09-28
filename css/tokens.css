@@ -19,7 +19,8 @@
   design-system/smart-175/MASTER.md ("Analytics Dashboard" / "Data-Dense
   Dashboard", densidad 6), con los 6 ajustes aprobados en la revisión:
   texto casi negro neutro (no el azul marino del MASTER), azul #1E40AF solo
-  para marca/acciones, ámbar #D97706 solo como relleno o resalte (nunca
+  para marca/acciones (oscurecido a #00107C / #93C5FD en oscuro para no
+  confundirse con los colores de datos, ver el bloque v2), ámbar #D97706 solo como relleno o resalte (nunca
   texto sobre blanco: 3,2:1), Fira Sans en toda la interfaz y Fira Code
   solo para cifras, tema oscuro derivado a mano (el MASTER no lo trae) y
   los colores de DATOS de arriba sin tocar (validados para daltonismo).
@@ -195,7 +196,20 @@
    se declara: heredados de :root seguirían saliendo del teal.
    Contraste (WCAG, texto normal ≥ 4,5:1), claro / oscuro:
      ink 17,1 / 17,4 · ink-2 9,9 / 12,8 · ink-muted 7,2 / 7,4 (sobre --page)
-     accent sobre surface 8,7 / 6,8 · accent-ink sobre accent 8,7 / 7,4
+     accent sobre surface 14,7 / 9,6 · accent-ink sobre accent 14,7 / 10,4
+   Marca frente a DATOS (tarea 5, mismo criterio que el teal en 40a9be5:
+   ΔE OKLab ×100 ≥ 15 contra --cat-1..8, --enriched/--depleted y los estados;
+   lo comprueba tests/design-v2.mjs). El azul del MASTER no pasaba:
+     claro  #1E40AF → ΔE 5,7 de cat-7 · 15,5 de cat-1/depleted
+     oscuro #60A5FA → ΔE 9,1 de cat-7 · 9,3 de cat-1/depleted
+   Se ajusta la MARCA (los datos no se tocan, están validados para CVD):
+     claro  #00107C → mín. ΔE 16,4 (cat-7) · 29,6 de cat-1 · 15,2 de --ink
+     oscuro #93C5FD → mín. ΔE 16,4 (cat-7) · 19,8 de cat-1/depleted
+   La rampa SECUENCIAL (palettes.js, un solo matiz azul de claro a oscuro)
+   no entra en el suelo: cubre todo el eje de luminosidad del azul, ningún
+   azul de marca puede quedar a 15 de todas sus paradas, y se lee como
+   escala continua con su barra de color, no como una serie (mín. 12,6 en
+   claro, 3,7 en oscuro; el teal aprobado también quedaba a 4,3).
      negro sobre --highlight 6,6 / 9,8 · --good-ink sobre su insignia ≥ 4,5 (tests/design-v2.mjs)
    ============================================================ */
 [data-ds="v2"] {
@@ -210,8 +224,11 @@
   --ink-2: #334155;
   --ink-muted: #475569;
 
-  --accent: #1e40af;
-  --accent-2: #1d4ed8;
+  /* azul de marca: el #1E40AF del MASTER quedaba a ΔE 5,7 de --cat-7 y 15,5
+     de --cat-1/--depleted (tarea 5, 28 sep 2026) → ultramar más oscuro, a
+     ΔE ≥ 15 de TODOS los colores de datos y también de --ink (ver arriba) */
+  --accent: #00107c;
+  --accent-2: #000a5a;
   --accent-ink: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 8%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 50%, transparent);
@@ -258,8 +275,8 @@
     --ink: #f1f5f9;
     --ink-2: #cbd5e1;
     --ink-muted: #94a3b8;
-    --accent: #60a5fa;
-    --accent-2: #93c5fd;
+    --accent: #93c5fd;
+    --accent-2: #bfdbfe;
     --accent-ink: #0b1220;
     --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
     --ring: color-mix(in srgb, var(--accent) 60%, transparent);
@@ -279,8 +296,8 @@
   --ink: #f1f5f9;
   --ink-2: #cbd5e1;
   --ink-muted: #94a3b8;
-  --accent: #60a5fa;
-  --accent-2: #93c5fd;
+  --accent: #93c5fd;
+  --accent-2: #bfdbfe;
   --accent-ink: #0b1220;
   --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 60%, transparent);

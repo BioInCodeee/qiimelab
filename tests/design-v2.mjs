@@ -52,6 +52,25 @@ for (const [name, T] of [['claro', LIGHT], ['oscuro', DARK]]) {
   console.log('      ' + pairs.map(([n, r]) => n + ' ' + r.toFixed(1)).join(' · '));
 }
 
+// ---------- 1b. marca frente a colores de DATOS ----------
+// Mismo criterio que cuando se eligió el teal (commit 40a9be5): ΔE OKLab ×100
+// ≥ 15 entre el azul de marca (y su variante de hover) y cada color que
+// codifica datos — categóricos, par divergente y estados —, en los dos temas.
+// Si falla, se ajusta la MARCA, nunca los datos (validados para daltonismo).
+console.log('\n--- 1b. azul de marca frente a colores de datos (ΔE OKLab ≥ 15) ---');
+const { deltaE } = await import('../js/lib/paletteValidator.js');
+const { SEQUENTIAL } = await import('../js/lib/palettes.js');
+const ROOT_DARK = { ...ROOT, ...block(/:root\[data-theme="dark"\]\s*\{([^}]*)\}/) };
+const DATA_KEYS = ['cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5', 'cat-6', 'cat-7', 'cat-8', 'enriched', 'depleted', 'neutral', 'good', 'warning', 'critical'];
+for (const [name, T, D] of [['claro', LIGHT, ROOT], ['oscuro', DARK, ROOT_DARK]]) {
+  for (const tok of ['accent', 'accent-2']) {
+    const dists = DATA_KEYS.map((k) => [k, deltaE(T[tok], D[k])]).sort((a, b) => a[1] - b[1]);
+    check(`${name}: --${tok} ${T[tok]} a ΔE ≥ 15 de todos los colores de datos`, dists[0][1] >= 15, dists.slice(0, 3).map(([k, d]) => k + ' ' + d.toFixed(1)).join(', '));
+    console.log(`      más cercanos: ${dists.slice(0, 3).map(([k, d]) => k + ' ' + d.toFixed(1)).join(' · ')} · rampa secuencial (informativo) ${Math.min(...SEQUENTIAL.map((h) => deltaE(T[tok], h))).toFixed(1)}`);
+  }
+  check(`${name}: --accent a ΔE ≥ 15 de --ink (un enlace no se confunde con el texto)`, deltaE(T.accent, T.ink) >= 15, deltaE(T.accent, T.ink).toFixed(1));
+}
+
 // ---------- 2. navegador ----------
 if (!findChrome()) {
   console.log('\n(sin Chrome: se omite la parte de interfaz)');
@@ -84,7 +103,7 @@ if (!findChrome()) {
     const home = await probe();
     check('la portada lleva data-ds="v2"', home.ds === 'v2', JSON.stringify(home.ds));
     check('título de la portada en Fira Sans', /^"?Fira Sans/.test(home.h1Font), home.h1Font);
-    check('botón primario con el azul del MASTER (#1E40AF)', home.btnBg === 'rgb(30, 64, 175)', home.btnBg);
+    check('botón primario con el azul de marca v2 (#00107C)', home.btnBg === 'rgb(0, 16, 124)', home.btnBg);
     check('Fira Sans cargada, desde el propio origen (fonts/)', home.firaLoaded && home.firaReq.length > 0 && home.firaReq.every((u) => u.startsWith('/fonts/')), JSON.stringify(home.firaReq));
     check('ninguna petición externa', home.external.length === 0, home.external.join(', '));
     check('la barra lateral sigue en IBM Plex (fuera del piloto)', /IBM Plex Sans/.test(home.sidebarFont), home.sidebarFont);
@@ -97,7 +116,7 @@ if (!findChrome()) {
     await c.ev(`(async () => { const { setTheme } = await import('/js/lib/theme.js'); setTheme('dark'); })()`);
     await c.ev(`location.hash = '#/'`); await sleep(1500);
     const dark = await probe();
-    check('oscuro: portada con el azul claro derivado (#60A5FA)', dark.ds === 'v2' && dark.btnBg === 'rgb(96, 165, 250)', dark.btnBg);
+    check('oscuro: portada con el azul claro derivado (#93C5FD)', dark.ds === 'v2' && dark.btnBg === 'rgb(147, 197, 253)', dark.btnBg);
     await c.ev(`location.hash = '#/beta'`); await sleep(1500);
     const beta = await c.ev(`({ ds: document.getElementById('app-view').getAttribute('data-ds'), accent: getComputedStyle(document.getElementById('app-view')).getPropertyValue('--accent').trim() })`);
     check('oscuro: #/beta conserva el teal de siempre', beta.ds === null && beta.accent === '#57c9be', JSON.stringify(beta));
