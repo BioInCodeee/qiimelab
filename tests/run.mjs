@@ -103,6 +103,8 @@ const SUITE = [
   { name: 'stats/gaussiankde', file: 'stats/gaussiankde.mjs', kind: 'R' },
   { name: 'stats/statautoselect', file: 'stats/statautoselect.mjs', kind: 'R' },
   { name: 'statautoselect-editor', file: 'statautoselect-editor.mjs', kind: 'navegador' },
+  { name: 'rscript-builders', file: 'rscript-builders.mjs', kind: 'R' },
+  { name: 'rscript-export', file: 'rscript-export.mjs', kind: 'navegador' },
   { name: 'stats/primertm', file: 'stats/primertm.mjs', kind: 'Biopython' },
   { name: 'keyboard-editor', file: 'keyboard-editor.mjs', kind: 'navegador' },
   { name: 'paletteseries', file: 'paletteseries.mjs', kind: 'navegador' },
