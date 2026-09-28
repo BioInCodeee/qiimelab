@@ -118,7 +118,7 @@ function verdictColor(level) {
 // el mismo estado como color de TEXTO: --good/--warning dan 3,2:1 / 1,8:1
 // sobre claro; su tono -ink (css/tokens.css) queda ≥ 4,5:1 en los dos temas
 function verdictInk(level) {
-  return level === 'good' ? 'var(--good-ink)' : level === 'warning' ? 'var(--warning-ink)' : verdictColor(level);
+  return level === 'good' ? 'var(--good-ink)' : level === 'warning' ? 'var(--warning-ink)' : level === 'critical' ? 'var(--critical-ink)' : verdictColor(level);
 }
 function verdictBadge(level) {
   const c = verdictColor(level);

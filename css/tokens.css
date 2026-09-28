@@ -246,6 +246,16 @@
   --good-ink: #166534;
   /* igual para --warning (#fab219): como texto da 1,8:1 sobre blanco */
   --warning-ink: #8a5a00;
+  /* --critical como texto pasa sobre la superficie (≥ 4,6:1) pero no sobre
+     su propia insignia tintada (3,8:1): tono para texto sobre ese fondo */
+  --critical-ink: #b21722;
+  /* alias de tokens que algunos módulos usaban sin estar definidos (con un
+     fallback CLARO fijo que en oscuro dejaba texto claro sobre gris claro):
+     se resuelven aquí, en el mismo elemento, así que siguen al tema */
+  --surface-2: var(--page);
+  --panel: var(--surface);
+  --ink-1: var(--ink);
+  --ink-3: var(--ink-muted);
 
   --font-display: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-body: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -289,6 +299,7 @@
     --highlight: #f59e0b;
     --good-ink: #4ade80;
     --warning-ink: #fbbf24;
+    --critical-ink: #f39190;
   }
 }
 
@@ -311,4 +322,5 @@
   --highlight: #f59e0b;
   --good-ink: #4ade80;
   --warning-ink: #fbbf24;
+  --critical-ink: #f39190;
 }

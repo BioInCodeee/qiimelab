@@ -61,6 +61,21 @@ select {
   width: 100%;
 }
 
+/* los <textarea> (pegar FASTA/primers, Sanger) no tenían estilo propio y
+   salían con el del navegador — en oscuro, un bloque gris claro */
+textarea {
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  width: 100%;
+  resize: vertical;
+}
+input::placeholder, textarea::placeholder { color: var(--ink-muted); opacity: 1; }
+
 input[type="range"] { accent-color: var(--accent); }
 
 /* Respeto global a "reducir movimiento": corta transiciones, animaciones y

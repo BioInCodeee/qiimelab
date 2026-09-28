@@ -477,7 +477,7 @@ svg.ql-brand-mark {
 /* estado: el color de DATOS va en el fondo/indicador; el texto, en su tono -ink (≥ 4,5:1) */
 .ql-badge.ql-badge-good { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good-ink, var(--good)); }
 .ql-badge.ql-badge-warn { background: color-mix(in srgb, var(--warning) 22%, transparent); color: var(--warning-ink, #8a5a00); }
-.ql-badge.ql-badge-crit { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical); }
+.ql-badge.ql-badge-crit { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical-ink, var(--critical)); }
 
 /* ---------- dropzone ---------- */
 .ql-dropzone {
@@ -974,14 +974,18 @@ svg.ql-svg [data-ce="legend"] { opacity: var(--fig-legend-opacity, 1); }
    (antes fija inline en el propio módulo). */
 .ql-boxplot-point { opacity: var(--fig-points-opacity, 0.75); }
 .ql-threshold-line { stroke: var(--ink-2); stroke-width: 1.25; stroke-dasharray: 4 4; opacity: 0.9; }
-/* Variante "elegida por el usuario" (vs. la de referencia automática arriba):
-   sólida y con --accent, para un control interactivo (p.ej. profundidad de
-   rarefacción) que el usuario mueve, no un umbral fijo del propio dato. */
-.ql-threshold-line-accent { stroke: var(--accent); stroke-width: 2; opacity: 0.95; }
+/* Variante "elegida por el usuario" (vs. la de referencia automática arriba,
+   discontinua): sólida y más gruesa, para un control que el usuario mueve
+   (p. ej. profundidad de rarefacción). En tinta, no en --accent (v2): la
+   línea acaba en la figura exportada, y el azul de marca no va dentro de
+   las figuras (css/tokens.css), entre curvas de colores categóricos. */
+.ql-threshold-line-accent { stroke: var(--ink); stroke-width: 2; opacity: 0.95; }
 /* Árbol filogenético: punto en la punta de cada hoja (antes de la guía de
    puntos hasta la etiqueta) + etiqueta con algo más de presencia que un
    tick de eje genérico — mismo tono de accento que el resto de la app. */
-.ql-phylo-leafdot { fill: var(--accent); stroke: none; }
+/* punto de hoja = dato: sin colorear por metadatos va en tinta, no en el azul
+   de marca (v2: la marca no va dentro de las figuras) */
+.ql-phylo-leafdot { fill: var(--ink-2); stroke: none; }
 .ql-phylo-leaflabel { fill: var(--ink); font-size: 12px; font-weight: 500; font-family: var(--font-mono); }
 
 /* ---------- tablas ---------- */
@@ -1018,6 +1022,20 @@ table.ql-table td.ql-num { font-family: var(--font-mono); }
 .ql-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; display: inline-block; }
 .ql-pill-up { background: color-mix(in srgb, var(--enriched) 16%, transparent); color: var(--enriched); }
 .ql-pill-down { background: color-mix(in srgb, var(--depleted) 16%, transparent); color: var(--depleted); }
+/* v2: el color de DATOS como texto daba 3,1–4,4:1 (enriquecido/reducido sobre
+   su propio tinte). Texto en tinta neutra; el color, en el tinte y un punto.
+   Sin tono «-ink» azul a propósito: en oscuro quedaría a ΔE 10 del azul de
+   los enlaces y «Reducido» se leería como un enlace. */
+[data-ds="v2"] .ql-pill-up, [data-ds="v2"] .ql-pill-down { color: var(--ink); }
+[data-ds="v2"] .ql-pill-up::before, [data-ds="v2"] .ql-pill-down::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 5px; vertical-align: 0.05em; background: var(--enriched);
+}
+[data-ds="v2"] .ql-pill-down::before { background: var(--depleted); }
+/* KPI de un sentido (nº de enriquecidos / reducidos): cifra en tinta, el
+   color de datos como filete a la izquierda de la tarjeta */
+.ql-stat.ql-stat-up { box-shadow: inset 3px 0 0 var(--enriched); }
+.ql-stat.ql-stat-down { box-shadow: inset 3px 0 0 var(--depleted); }
 .ql-pill-ns { background: color-mix(in srgb, var(--neutral) 22%, transparent); color: var(--ink-muted); }
 
 /* ---------- pestañas ---------- */
@@ -2437,9 +2455,10 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   margin-bottom: var(--space-sm, 8px);
 }
 .ql-hero-brand .ql-hero-body { max-width: min(50%, 60ch); }
-.ql-hero-brand .ql-hero-title { margin: 6px 0 14px; line-height: 0.95; }
+.ql-hero-brand .ql-hero-title { margin: 6px 0 14px; }
 .ql-wordmark-hero {
   display: inline-block;
+  line-height: 0.95;
   font-size: clamp(56px, 7.6vw, 104px);
   letter-spacing: -0.045em;
   /* el trazo final del 5 no se corta con el interletraje negativo */
@@ -2515,3 +2534,12 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   font-family: var(--font-body);
 }
+
+/* rótulos y etiquetas que iban en monoespaciada: en v2 la monoespaciada
+   (Fira Code) queda para cifras, código, secuencias y nombres de archivo */
+[data-ds="v2"] .ql-checkgroup-h,
+[data-ds="v2"] .ql-calc-auto-badge,
+[data-ds="v2"] .ql-calc-result-label,
+[data-ds="v2"] .ql-calc-callout-title,
+[data-ds="v2"] .ql-calc-unit-badge,
+[data-ds="v2"] .ql-calc-preset-tag { font-family: var(--font-body); font-weight: 600; }
