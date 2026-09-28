@@ -1511,6 +1511,10 @@ export default {
     noRows: 'No rows — check the column mapping.',
   },
   venn: {
+    setCountLabel: 'Sets to show',
+    setCountHelp: 'The first of the {n} groups, in alphabetical order. With 2–4 a Venn diagram is drawn (with 4, rectangles by default); with 5 or more, UpSet, because a Venn of 5+ sets would have 31 or more regions and be unreadable. Regions are always the real intersections of the chosen sets.',
+    exTenLabel: 'Synthetic example with 10 groups',
+    upsetManyNote: 'With more than 7 sets the bars use a neutral colour (the 7 palette hues would repeat); each set is identified by its row.',
     eyebrow: 'Shared and exclusive taxa', title: 'Venn / UpSet diagrams',
     subtitle: 'Which taxa appear in each group and which are exclusive. A taxon “is” in a group if its count exceeds a threshold in at least N samples of that group. Up to 4 groups draws a Venn; with 5 or more it switches to an UpSet view (intersection bars), which does not get as tangled as a 5-circle Venn.',
     emptyTitle: 'Missing data for the Venn diagram',

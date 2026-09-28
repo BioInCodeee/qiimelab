@@ -1514,6 +1514,10 @@ export default {
     noRows: 'Sin filas — revisa el mapeo de columnas.',
   },
   venn: {
+    setCountLabel: 'Conjuntos a mostrar',
+    setCountHelp: 'Los primeros de los {n} grupos, en orden alfabético. Con 2–4 se dibuja un Venn (con 4, en rectángulos por defecto); con 5 o más, UpSet, porque un Venn de 5+ conjuntos tendría 31 o más regiones y sería ilegible. Las regiones siempre son las intersecciones reales de los conjuntos elegidos.',
+    exTenLabel: 'Ejemplo sintético con 10 grupos',
+    upsetManyNote: 'Con más de 7 conjuntos, las barras van en un color neutro (los 7 tonos de la paleta se repetirían); cada conjunto se identifica por su fila.',
     eyebrow: 'Taxones compartidos y exclusivos', title: 'Diagramas de Venn / UpSet',
     subtitle: 'Qué taxones aparecen en cada grupo y cuáles son exclusivos. Un taxón «está» en un grupo si su conteo supera un umbral en al menos N muestras de ese grupo. Hasta 4 grupos se dibuja un Venn; con 5 o más se pasa a una vista UpSet (barras de intersección), que no se lía como un Venn de 5 círculos.',
     emptyTitle: 'Faltan datos para el diagrama de Venn',

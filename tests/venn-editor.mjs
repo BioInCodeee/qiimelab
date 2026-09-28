@@ -107,7 +107,7 @@ try {
     !!circlesKeyIntact && JSON.stringify(circlesKeyIntact).includes('0.6'), JSON.stringify(circlesKeyIntact));
 
   // ================= escenario B: recarga -> 4 grupos sintéticos, elipses + UpSet =================
-  console.log('\n-- recarga con datos sintéticos de 4 grupos (elipses + UpSet) --');
+  console.log('\n-- recarga con datos sintéticos de 4 grupos (rectángulos/elipses + UpSet) --');
   await c.goto();
   await sleep(1500);
   await c.ev(`(async () => { const m = await import('/js/lib/exampleData.js'); m.loadExampleCounts(); })()`);
@@ -116,11 +116,17 @@ try {
   await sleep(1500);
 
   const fourGroupDefault = await c.ev(`(() => ({
-    ellipses: document.querySelectorAll('svg.ql-svg ellipse[data-ce-series-fill]').length,
+    rects: document.querySelectorAll('svg.ql-svg rect[data-ce-series-fill]').length,
     hasUpsetSelect: [...document.querySelectorAll('select')].some((s) => [...s.options].some((o) => /UpSet/i.test(o.textContent))),
   }))()`);
-  check('con 4 grupos (columna "grupo" sintética) el Venn por defecto usa 4 <ellipse> (VENN_LAYOUTS[4])',
-    fourGroupDefault.ellipses === 4, JSON.stringify(fourGroupDefault));
+  // Fase 3 (C1): con 4 conjuntos, rectángulos por defecto; las 4 elipses
+  // (VENN_LAYOUTS[4], también un Venn correcto) siguen a un clic
+  check('con 4 grupos (columna "grupo" sintética) el Venn por defecto usa 4 rectángulos',
+    fourGroupDefault.rects === 4, JSON.stringify(fourGroupDefault));
+  await c.ev(`(() => { [...document.querySelectorAll('.ql-segmented .ql-seg-btn')].find((b) => /círculos|circles/i.test(b.textContent)).click(); })()`);
+  await sleep(600);
+  const fourEllipses = await c.ev(`document.querySelectorAll('svg.ql-svg ellipse[data-ce-series-fill]').length`);
+  check('...y "Círculos" sigue dibujando las 4 <ellipse> de VENN_LAYOUTS[4]', fourEllipses === 4, String(fourEllipses));
   check('con 3-4 grupos aparece el desplegable auto/UpSet', fourGroupDefault.hasUpsetSelect, JSON.stringify(fourGroupDefault));
 
   if (fourGroupDefault.hasUpsetSelect) {

@@ -8,7 +8,7 @@ import { state, subscribe } from '../state.js';
 import { t, getLang } from '../lib/i18n.js';
 import { makeGroupResolver } from '../lib/sampleMatch.js';
 import { drawVenn, drawUpset, popcount } from '../lib/setDiagram.js';
-import { loadRealCounts, loadExampleCounts, mountExampleButtons } from '../lib/exampleData.js';
+import { loadRealCounts, loadExampleCounts, loadExampleCounts10Sets, mountExampleButtons } from '../lib/exampleData.js';
 import { attachChartEditor } from '../lib/chartEditor.js';
 import { escapeHtml } from '../lib/dom.js';
 
@@ -28,7 +28,19 @@ function emptyState(container) {
     syntheticLabel: t('venn.exSynthLabel'),
     download: ['counts', 'metadata'],
   });
+  card.querySelector('.ql-empty').appendChild(tenSetsButton());
   container.appendChild(card);
+}
+
+/** Botón del ejemplo sintético con 10 grupos (Fase 3, C1). */
+function tenSetsButton() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'ql-btn ql-btn-ghost ql-venn-ten';
+  b.style.marginTop = '8px';
+  b.textContent = t('venn.exTenLabel');
+  b.addEventListener('click', () => loadExampleCounts10Sets());
+  return b;
 }
 
 export function render(container) {
@@ -38,7 +50,8 @@ export function render(container) {
   let minCount = 0;
   let minSamples = 1;
   let viewMode = 'auto'; // 'auto' | 'venn' | 'upset'
-  let vennShape = 'circles'; // 'circles' | 'rect' — solo aplica cuando se dibuja un Venn (no UpSet)
+  let setCount = null;    // cuántos conjuntos representar (null = todos) — Fase 3, C1
+  let vennShapeChoice = null; // 'circles' | 'rect' elegido a mano; null = por defecto (rect con 4 conjuntos, circles con 2-3) — solo aplica a un Venn, no a UpSet
   let openMask = null;    // región seleccionada en la tabla
   let editor = null;
 
@@ -123,7 +136,12 @@ export function render(container) {
     const groupOf = {};
     let matched = 0;
     matrix.samples.forEach((s) => { const g = resolveGroup(s); if (g) { groupOf[s] = g; matched++; } });
-    const groups = Array.from(new Set(matrix.samples.map((s) => groupOf[s]).filter(Boolean))).sort();
+    const allGroups = Array.from(new Set(matrix.samples.map((s) => groupOf[s]).filter(Boolean))).sort();
+    // "Conjuntos a mostrar": los K primeros (orden alfabético). Las regiones
+    // se recalculan SOLO con esos K conjuntos, así que cada una sigue siendo
+    // la intersección exacta que representa.
+    const K = setCount ? Math.max(Math.min(2, allGroups.length), Math.min(setCount, allGroups.length)) : allGroups.length;
+    const groups = allGroups.slice(0, K);
 
     // --- conjuntos de presencia por grupo ---
     const groupSamples = {};
@@ -150,6 +168,9 @@ export function render(container) {
     });
 
     const useUpset = viewMode === 'upset' || (viewMode === 'auto' && groups.length >= 5);
+    // con 4 conjuntos, rectángulos por defecto (Fase 3, C1: lo acordado para 4+);
+    // las 4 elipses siguen disponibles — también son un Venn correcto
+    const vennShape = vennShapeChoice || (groups.length === 4 ? 'rect' : 'circles');
 
     // ---- controles (tira horizontal, ancho completo) ----
     const controls = document.createElement('section');
@@ -170,7 +191,7 @@ export function render(container) {
       if (h === groupCol) o.selected = true;
       selGroup.appendChild(o);
     });
-    selGroup.addEventListener('change', () => { groupCol = selGroup.value; openMask = null; paint(); });
+    selGroup.addEventListener('change', () => { groupCol = selGroup.value; openMask = null; setCount = null; paint(); });
     fGroup.appendChild(selGroup);
     fGroup.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + t('venn.groupHelp') + '</p>');
     cGrid.appendChild(fGroup);
@@ -188,6 +209,26 @@ export function render(container) {
       '<input type="number" min="1" step="1" value="' + minSamples + '" id="vnSamp" />' +
       '<p class="ql-field-help">' + t('venn.sampHelp') + '</p>';
     cGrid.appendChild(fSamp);
+
+    if (allGroups.length > 2) {
+      const fN = document.createElement('div');
+      fN.className = 'ql-field';
+      fN.innerHTML = '<label for="vnSets">' + t('venn.setCountLabel') + '</label>' +
+        '<input type="number" id="vnSets" min="2" max="' + allGroups.length + '" step="1" value="' + K + '" />' +
+        '<p class="ql-field-help">' + t('venn.setCountHelp', { n: allGroups.length }) + '</p>';
+      fN.querySelector('#vnSets').addEventListener('change', (e) => {
+        const v = parseInt(e.target.value, 10);
+        setCount = Number.isFinite(v) ? Math.max(2, Math.min(allGroups.length, v)) : null;
+        openMask = null; paint();
+      });
+      cGrid.appendChild(fN);
+    }
+    if (allGroups.length < 10 && state.metadata && state.metadata.synthetic) {
+      const fTen = document.createElement('div');
+      fTen.className = 'ql-field';
+      fTen.appendChild(tenSetsButton());
+      cGrid.appendChild(fTen);
+    }
 
     if (groups.length >= 3 && groups.length <= 4) {
       const fView = document.createElement('div');
@@ -214,7 +255,7 @@ export function render(container) {
         b.type = 'button';
         b.className = 'ql-seg-btn' + (vennShape === v ? ' is-on' : '');
         b.textContent = lbl;
-        b.addEventListener('click', () => { if (vennShape !== v) { vennShape = v; paint(); } });
+        b.addEventListener('click', () => { if (vennShape !== v) { vennShapeChoice = v; paint(); } });
         shapeSeg.appendChild(b);
       });
       fShape.appendChild(shapeSeg);
@@ -254,7 +295,7 @@ export function render(container) {
     // ---- gráfico (ancho completo) ----
     const chartPanel = document.createElement('section');
     chartPanel.className = 'ql-card ql-panel';
-    chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' + (useUpset ? t('venn.chartNoteUpset') : t('venn.chartNoteVenn')) + '</p>';
+    chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' + (useUpset ? t('venn.chartNoteUpset') + (groups.length > 7 ? ' ' + t('venn.upsetManyNote') : '') : t('venn.chartNoteVenn')) + '</p>';
     const chartWrap = document.createElement('div');
     chartWrap.className = 'ql-chartwrap scroll-x';
     if (!useUpset) { chartWrap.style.maxWidth = '620px'; chartWrap.style.margin = '0 auto'; }

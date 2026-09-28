@@ -407,6 +407,58 @@ export function loadExampleCounts() {
   return fileId;
 }
 
+/**
+ * Conteos SINTÉTICOS con 10 grupos ("Sitio A"…"Sitio J", 3 muestras cada
+ * uno) para ver cómo escala #/venn con muchos conjuntos (Fase 3, C1):
+ * núcleo común, exclusivos de cada sitio, pares y tríos, y un gradiente
+ * anidado (taxones presentes en los k primeros sitios) que genera muchas
+ * intersecciones distintas. Mismo generador determinista que el de 4 grupos.
+ */
+export function loadExampleCounts10Sets() {
+  const L = 'ABCDEFGHIJ';
+  const groups = L.split('').map((c) => 'Sitio ' + c);
+  const nPerGroup = 3;
+  const rnd = mulberry32(101010);
+  const all = (1 << groups.length) - 1;
+  const spec = [];
+  for (let i = 0; i < 10; i++) spec.push({ name: 'Nucleo_' + (i + 1), inMask: all });
+  groups.forEach((_, gi) => { for (let k = 0; k < 2 + (gi % 3); k++) spec.push({ name: 'Excl' + L[gi] + '_' + (k + 1), inMask: 1 << gi }); });
+  for (let a = 0; a < groups.length; a++) {
+    const b = (a + 1) % groups.length, c = (a + 3) % groups.length;
+    for (let k = 0; k < 2; k++) spec.push({ name: 'Par' + L[a] + L[b] + '_' + (k + 1), inMask: (1 << a) | (1 << b) });
+    spec.push({ name: 'Trio' + L[a] + L[b] + L[c], inMask: (1 << a) | (1 << b) | (1 << c) });
+  }
+  for (let k = 2; k < groups.length; k++) spec.push({ name: 'Gradiente_' + L.slice(0, k), inMask: (1 << k) - 1 });
+
+  const samples = [];
+  groups.forEach((g, gi) => { for (let r = 0; r < nPerGroup; r++) samples.push({ id: 'S' + L[gi] + (r + 1), group: g, gi }); });
+  const headers = ['taxon', ...samples.map((x) => x.id)];
+  const rows = spec.map((tx) => {
+    const row = { taxon: tx.name };
+    samples.forEach((x) => {
+      const present = (tx.inMask >> x.gi) & 1;
+      // presente en ~2 de cada 3 muestras de sus grupos (el umbral por
+      // defecto de #/venn es "≥1 muestra"), con conteo variable
+      row[x.id] = present && rnd() < 0.7 ? String(5 + Math.floor(rnd() * 200)) : '0';
+    });
+    return row;
+  });
+
+  const fileId = registerFile('ejemplo_conteos_10_grupos.csv', 0, 'Conteos sintéticos taxón × muestra con 10 grupos (sitios A–J) e intersecciones a propósito.');
+  setSlot('taxaCounts', { sourceFileId: fileId, headers, rows, taxonKey: 'taxon' });
+  // los metadatos sintéticos se sustituyen; unos metadatos reales, no
+  if (!state.metadata || state.metadata.synthetic) {
+    setSlot('metadata', {
+      sourceFileId: fileId,
+      headers: ['sample-id', 'sitio'],
+      rows: samples.map((x) => ({ 'sample-id': x.id, sitio: x.group })),
+      sampleIdKey: 'sample-id',
+      synthetic: true,
+    });
+  }
+  return fileId;
+}
+
 /** Coordenadas PCoA ya calculadas (ordination.txt de scikit-bio). */
 export function loadRealOrdination() {
   return ingestMany([['pcoa/bray_curtis_ordination.txt', 'Ejemplo real — PCoA Bray-Curtis (ordination.txt)']]);

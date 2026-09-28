@@ -229,10 +229,15 @@ export function drawUpset(host, groups, byMask, presence, onRegion, opts = {}) {
     svg.appendChild(g);
   });
 
+  // con más conjuntos que tonos de la paleta categórica (7), los colores se
+  // repetirían y dos conjuntos parecerían el mismo: color neutro para todos
+  // (en UpSet cada conjunto ya se identifica por su fila y su etiqueta;
+  // sigue pudiendo recolorearse desde el editor)
+  const manySets = groups.length > CAT_VARS.length;
   groups.forEach((g, gi) => {
     const y = matrixY0 + gi * rowH;
     const w = (setSizes[gi] / maxSet) * barMaxW;
-    const col = 'var(' + CAT_VARS[gi % CAT_VARS.length] + ')';
+    const col = manySets ? 'var(--ink-2)' : 'var(' + CAT_VARS[gi % CAT_VARS.length] + ')';
     svg.appendChild(svgEl('rect', { x: leftW + (barMaxW - w), y: y + 4, width: Math.max(w, 1), height: rowH - 9, fill: col, 'fill-opacity': 0.85, rx: 2, 'data-ce-role': 'barh', 'data-ce-series-fill': 's' + gi }));
     const lbl = svgEl('text', { x: leftW - 10, y: y + rowH / 2 + 4, 'text-anchor': 'end', class: 'ql-tick-label', fill: col, 'font-weight': 600, 'data-ce': 'set' + gi, 'data-ce-series-fill': 's' + gi });
     lbl.textContent = (g.length > 20 ? g.slice(0, 19) + '…' : g) + ' · ' + setSizes[gi];
