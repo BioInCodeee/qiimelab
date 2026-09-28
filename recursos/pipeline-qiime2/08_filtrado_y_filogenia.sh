@@ -82,4 +82,4 @@ qiime phylogeny align-to-tree-mafft-fasttree \
 
 echo "Hecho: revisa table_final_filtered_summary.qzv para elegir la rarefacción."
 echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
-echo "    https://lucadoktor.github.io/qiimelab/"
+echo "    https://bioincodeee.github.io/qiimelab/"

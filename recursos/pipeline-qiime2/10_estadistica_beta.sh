@@ -60,4 +60,4 @@ qiime diversity beta-group-significance \
 
 echo "Hecho: resultados en ${RES_DIR}/09_estadistica/"
 echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
-echo "    https://lucadoktor.github.io/qiimelab/"
+echo "    https://bioincodeee.github.io/qiimelab/"

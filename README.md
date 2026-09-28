@@ -2,12 +2,13 @@
 
 > **Producto: Smart-175. Repositorio: `qiimelab`, sin cambios (decisión deliberada).** "QiimeLab" es el nombre
 > heredado: ya no aparece en nada de lo que ve el usuario. El repo, la URL de GitHub Pages
-> (`lucadoktor.github.io/qiimelab/`), la carpeta y el `name` de `package.json` se quedan como están
+> (`bioincodeee.github.io/qiimelab/` desde el traslado del repo a `BioInCodeee` el 28 sep 2026;
+> la antigua `lucadoktor.github.io/qiimelab/` da 404), la carpeta y el `name` de `package.json` se quedan como están
 > a propósito — renombrarlos rompería enlaces y forks sin aportar nada a quien usa la app.
 > Las claves antiguas `qiimelab.*` de localStorage se migran solas a `smart-175.*` al arrancar
 > (`js/lib/storageMigration.js`).
 
-[![verify](https://github.com/LucaDoktor/qiimelab/actions/workflows/verify.yml/badge.svg)](https://github.com/LucaDoktor/qiimelab/actions/workflows/verify.yml)
+[![verify](https://github.com/BioInCodeee/qiimelab/actions/workflows/verify.yml/badge.svg)](https://github.com/BioInCodeee/qiimelab/actions/workflows/verify.yml)
 
 Analiza resultados de **QIIME2** y archivos **FASTQ** enteramente en el
 navegador: barplots taxonómicos, diversidad alfa y beta, abundancia
@@ -24,6 +25,9 @@ Interfaz en **español, inglés, italiano, alemán y chino** (selector en la
 barra lateral).
 
 ## Probarlo
+
+- **En línea**, sin instalar nada: <https://bioincodeee.github.io/qiimelab/>
+  (GitHub Pages, rama `main`).
 
 - **En local**, con Python (suele venir instalado):
 

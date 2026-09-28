@@ -5,7 +5,7 @@
 import { t } from '../lib/i18n.js';
 import { pwa } from '../lib/pwa.js';
 
-const REPO_URL = 'https://github.com/LucaDoktor/qiimelab';
+const REPO_URL = 'https://github.com/BioInCodeee/qiimelab';
 const CONTACT = 'bioincode.info@gmail.com';
 
 export function renderFooter(el) {

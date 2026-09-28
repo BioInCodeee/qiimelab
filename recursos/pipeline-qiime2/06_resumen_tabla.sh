@@ -32,4 +32,4 @@ qiime feature-table summarize \
 
 echo "Hecho: abre table_summary.qzv y anota la profundidad mínima aceptable."
 echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
-echo "    https://lucadoktor.github.io/qiimelab/"
+echo "    https://bioincodeee.github.io/qiimelab/"

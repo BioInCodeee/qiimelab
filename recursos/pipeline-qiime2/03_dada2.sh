@@ -63,4 +63,4 @@ qiime metadata tabulate \
 
 echo "Hecho: revisa dada2_stats.qzv — necesitas retener suficientes lecturas por muestra"
 echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
-echo "    https://lucadoktor.github.io/qiimelab/"
+echo "    https://bioincodeee.github.io/qiimelab/"

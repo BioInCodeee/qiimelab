@@ -66,4 +66,4 @@ qiime feature-table summarize \
 
 echo "Hecho: revisa dada2_stats.qzv y table_summary.qzv"
 echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
-echo "    https://lucadoktor.github.io/qiimelab/"
+echo "    https://bioincodeee.github.io/qiimelab/"

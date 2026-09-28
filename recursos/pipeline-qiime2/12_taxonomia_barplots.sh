@@ -61,4 +61,4 @@ rm -rf "${TEMP_DIR}"
 
 echo "Hecho: CSV en ${FINAL_DIR}/"
 echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
-echo "    https://lucadoktor.github.io/qiimelab/"
+echo "    https://bioincodeee.github.io/qiimelab/"

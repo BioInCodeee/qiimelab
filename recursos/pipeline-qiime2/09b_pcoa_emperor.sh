@@ -36,4 +36,4 @@ done
 
 echo "Hecho: PCoA + Emperor en ${BETA_DIR}/pcoa/"
 echo "  · los .qzv (Emperor) se ven en https://view.qiime2.org o subiéndolos a"
-echo "    Smart-175: https://lucadoktor.github.io/qiimelab/"
+echo "    Smart-175: https://bioincodeee.github.io/qiimelab/"
