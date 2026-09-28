@@ -68,6 +68,13 @@ export function t(key, params) {
   return interpolate(val, params);
 }
 
+/** Como t(), pero en un idioma fijo (p. ej. los scripts de R, que se
+ *  escriben siempre en español sea cual sea el idioma de la interfaz). */
+export function tIn(lang, key, params) {
+  const val = lookup(DICTS[lang], key) ?? lookup(DICTS[DEFAULT_LANG], key) ?? key;
+  return interpolate(val, params);
+}
+
 export function getLang() { return currentLang; }
 
 export function setLang(code) {

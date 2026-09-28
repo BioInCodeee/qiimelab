@@ -103,4 +103,10 @@ export default {
   beta: { eyebrow: 'Diversität zwischen Proben', title: 'Beta-Diversität' },
   differential: { eyebrow: 'Vergleich zwischen Bedingungen', title: 'Differenzielle Abundanz' },
   venn: { eyebrow: 'Gemeinsame und exklusive Taxa', title: 'Venn- / UpSet-Diagramme' },
+  rscript: {
+    btn: 'R-Skript herunterladen',
+    btnTitle: 'R-Skript, das diese Analyse mit den aktuellen Daten und Optionen über die Referenzpakete (vegan, ape…) reproduziert',
+    dataBtn: 'Daten für R herunterladen',
+    dataBtnTitle: 'Die Daten sind zu groß für das Skript: Hier die .tsv-Datei herunterladen, die das Skript erwartet',
+  },
 };

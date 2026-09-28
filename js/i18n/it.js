@@ -103,4 +103,10 @@ export default {
   beta: { eyebrow: 'Diversità tra campioni', title: 'Diversità beta' },
   differential: { eyebrow: 'Confronto tra condizioni', title: 'Abbondanza differenziale' },
   venn: { eyebrow: 'Taxa condivisi ed esclusivi', title: 'Diagrammi di Venn / UpSet' },
+  rscript: {
+    btn: 'Scarica script R',
+    btnTitle: 'Script R che riproduce questa analisi con i dati e le opzioni attuali, usando i pacchetti di riferimento (vegan, ape…)',
+    dataBtn: 'Scarica dati per R',
+    dataBtnTitle: 'I dati sono troppo grandi per stare nello script: scarica qui il file .tsv che lo script si aspetta',
+  },
 };

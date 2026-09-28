@@ -64,6 +64,7 @@ import { createFigureStyle } from './chartFigureStyle.js';
 import { createElements } from './chartElements.js';
 import { createExport } from './chartExport.js';
 import { createPresets } from './chartPresets.js';
+import { rScriptControls } from '../rScript.js';
 
 // API pública (la misma que exponía el chartEditor.js de un solo archivo)
 export {
@@ -352,6 +353,10 @@ export function attachChartEditor(cfg) {
     bDl.className = 'ql-btn ce-download-btn';
     dlWrap.appendChild(fmtSel); dlWrap.appendChild(bDl);
     toolbar.appendChild(dlWrap);
+
+    // "Descargar script R" (js/lib/rScript.js): solo en los análisis de
+    // Nivel A/B cuyo módulo pasa cfg.rScript = { build, hasDataFiles }
+    if (cfg.rScript) toolbar.appendChild(rScriptControls(cfg.rScript));
 
     if (Object.keys(ctx.store).length) {
       const bReset = mkBtn(CE_ICONS.reset, T.reset, resetAll);

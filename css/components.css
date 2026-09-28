@@ -390,6 +390,11 @@ svg.ql-brand-mark {
 .ql-btn.ql-btn-primary:hover { background: color-mix(in srgb, var(--accent) 86%, #000); border-color: color-mix(in srgb, var(--accent) 86%, #000); }
 .ql-btn.ql-btn-ghost { border-color: transparent; background: transparent; }
 .ql-btn.ql-btn-ghost:hover { background: var(--accent-soft); border-color: transparent; }
+
+/* "Descargar script R" (js/lib/rScript.js): mismo sitio y aspecto en la barra
+   del editor de gráficos y en las tablas que no pasan por él (PERMANOVA) */
+.ql-rscript { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ql-rscript-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .ql-btn.ql-btn-danger { background: var(--critical); border-color: var(--critical); color: #fff; }
 .ql-btn.ql-btn-danger:hover { background: color-mix(in srgb, var(--critical) 86%, #000); border-color: color-mix(in srgb, var(--critical) 86%, #000); }
 .ql-btn:disabled { opacity: 0.45; cursor: not-allowed; }

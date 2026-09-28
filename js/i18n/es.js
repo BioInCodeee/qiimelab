@@ -1747,4 +1747,10 @@ export default {
     levelCBody: 'Implementación independiente, inspirada en {tool}. No debe considerarse numéricamente equivalente a {tool} en {where}: úsalo para explorar y confirma con la herramienta original antes de publicar.',
     levelCBodyNoWhere: 'Implementación independiente y simplificada, inspirada en {tool}. No debe considerarse equivalente a {tool}: úsalo para explorar y confirma con la herramienta original antes de publicar.',
   },
+  rscript: {
+    btn: 'Descargar script R',
+    btnTitle: 'Script de R que reproduce este análisis con los datos y opciones actuales, usando los paquetes de referencia (vegan, ape…)',
+    dataBtn: 'Descargar datos para R',
+    dataBtnTitle: 'Los datos son demasiado grandes para ir dentro del script: descarga aquí el archivo .tsv que el script espera',
+  },
 };

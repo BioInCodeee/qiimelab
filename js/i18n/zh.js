@@ -103,4 +103,10 @@ export default {
   beta: { eyebrow: '样本间多样性', title: 'Beta 多样性' },
   differential: { eyebrow: '条件间比较', title: '差异丰度' },
   venn: { eyebrow: '共享与特有类群', title: 'Venn / UpSet 图' },
+  rscript: {
+    btn: '下载 R 脚本',
+    btnTitle: '用参考软件包（vegan、ape…）按当前数据和选项重现此分析的 R 脚本',
+    dataBtn: '下载 R 所需数据',
+    dataBtnTitle: '数据太大，无法放入脚本：在此下载脚本所需的 .tsv 文件',
+  },
 };
