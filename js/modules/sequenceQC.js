@@ -145,7 +145,7 @@ function runAnalysis(file, limit, onProgress) {
       const m = ev.data || {};
       if (m.type === 'progress') onProgress(m.n);
       else if (m.type === 'done') { worker.terminate(); ok(m.report); }
-      else if (m.type === 'error') { worker.terminate(); bad(new Error(m.message)); }
+      else if (m.type === 'error') { worker.terminate(); bad(Object.assign(new Error(m.message), { code: m.code, params: m.params })); }
     };
     worker.onerror = () => { try { worker.terminate(); } catch (e) {} if (!settled) mainThread(); };
     try { worker.postMessage({ file, maxReads: limit }); }
@@ -168,7 +168,10 @@ async function analyze(entry, repaint) {
     addSequenceQC({ ...entry, report }); // notify -> repaint
   } catch (e) {
     running.delete(entry.name);
-    errors.set(entry.name, (e && e.message) ? e.message : String(e));
+    // límites anti bomba (fastq.js): se traducen aquí, en el idioma del
+    // usuario — el worker no lo conoce y solo manda el código
+    const LIMIT_KEYS = { ratio: 'zip.ratioTooHigh', line: 'qc.lineTooLong' };
+    errors.set(entry.name, e && LIMIT_KEYS[e.code] ? t(LIMIT_KEYS[e.code], e.params) : ((e && e.message) ? e.message : String(e)));
     repaint();
   }
 }

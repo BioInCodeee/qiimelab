@@ -153,6 +153,7 @@ export default {
     sanger: { desc: 'Recorte por calidad (algoritmo de Mott), solapamiento forward/reverse anclado por k-meros y consenso ponderado por calidad a partir de tus cromatogramas .ab1.' },
   },
   qc: {
+    lineTooLong: '"{name}" tiene una línea de más de {max} sin salto de línea: no parece un FASTQ (o está dañado), así que se detiene la lectura para no colgar la pestaña.',
     eyebrow: 'Calidad de las lecturas crudas',
     title: 'Control de calidad de secuencias',
     subtitle: 'Sube tus archivos FASTQ (.fastq, .fq, .fastq.gz, .fq.gz) y obtén un informe de calidad estilo FastQC: calidad por posición, composición de bases, duplicación, adaptadores y más. Todo se calcula en tu navegador, en streaming — el archivo no se sube a ningún sitio. No sustituye a DADA2/QIIME2: son estadísticas descriptivas sobre el FASTQ tal cual.',

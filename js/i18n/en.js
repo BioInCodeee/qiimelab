@@ -153,6 +153,7 @@ export default {
     sanger: { desc: 'Quality trimming (Mott algorithm), k-mer-anchored forward/reverse overlap and quality-weighted consensus from your .ab1 chromatograms.' },
   },
   qc: {
+    lineTooLong: '"{name}" has a line longer than {max} with no line break: it does not look like a FASTQ (or it is damaged), so reading stops so the tab does not hang.',
     eyebrow: 'Quality of the raw reads',
     title: 'Sequence quality control',
     subtitle: 'Upload your FASTQ files (.fastq, .fq, .fastq.gz, .fq.gz) and get a FastQC-style quality report: per-position quality, base composition, duplication, adapters and more. Everything is computed in your browser, streaming — the file is not uploaded anywhere. It does not replace DADA2/QIIME2: these are descriptive statistics on the FASTQ as-is.',

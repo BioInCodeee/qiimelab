@@ -11,6 +11,8 @@
 // FASTQ = registros de 4 líneas: @cabecera / secuencia / + / calidad.
 // Calidad Phred+33: valor = code(char) - 33.
 
+import { ZIP_LIMITS } from './decompressLimits.js';
+
 const QMAX = 50;                 // Phred máximo que cabe en el histograma
 const DUP_CAP = 300000;          // nº máximo de secuencias distintas que rastreamos
 const DEFAULT_MAX_READS = 200000;
@@ -44,12 +46,29 @@ async function gzipISize(file) {
 }
 
 /**
+ * Error de límite anti bomba de descompresión / archivo patológico. Lleva un
+ * `code` ('ratio' | 'line') y `params` para que el hilo principal lo traduzca
+ * (el worker no tiene el idioma del usuario). `message` es un respaldo en es.
+ */
+export class FastqLimitError extends Error {
+  constructor(code, params, message) { super(message); this.name = 'FastqLimitError'; this.code = code; this.params = params; }
+}
+
+/**
  * Generador asíncrono de lecturas FASTQ: cede `{ header, seq, qual }` (seq y
  * qual como cadenas). Se detiene tras `maxReads`.
+ * Mismas defensas que el lector de ZIP (decompressLimits.js): con .gz, se
+ * corta si lo descomprimido supera MAX_COMPRESSION_RATIO veces el tamaño del
+ * archivo (una vez pasado RATIO_MIN_BYTES) — maxReads no basta, porque un
+ * contenido que no forma registros válidos nunca suma lecturas —; y, con o
+ * sin .gz, si una línea supera MAX_FASTQ_LINE sin salto de línea.
  */
-export async function* readFastq(file, { maxReads = Infinity } = {}) {
+export async function* readFastq(file, { maxReads = Infinity, limits = ZIP_LIMITS } = {}) {
   let stream = file.stream();
-  if (isGzName(file.name)) {
+  const gz = isGzName(file.name);
+  const compressedSize = Math.max(1, file.size || 0);
+  let outBytes = 0;
+  if (gz) {
     if (typeof DecompressionStream === 'undefined') {
       throw new Error('Este navegador no soporta descompresión gzip en streaming (falta DecompressionStream). Prueba con una versión reciente de Chrome, Edge o Firefox, o descomprime el .fastq.gz antes de subirlo.');
     }
@@ -75,6 +94,15 @@ export async function* readFastq(file, { maxReads = Infinity } = {}) {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
+      if (gz) {
+        outBytes += value.length;
+        const ratio = outBytes / compressedSize;
+        if (outBytes > limits.RATIO_MIN_BYTES && ratio > limits.MAX_COMPRESSION_RATIO) {
+          try { await reader.cancel(); } catch (e) { /* noop */ }
+          throw new FastqLimitError('ratio', { name: file.name, ratio: Math.round(ratio), max: limits.MAX_COMPRESSION_RATIO },
+            '"' + file.name + '" se expandiría más de ' + limits.MAX_COMPRESSION_RATIO + '× al descomprimir: se detiene la lectura.');
+        }
+      }
       buf += decoder.decode(value, { stream: true });
       let nl;
       while ((nl = buf.indexOf('\n')) !== -1) {
@@ -89,6 +117,12 @@ export async function* readFastq(file, { maxReads = Infinity } = {}) {
             if (++count >= maxReads) { try { await reader.cancel(); } catch (e) { /* noop */ } return; }
           }
         }
+      }
+      if (buf.length > limits.MAX_FASTQ_LINE) {
+        try { await reader.cancel(); } catch (e) { /* noop */ }
+        const mb = Math.round(limits.MAX_FASTQ_LINE / (1024 * 1024));
+        throw new FastqLimitError('line', { name: file.name, max: mb + ' MB' },
+          '"' + file.name + '": una línea de más de ' + mb + ' MB sin salto de línea; no parece un FASTQ.');
       }
     }
     buf += decoder.decode();

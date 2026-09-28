@@ -5,7 +5,8 @@
 // DecompressionStream (se cuentan sus construcciones). También que una
 // cabecera que miente (declara poco, infla mucho) se corta a mitad de flujo,
 // que un .gz suelto enorme se corta igual, y que ingestFile() lo convierte en
-// un aviso legible sin romper el resto del artefacto. Sin Chrome.
+// un aviso legible sin romper el resto del artefacto; y lo mismo para el
+// lector de FASTQ en streaming (fastq.js: ratio y longitud de línea). Sin Chrome.
 //
 //   node tests/zipbomb.mjs
 
@@ -121,6 +122,26 @@ console.log('\n--- 8. un artefacto normal no se ve afectado ---');
   const [e] = listZipEntries(buf);
   const out = await readZipEntry(buf, e);
   check('una tabla normal (deflate) se lee entera', out.length === e.uncompSize, `${out.length} B`);
+}
+
+console.log('\n--- 9. FASTQ en streaming (fastq.js, también en el worker de #/qc) ---');
+{
+  const { readFastq, analyzeFastq, FastqLimitError } = await import(APP_ROOT + '/js/lib/fastq.js');
+  const drain = async (file) => { try { let n = 0; for await (const _ of readFastq(file)) n++; return { n }; } catch (e) { return { err: e }; } };
+  // bomba: 64 MB de "x\n" (con saltos de línea, pero ningún registro válido:
+  // maxReads nunca se alcanza) comprimidos a unos pocos KB
+  const bomb = new File([gzipSync(Buffer.from('x\n'.repeat(32 * MB)))], 'bomba.fastq.gz');
+  const rb = await drain(bomb);
+  check(`.fastq.gz bomba (${(bomb.size / 1024).toFixed(0)} KB → 64 MB) se corta por ratio`, rb.err instanceof FastqLimitError && rb.err.code === 'ratio' && rb.err.params.ratio >= 100, rb.err && rb.err.message);
+  // sin saltos de línea: el búfer crecería sin límite
+  const oneLine = new File(['@r1\n' + 'A'.repeat(5 * MB)], 'linea.fastq');
+  const rl = await drain(oneLine);
+  check('una línea de 5 MB sin salto (FASTQ sin comprimir) se corta por longitud de línea', rl.err instanceof FastqLimitError && rl.err.code === 'line', rl.err && rl.err.message);
+  // el FASTQ.gz real de ejemplo, leído ENTERO (maxReads = Infinity): sin falsos positivos
+  const { readFileSync } = await import('node:fs');
+  const real = new File([readFileSync(APP_ROOT + '/datos-ejemplo/qc/muestra_ejemplo_R1.fastq.gz')], 'muestra_ejemplo_R1.fastq.gz');
+  const rep = await analyzeFastq(real, { maxReads: Infinity }).catch((e) => ({ err: e }));
+  check('el FASTQ.gz real de ejemplo se lee entero sin disparar ningún límite', !rep.err && rep.nReads > 1000, rep.err ? rep.err.message : 'lecturas: ' + rep.nReads);
 }
 
 globalThis.DecompressionStream = RealDS;

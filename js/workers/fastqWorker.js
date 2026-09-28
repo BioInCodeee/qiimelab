@@ -13,6 +13,6 @@ self.onmessage = async (e) => {
     });
     self.postMessage({ type: 'done', report });
   } catch (err) {
-    self.postMessage({ type: 'error', message: err && err.message ? err.message : String(err) });
+    self.postMessage({ type: 'error', message: err && err.message ? err.message : String(err), code: err && err.code, params: err && err.params });
   }
 };

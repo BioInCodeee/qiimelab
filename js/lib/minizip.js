@@ -20,17 +20,11 @@
 // .qza/.qzv reales: máx. 244 entradas y ratio máx. 32×.
 
 import { t } from './i18n.js';
+import { ZIP_LIMITS } from './decompressLimits.js';
 
+// los límites viven en decompressLimits.js (compartidos con fastq.js)
+export { ZIP_LIMITS };
 const MB = 1024 * 1024;
-export const ZIP_LIMITS = Object.freeze({
-  MAX_ZIP_ENTRY_UNCOMPRESSED: 250 * MB,
-  MAX_TOTAL_UNCOMPRESSED: 500 * MB,
-  MAX_ZIP_ENTRIES: 2000,
-  MAX_COMPRESSION_RATIO: 100,
-  // el ratio solo se exige por encima de este tamaño: un texto diminuto muy
-  // repetitivo puede comprimir >100× sin ser ningún peligro
-  RATIO_MIN_BYTES: 1 * MB,
-});
 
 /** Error de límite anti zip-bomb; `code` identifica cuál se superó. */
 export class ZipLimitError extends Error {
