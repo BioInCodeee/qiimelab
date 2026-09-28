@@ -16,7 +16,7 @@ const safeName = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'datos';
 
 // --------------------------------------------------------------------------
-//  DIVERSIDAD ALFA — índice por muestra + Kruskal-Wallis + test por pares
+//  DIVERSIDAD ALFA — índice por muestra + prueba global + test por pares
 // --------------------------------------------------------------------------
 
 const ALPHA_INDEX = {
@@ -31,6 +31,13 @@ const ALPHA_INDEX = {
 const TEST_R = {
   student: 't de Student', welch: 't de Welch', mannwhitney: 'Mann-Whitney',
   'anova-tukey': 'ANOVA + Tukey', 'welch-anova-gh': 'ANOVA de Welch + Games-Howell', 'kruskal-dunn': 'Kruskal-Wallis + Dunn',
+};
+
+// prueba global (con 3+ grupos) del cuadro de estadística de la app
+const GLOBAL_R = {
+  'kruskal-dunn': 'global <- kruskal.test(valor ~ grupo, data = datos)',
+  'anova-tukey': '# ANOVA de un factor (el mismo F que summary(aov(...)))\nglobal <- oneway.test(valor ~ grupo, data = datos, var.equal = TRUE)',
+  'welch-anova-gh': 'global <- oneway.test(valor ~ grupo, data = datos, var.equal = FALSE)',
 };
 
 const TEST_NAME = {
@@ -75,12 +82,13 @@ export function alphaScript(o) {
 
   const functions = [];
   if (idx) functions.push(idx.fn + ' — índice por muestra a partir de la tabla de conteos');
-  functions.push('stats::kruskal.test — Kruskal-Wallis (¿hay alguna diferencia entre grupos?)');
   functions.push('stats::shapiro.test y ANOVA de |valor − mediana| (Levene/Brown-Forsythe, igual que car::leveneTest(center = median)) — para elegir el test por pares');
+  if (test === 'kruskal-dunn') functions.push('stats::kruskal.test — Kruskal-Wallis (prueba global)');
+  if (test === 'anova-tukey') functions.push('stats::oneway.test(var.equal = TRUE) — ANOVA de un factor (prueba global)');
   if (test === 'student' || test === 'welch') functions.push('stats::t.test');
   if (test === 'mannwhitney') functions.push('stats::wilcox.test');
   if (test === 'anova-tukey') functions.push('stats::aov + stats::TukeyHSD');
-  if (test === 'welch-anova-gh') functions.push('stats::oneway.test(var.equal = FALSE) + Games-Howell escrito en R base con stats::ptukey (mismo cálculo que rstatix::games_howell_test)');
+  if (test === 'welch-anova-gh') functions.push('stats::oneway.test(var.equal = FALSE) (prueba global) + Games-Howell escrito en R base con stats::ptukey (mismo cálculo que rstatix::games_howell_test)');
   if (test === 'kruskal-dunn') functions.push('prueba de Dunn (1964) escrita en R base (mismo cálculo que dunn.test::dunn.test o FSA::dunnTest) + stats::p.adjust');
 
   const params = [
@@ -94,9 +102,9 @@ export function alphaScript(o) {
   const header = rHeader({
     title: 'Diversidad alfa: ' + o.metricName + ' por "' + o.groupCol + '"',
     what: (idx ? 'Calcula el índice ' + idx.label + ' de cada muestra a partir de la tabla de conteos y compara sus valores'
-      : 'Compara los valores de "' + o.metricName + '"') + ' entre los grupos de "' + o.groupCol + '": primero Kruskal-Wallis (la prueba global que Smart-175 ' +
-      'muestra en el cuadro de estadística) y después las comparaciones por pares de los corchetes del gráfico, con ' +
-      'el test que Smart-175 elige automáticamente según la normalidad (Shapiro-Wilk) y la homogeneidad de varianzas (Levene).',
+      : 'Compara los valores de "' + o.metricName + '"') + ' entre los grupos de "' + o.groupCol + '": elige el test como Smart-175 (según la normalidad, Shapiro-Wilk, y la homogeneidad de varianzas, ' +
+      'Levene), hace la prueba global que Smart-175 muestra en el cuadro de estadística y después las comparaciones ' +
+      'por pares de los corchetes del gráfico.',
     functions, methodIds, params,
   });
 
@@ -132,10 +140,7 @@ export function alphaScript(o) {
     'nivel_significancia <- ' + rNum(o.threshold) + '\n' +
     'print(table(datos$grupo))');
 
-  parts.push(rSection('2. Kruskal-Wallis: ¿hay alguna diferencia entre grupos?'));
-  parts.push('kw <- kruskal.test(valor ~ grupo, data = datos)\nprint(kw)');
-
-  parts.push(rSection('3. Elección automática del test por pares'));
+  parts.push(rSection('2. Elección automática del test'));
   parts.push(rComment('Mismo árbol de decisión que Smart-175: si algún grupo no es normal (Shapiro-Wilk, p ≤ 0,05) ' +
     'o no tiene al menos 3 valores para comprobarlo → test no paramétrico; si todos son normales pero las varianzas ' +
     'difieren (Levene/Brown-Forsythe, p ≤ 0,05) → versión de Welch; si no → test paramétrico clásico.'));
@@ -167,15 +172,25 @@ export function alphaScript(o) {
     o.overridden ? '' : 'if (test_recomendado != test_usado) warning("El test recomendado en R no coincide con el que eligió Smart-175")',
   ].filter(Boolean).join('\n'));
 
-  parts.push(rSection('4. Comparaciones por pares: ' + TEST_NAME[test]));
+  parts.push(rSection('3. Prueba global: ¿hay alguna diferencia entre grupos?'));
   if (k === 2) {
     const call = test === 'student' ? 't.test(x, y, var.equal = TRUE)' : test === 'welch' ? 't.test(x, y)' : 'wilcox.test(x, y)';
     parts.push([
+      '# con 2 grupos la prueba global y la comparación por pares son la misma',
       'x <- por_grupo[[1]]',
       'y <- por_grupo[[2]]',
       test === 'mannwhitney' ? '# con pocos datos y sin empates R usa el p exacto; si no, la aproximación normal (igual que Smart-175)' : '',
-      'prueba <- ' + call,
-      'print(prueba)',
+      'global <- ' + call,
+      'print(global)',
+    ].filter(Boolean).join('\n'));
+  } else {
+    parts.push(GLOBAL_R[test] + '\nprint(global)');
+  }
+
+  parts.push(rSection('4. Comparaciones por pares: ' + TEST_NAME[test]));
+  if (k === 2) {
+    parts.push([
+      'prueba <- global',
       '# con 2 grupos solo hay una comparación: no hay nada que ajustar',
       'comparaciones <- data.frame(grupo1 = levels(datos$grupo)[1], grupo2 = levels(datos$grupo)[2],',
       '                            p_ajustado = prueba$p.value)',
@@ -193,7 +208,6 @@ export function alphaScript(o) {
       ].join('\n'));
     } else if (test === 'welch-anova-gh') {
       parts.push([
-        'print(oneway.test(valor ~ grupo, data = datos, var.equal = FALSE))',
         '# Games-Howell: como Tukey, pero con el error estándar y los grados de libertad',
         '# de cada pareja calculados a la Welch (sin suponer una varianza común)',
         'medias <- tapply(datos$valor, datos$grupo, mean)',

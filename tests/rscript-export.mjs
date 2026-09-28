@@ -106,13 +106,15 @@ try {
     } else if (test === 'anova-tukey') sa.tukeyHSD(groups).pairwise.forEach((q) => { pairs[names[q.i] + '|' + names[q.j]] = q.p; });
     else if (test === 'welch-anova-gh') sa.gamesHowell(groups).pairwise.forEach((q) => { pairs[names[q.i] + '|' + names[q.j]] = q.p; });
     else ps.dunnTest(names.map((g) => ({ label: g, values: gd[g] }))).comparisons.forEach((q) => { pairs[q.a + '|' + q.b] = q.adj.holm; });
-    const box = [...document.querySelectorAll('#app-view .mono.tabular')].map((e) => e.textContent).join(' ');
+    const om = document.querySelector('#app-view .ql-omnibus');
+    const box = om ? { id: om.dataset.omnibus, title: om.firstElementChild.textContent, lines: [...om.querySelectorAll('.mono.tabular')].map((e) => e.textContent) } : null;
     return { values, test, pairs, box };
   })`;
   const alphaCases = [
     { metric: 'shannon_entropy', group: 'fase', name: 'alfa-shannon-archivo' },
     { metric: 'chao1', group: 'grupo', name: 'alfa-chao1-calculado' },
     { metric: 'simpson', group: 'fase', name: 'alfa-simpson-calculado' },
+    { metric: 'observed_features', group: 'variable_1', name: 'alfa-observed-2grupos' },
   ];
   await c.ev(`location.hash = '#/alfa'`); await sleep(1800);
   for (const ac of alphaCases) {
@@ -120,11 +122,11 @@ try {
     await setSelect('/Métrica/', ac.metric); await sleep(700);
     await setSelect('/Agrupar|Grupo/', ac.group); await sleep(900);
     const script = await download('#app-view');
-    check('se descarga el script', !!script && script.includes('kruskal.test'));
+    check('se descarga el script', !!script && script.includes('global <- '));
     if (!script) continue;
     const app = await c.ev(`${APP_ALPHA}(${JSON.stringify(ac.metric)}, ${JSON.stringify(ac.group)})`);
     const r = runR(ac.name, script, {
-      muestra: 'datos$muestra', valor: 'datos$valor', H: 'unname(kw$statistic)', df: 'unname(kw$parameter)', p: 'kw$p.value',
+      muestra: 'datos$muestra', valor: 'datos$valor', stat: 'unname(global$statistic)', df: 'unname(global$parameter)', p: 'global$p.value',
       recomendado: 'test_recomendado', usado: 'test_usado',
       g1: 'comparaciones$grupo1', g2: 'comparaciones$grupo2', padj: 'comparaciones$p_ajustado',
     });
@@ -132,10 +134,15 @@ try {
     const maxV = Math.max(...r.muestra.map((s, i) => Math.abs(r.valor[i] - app.values[s])));
     check(`valor por muestra idéntico al de la app (${r.muestra.length} muestras, máx. dif. ${maxV.toExponential(1)})`,
       r.muestra.length === Object.keys(app.values).length && maxV < 1e-9);
-    const mH = /H = ([\d.]+), df = (\d+)/.exec(app.box), mP = /p = (< 0\.0001|[\d.]+)/.exec(app.box);
-    check(`Kruskal-Wallis = lo que muestra la app (H = ${r.H.toFixed(3)}, df = ${r.df}, p = ${r.p.toPrecision(4)})`,
-      mH && close(r.H, +mH[1], 5e-4) && r.df === +mH[2] &&
-      (mP[1] === '< 0.0001' ? r.p < 1e-4 : close(r.p, +mP[1], 5e-5)), mH && mP ? mH[0] + ' · ' + mP[0] : app.box);
+    // la tarjeta muestra la prueba global DEL TEST APLICADO (no siempre Kruskal-Wallis)
+    const nums = (app.box.lines[0].match(/-?[\d.]+/g) || []).map(Number);
+    const dfs = arr(r.df);
+    const mP = /p (?:= )?(< 0\.0001|[\d.]+)/.exec(app.box.lines[1]);
+    const OMNI = { 'kruskal-dunn': 'Kruskal', 'anova-tukey': 'Anova', 'welch-anova-gh': 'WelchAnova', student: 'Student', welch: 'WelchT', mannwhitney: 'MW' };
+    check(`la tarjeta muestra la prueba global del test aplicado: "${app.box.title}"`, app.box.id === OMNI[app.test]);
+    check(`prueba global = lo que muestra la app (${app.box.lines.join(' · ')})`,
+      close(r.stat, nums[0], 5e-4) && dfs.every((d, i) => close(d, nums[1 + i], 5e-3)) &&
+      (mP[1] === '< 0.0001' ? r.p < 1e-4 : close(r.p, +mP[1], 5e-5)), 'R: ' + r.stat + ' ' + JSON.stringify(dfs) + ' p=' + r.p);
     const TEST_R = { student: 't de Student', welch: 't de Welch', mannwhitney: 'Mann-Whitney', 'anova-tukey': 'ANOVA + Tukey', 'welch-anova-gh': 'ANOVA de Welch + Games-Howell', 'kruskal-dunn': 'Kruskal-Wallis + Dunn' };
     check(`mismo test por pares elegido en R y en la app (${r.recomendado})`, r.recomendado === TEST_R[app.test] && r.usado === TEST_R[app.test]);
     const diffs = r.g1.map((a, i) => Math.abs(r.padj[i] - app.pairs[a + '|' + r.g2[i]]));

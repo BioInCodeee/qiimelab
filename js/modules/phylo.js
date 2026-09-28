@@ -851,7 +851,7 @@ export function render(container) {
 
     const chartPanel = document.createElement('section');
     chartPanel.className = 'ql-card ql-panel';
-    chartPanel.innerHTML = '<p class="ql-panel-note">' + t(s.layout === 'sunburst' ? 'phylo.sunburstNote' : 'phylo.treeNote') + '</p>';
+    chartPanel.innerHTML = '<p class="ql-panel-note">' + t(s.layout === 'sunburst' ? 'phylo.sunburstNote' : s.layout === 'circular' ? 'phylo.circularNote' : 'phylo.treeNote') + '</p>';
     const chartWrap = document.createElement('div');
     chartWrap.className = 'ql-chartwrap';
     const svg = svgEl('svg', { class: 'ql-svg', role: 'img', 'aria-label': t(s.layout === 'circular' ? 'a11y.chartPhyloCircular' : s.layout === 'sunburst' ? 'a11y.chartPhyloSunburst' : 'a11y.chartPhylo') });

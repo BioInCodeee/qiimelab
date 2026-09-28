@@ -1,6 +1,8 @@
 import { state, subscribe } from '../state.js';
 import { t, getLang } from '../lib/i18n.js';
-import { formatP, rarefactionCurve } from '../lib/stats.js';
+import { formatP, rarefactionCurve, oneWayAnova } from '../lib/stats.js';
+import { welchAnova } from '../lib/statAutoSelect.js';
+import { studentT, welchT, mannWhitneyU } from '../lib/pairwiseStats.js';
 import { rarefactionBatchAsync } from '../lib/heavyStats.js';
 import { drawGroupBoxplot, drawGroupStripPlot, drawGroupViolin, groupColor, legendPositionLabel } from '../lib/groupBoxplot.js';
 import { matchSampleId, makeGroupResolver } from '../lib/sampleMatch.js';
@@ -23,6 +25,37 @@ function fmt(v, d) {
 // "27 700" no se confunde con un decimal en ningún idioma
 function fmtN(n) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+// Prueba global del cuadro de estadística: la que corresponde al test que
+// de verdad se aplica en los corchetes (automático o elegido a mano en el
+// editor), no siempre Kruskal-Wallis. Con 2 grupos la prueba global y la
+// comparación por pares son la misma.
+function omnibusTest(testChoice, groups, kw) {
+  if (groups.length === 2) {
+    const [x, y] = groups;
+    if (testChoice === 'student') { const r = studentT(x, y); return { id: 'Student', stat: 't = ' + fmt(r.t, 3) + ', df = ' + r.df, p: r.p }; }
+    if (testChoice === 'welch') { const r = welchT(x, y); return { id: 'WelchT', stat: 't = ' + fmt(r.t, 3) + ', df = ' + fmt(r.df, 2), p: r.p }; }
+    const r = mannWhitneyU(x, y);
+    return { id: 'MW', stat: 'W = ' + fmt(r.W, 1), p: r.p };
+  }
+  if (testChoice === 'anova-tukey') {
+    const r = oneWayAnova(groups);
+    if (!r.error) return { id: 'Anova', stat: 'F = ' + fmt(r.F, 3) + ', df = ' + r.dfBetween + ', ' + r.dfWithin, p: r.p };
+  } else if (testChoice === 'welch-anova-gh') {
+    const r = welchAnova(groups);
+    if (!r.error) return { id: 'WelchAnova', stat: 'F = ' + fmt(r.F, 3) + ', df = ' + r.dfBetween + ', ' + fmt(r.dfWithin, 2), p: r.p };
+  }
+  return { id: 'Kruskal', stat: 'H = ' + kw.H.toFixed(3) + ', df = ' + kw.df, p: kw.p };
+}
+
+function omnibusHtml(o) {
+  return '<div class="ql-omnibus" data-omnibus="' + o.id + '" style="margin-top:14px;padding:12px;border-radius:var(--radius-md);background:var(--page);border:1px solid var(--border);">' +
+    '<div style="font-size:11px;color:var(--ink-muted);margin-bottom:4px;">' + t('alpha.omni' + o.id) + '</div>' +
+    '<div class="mono tabular" style="font-size:13px;">' + o.stat + '</div>' +
+    '<div class="mono tabular" style="font-size:13px;">p ' + (formatP(o.p).startsWith('<') ? '' : '= ') + formatP(o.p) + (o.p < 0.05 ? ' <span class="ql-badge ql-badge-good" style="margin-left:6px;">' + t('alpha.kwSignificant') + '</span>' : '') + '</div>' +
+    '</div>' +
+    '<p class="ql-field-help">' + t('alpha.omniHelp' + o.id) + '</p>';
 }
 
 export function render(container) {
@@ -248,12 +281,7 @@ export function render(container) {
       '<div class="ql-stat"><div class="ql-stat-label">' + t('alpha.statGroups') + '</div><div class="ql-stat-value" style="font-size:20px;">' + groupNames.length + '</div></div>' +
       '<div class="ql-stat"><div class="ql-stat-label">' + t('alpha.statSamples') + '</div><div class="ql-stat-value" style="font-size:20px;">' + perSampleRows.length + '</div></div>' +
       '</div>' +
-      (kw ? '<div style="margin-top:14px;padding:12px;border-radius:var(--radius-md);background:var(--page);border:1px solid var(--border);">' +
-        '<div style="font-size:11px;color:var(--ink-muted);margin-bottom:4px;">Kruskal-Wallis</div>' +
-        '<div class="mono tabular" style="font-size:13px;">H = ' + kw.H.toFixed(3) + ', df = ' + kw.df + '</div>' +
-        '<div class="mono tabular" style="font-size:13px;">p = ' + formatP(kw.p) + (kw.p < 0.05 ? ' <span class="ql-badge ql-badge-good" style="margin-left:6px;">' + t('alpha.kwSignificant') + '</span>' : '') + '</div>' +
-        '</div>' +
-        '<p class="ql-field-help">' + t('alpha.kwHelp') + '</p>'
+      (kw ? omnibusHtml(omnibusTest(statsControls.testChoice, groupNames.map((g) => groupData[g]), kw))
         : '<p class="ql-field-help">' + t('alpha.kwOneGroup') + '</p>') +
       (plotStyle === 'violin' && lowN && lowN.length ? '<p class="ql-field-help">' + t('alpha.violinLowN', { groups: lowN.join(', ') }) + '</p>' : '');
 

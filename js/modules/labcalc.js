@@ -2,7 +2,7 @@
 // Módulo 100% en cliente para pesos moleculares (fórmulas e hidratos, ADN/ARN),
 // preparación de disoluciones molares (m = C × V × MW) y diluciones (C1V1 = C2V2).
 
-import { t } from '../lib/i18n.js';
+import { t, tIn, LANGS } from '../lib/i18n.js';
 import { escapeHtml, moreDetailsHtml } from '../lib/dom.js';
 
 const STORE_KEY = 'smart-175.labcalc';
@@ -725,6 +725,23 @@ function loadQpcr(raw) {
   };
 }
 
+// Nombre por defecto de cada reactivo del modo "por componentes". Se guardan
+// con el nombre en localStorage, así que al cargar se refresca el nombre si
+// sigue siendo uno por defecto (de cualquier idioma, o los antiguos que en
+// español salían en inglés: "Forward Primer (10 µM)", "DNA Template"…) —
+// cambia con el idioma sin pisar un nombre que el usuario haya editado.
+const DEFAULT_REAGENT_KEYS = {
+  h2o: 'mmDefaultH2O', buffer: 'mmDefaultBuffer', dntps: 'mmDefaultDNTPs', fwd: 'mmDefaultFwd',
+  rev: 'mmDefaultRev', taq: 'mmDefaultTaq', template: 'mmDefaultTemplate',
+};
+const LEGACY_REAGENT_NAMES = ['H2O PCR-grade', '10X PCR Buffer', 'Forward Primer (10 µM)', 'Reverse Primer (10 µM)', 'Taq DNA Polymerase', 'DNA Template'];
+function refreshDefaultReagentName(id, name) {
+  const key = DEFAULT_REAGENT_KEYS[id];
+  if (!key) return name;
+  const known = new Set(LEGACY_REAGENT_NAMES.concat(LANGS.map((l) => tIn(l.code, 'calc.' + key))));
+  return known.has(name) ? t('calc.' + key) : name;
+}
+
 function loadState() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
@@ -747,7 +764,7 @@ function loadState() {
           reagents: Array.isArray(raw.masterMix.reagents) && raw.masterMix.reagents.length > 0
             ? raw.masterMix.reagents.map((r, i) => ({
                 id: String(r.id || `r_${i}_${Date.now()}`),
-                name: typeof r.name === 'string' ? r.name : '',
+                name: refreshDefaultReagentName(String(r.id || ''), typeof r.name === 'string' ? r.name : ''),
                 unitVol: typeof r.unitVol === 'number' ? r.unitVol : (parseFloat(r.unitVol) || 0),
                 inMix: r.inMix !== undefined ? Boolean(r.inMix) : true,
               }))
