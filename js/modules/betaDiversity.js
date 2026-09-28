@@ -14,9 +14,12 @@ import { svgEl, escapeHtml, delegateHover, plotClip } from '../lib/dom.js';
 import { showTooltip, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
 import { methodNoticeHtml } from '../lib/methodEquivalence.js';
+import { permanovaScript, constrainedScript } from '../lib/rScriptBuilders.js';
+import { rScriptControls, R_EMBED_MAX_ROWS } from '../lib/rScript.js';
 
 const CAT_VARS = ['--cat-1', '--cat-2', '--cat-3', '--cat-4', '--cat-5', '--cat-6', '--cat-7'];
 const NUM_RE = /^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+const PERM_SEED = 0x5152; // semilla fija del PERMANOVA (la misma que se pasa al script de R)
 const RDA_TOPN_DEFAULT = 15, RDA_TOPN_MIN = 5, RDA_TOPN_MAX = 40;
 
 // columnas de metadatos usables como variable numérica de tamaño en el PCoA
@@ -221,7 +224,7 @@ export function render(container) {
       } else {
         const sub = keep.map((i) => keep.map((j) => data.matrix[i][j]));
         const subGroups = keep.map((i) => groups[i]);
-        permResult = { key, res: permanova(sub, subGroups, { permutations: permN, seed: 0x5152 }) };
+        permResult = { key, res: permanova(sub, subGroups, { permutations: permN, seed: PERM_SEED }), sub, subGroups, subIds: keep.map((i) => data.sampleIds[i]) };
       }
     }
     const r = permResult.res;
@@ -274,6 +277,20 @@ export function render(container) {
     disc.textContent = t('beta.permDisclaimer');
     card.appendChild(disc);
     card.insertAdjacentHTML('beforeend', methodNoticeHtml('permanova'));
+
+    // "Descargar script R": la tabla no pasa por el editor de gráficos, así
+    // que lleva su propia fila con el mismo botón (js/lib/rScript.js)
+    const pr = permResult;
+    const rRow = document.createElement('div');
+    rRow.className = 'ql-rscript-row';
+    rRow.appendChild(rScriptControls({
+      build: () => permanovaScript({
+        metricName: m, groupCol: permGroupCol, sampleIds: pr.subIds, groups: pr.subGroups,
+        matrix: pr.sub, permutations: permN, seed: PERM_SEED, nDropped,
+      }),
+      hasDataFiles: pr.subIds.length > R_EMBED_MAX_ROWS,
+    }));
+    card.appendChild(rRow);
 
     container.appendChild(card);
   }
@@ -419,11 +436,14 @@ export function render(container) {
     const nDropped = sampleIdsAll.length - validSamples.length;
 
     const Xcols = []; // [{name, values:[por muestra válida]}]
+    const rVars = []; // las mismas variables, sin dummificar, para el script de R
     Array.from(rdaVars).sort().forEach((col) => {
       if (numericCols.includes(col)) {
         Xcols.push({ name: col, values: validSamples.map((sid) => parseFloat(resolvers[col](sid))) });
+        rVars.push({ name: col, type: 'num', values: Xcols[Xcols.length - 1].values });
       } else {
         const levels = Array.from(new Set(validSamples.map((sid) => String(resolvers[col](sid)).trim()))).sort();
+        rVars.push({ name: col, type: 'cat', levels, values: validSamples.map((sid) => String(resolvers[col](sid)).trim()) });
         levels.slice(1).forEach((lvl) => { // k-1 dummies, se omite el primer nivel (referencia)
           Xcols.push({ name: col + '=' + lvl, values: validSamples.map((sid) => (String(resolvers[col](sid)).trim() === lvl ? 1 : 0)) });
         });
@@ -432,6 +452,7 @@ export function render(container) {
     Xcols.forEach((c) => varNames.push(c.name));
     const X = validSamples.map((_, i) => Xcols.map((c) => c.values[i]));
     let Y = validSamples.map((sid) => speciesNames.map((sp) => abundance.bySample[sp].get(sid) ?? 0));
+    const Yrel = Y; // abundancia relativa (%) antes de Hellinger — la que recibe el script de R
     if (rdaMethod === 'rda' && rdaHellinger) {
       Y = Y.map((row) => {
         const s = row.reduce((a, b) => a + b, 0);
@@ -575,6 +596,13 @@ export function render(container) {
       figureOptions: { axis: { domain: autoY }, axisX: { domain: autoX } },
       onFigureOptionsChange: () => paint(),
       onReset: () => paint(),
+      rScript: {
+        build: () => constrainedScript({
+          method: rdaMethod, hellinger: rdaHellinger, topN: rdaTopN, taxa: speciesNames, sampleIds: validSamples,
+          Y: Yrel, vars: rVars, varNames, nAxes: res.nAxes, nDropped,
+        }),
+        hasDataFiles: validSamples.length > R_EMBED_MAX_ROWS,
+      },
     });
 
     // ---- resumen + tablas ----
