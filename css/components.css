@@ -379,7 +379,7 @@ svg.ql-brand-mark {
   padding: 9px 14px;
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), transform .06s ease;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 .ql-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
 .ql-btn:active { transform: translateY(1px); }
@@ -1184,6 +1184,21 @@ details > summary:focus-visible { outline: 2px solid var(--accent); outline-offs
 .ql-modcard:hover .ql-modcard-go { opacity: 1; transform: translateX(0); }
 .ql-modcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* Micro-interacción de TODOS los botones .ql-btn (los de cada módulo y los de
+   la barra del editor de figuras): al pasar el ratón crecen un 4 % y proyectan
+   sombra; al pulsar se hunden un poco. Solo con puntero que pasa por encima
+   (hover: hover — en táctil el hover se quedaría "pegado") y solo si el
+   sistema NO pide reducir el movimiento: con prefers-reduced-motion: reduce
+   no hay escala (y base.css corta además cualquier transición). Los
+   segmentados (.ql-seg-btn) y las pestañas no escalan: van unidos y
+   solaparían a sus vecinos. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .ql-btn:not(:disabled):hover { transform: scale(1.04); box-shadow: var(--shadow-sm); }
+  .ql-btn.ql-btn-primary:not(:disabled):hover { box-shadow: var(--shadow-btn-primary); }
+  .ql-btn.ql-btn-ghost:not(:disabled):hover { box-shadow: none; }
+  .ql-btn:not(:disabled):active { transform: scale(0.98); box-shadow: none; }
+}
+
 /* fila de tabla: además del fondo, una guía de acento a la izquierda */
 table.ql-table tbody tr { transition: box-shadow var(--dur) var(--ease); }
 table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
@@ -1193,9 +1208,6 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
     transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease),
       box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
   }
-  .ql-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
-  .ql-btn:active { transform: translateY(0); }
-  .ql-btn.ql-btn-primary:hover { box-shadow: 0 5px 16px -5px color-mix(in srgb, var(--accent) 60%, transparent); }
   .ql-btn.ql-btn-ghost:hover { box-shadow: none; }
 
   .ql-modcard:hover { transform: translateY(-2px); box-shadow: var(--shadow); }

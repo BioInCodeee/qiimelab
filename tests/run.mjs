@@ -48,6 +48,7 @@ const SUITE = [
   { name: 'phylo-sunburst', file: 'phylo-sunburst.mjs', kind: 'navegador' },
   { name: 'storage-migration', file: 'storage-migration.mjs', kind: 'navegador' },
   { name: 'security-headers', file: 'security-headers.mjs', kind: 'navegador' },
+  { name: 'button-hover', file: 'button-hover.mjs', kind: 'navegador' },
   { name: 'temporal', file: 'temporal.mjs', kind: 'navegador' },
   { name: 'ui-fixes-editor-alluvial', file: 'ui-fixes-editor-alluvial.mjs', kind: 'navegador' },
   { name: 'chart-consistency', file: 'chart-consistency.mjs', kind: 'navegador' },

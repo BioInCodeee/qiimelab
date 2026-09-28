@@ -17,7 +17,7 @@ let portSeq = 9700 + Math.floor(Math.random() * 200);
 // de CI cargado el proceso puede morir al arrancar (contención, /dev/shm…),
 // así que se reintenta un par de veces con puerto y perfil nuevos antes de
 // rendirse.
-async function launchChrome(chromeBin) {
+async function launchChrome(chromeBin, extraArgs = []) {
   let lastErr = 'CHROME_NO_START';
   for (let attempt = 0; attempt < 3; attempt++) {
     const port = portSeq++;
@@ -26,7 +26,7 @@ async function launchChrome(chromeBin) {
       '--headless=new', '--disable-gpu', '--no-sandbox', '--no-first-run',
       '--disable-extensions', '--disable-background-networking', '--disable-dev-shm-usage',
       `--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`,
-      '--window-size=1400,2200', 'about:blank',
+      '--window-size=1400,2200', ...extraArgs, 'about:blank',
     ], { stdio: 'ignore' });
     let died = false;
     chrome.once('exit', () => { died = true; });
@@ -49,13 +49,15 @@ async function launchChrome(chromeBin) {
   throw new Error(lastErr);
 }
 
-export async function connect({ dark = false, url = 'http://127.0.0.1:8931', label = 'cdp' } = {}) {
+// chromeArgs: argumentos extra de Chrome para un test concreto (p. ej.
+// tests/button-hover.mjs declara un puntero con hover, que headless no tiene)
+export async function connect({ dark = false, url = 'http://127.0.0.1:8931', label = 'cdp', chromeArgs = [] } = {}) {
   const chromeBin = findChrome();
   if (!chromeBin) skip('no se encontró Chrome/Chromium');
 
   let launched, ws;
   try {
-    launched = await launchChrome(chromeBin);
+    launched = await launchChrome(chromeBin, chromeArgs);
     ws = new WebSocket(launched.wsUrl);
     await new Promise((res, rej) => {
       ws.addEventListener('open', res, { once: true });
