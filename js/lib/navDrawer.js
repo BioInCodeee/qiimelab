@@ -16,6 +16,7 @@
 
 import { t, onLangChange } from './i18n.js';
 import { trapFocus } from './modal.js';
+import { BRAND_NAME } from './brand.js';
 
 const NARROW = '(max-width: 860px)'; // = @media de .ql-shell en components.css
 
@@ -42,8 +43,8 @@ export function initNavDrawer(sidebar, view) {
   btn.setAttribute('aria-expanded', 'false');
   btn.innerHTML = ICON_MENU + '<span class="ql-navbar-label"></span>';
   const title = document.createElement('span');
-  title.className = 'ql-navbar-title';
-  title.textContent = 'Smart-175';
+  title.className = 'ql-navbar-title ql-wordmark';
+  title.textContent = BRAND_NAME;
   bar.append(btn, title);
 
   const backdrop = document.createElement('div');

@@ -4,6 +4,7 @@
 
 import { t } from '../lib/i18n.js';
 import { pwa } from '../lib/pwa.js';
+import { wordmarkHtml } from '../lib/brand.js';
 
 const REPO_URL = 'https://github.com/BioInCodeee/qiimelab';
 const CONTACT = 'bioincode.info@gmail.com';
@@ -12,7 +13,7 @@ export function renderFooter(el) {
   if (!el) return;
   el.innerHTML =
     '<div class="ql-footer-inner">' +
-    '<span class="ql-footer-brand">Smart-175</span>' +
+    wordmarkHtml('ql-footer-brand') +
     '<span class="ql-footer-sep" aria-hidden="true">·</span>' +
     '<span class="ql-footer-by">' + t('footer.by') + ' <strong>BioInCode</strong></span>' +
     '<a class="ql-footer-link" href="mailto:' + CONTACT + '">' + CONTACT + '</a>' +

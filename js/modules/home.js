@@ -1,6 +1,6 @@
 import { state, subscribe } from '../state.js';
 import { t } from '../lib/i18n.js';
-import { domainMotif } from '../lib/motif.js';
+import { brandHero } from '../lib/brand.js';
 import { getProfileName } from '../lib/profile.js';
 import { slotFilled, GROUPS } from './shell.js';
 import { healthBannerEl } from '../lib/healthBanner.js';
@@ -39,16 +39,10 @@ export function render(container) {
     container.innerHTML = '';
 
     const who = getProfileName();
-    const header = document.createElement('header');
-    header.className = 'ql-hero';
-    header.innerHTML =
-      '<div class="ql-hero-motif">' + domainMotif() + '</div>' +
-      '<div class="ql-hero-body">' +
-      '<p class="ql-eyebrow">' + (who ? t('shell.greeting', { name: escapeHtml(who) }) + ' · ' : '') + t('home.eyebrow') + '</p>' +
-      '<h1 class="ql-hero-title">Smart-175</h1>' +
-      '<p class="ql-hero-sub">' + t('home.subtitle') + '</p>' +
-      '</div>';
-    container.appendChild(header);
+    container.appendChild(brandHero({
+      eyebrowHtml: (who ? t('shell.greeting', { name: escapeHtml(who) }) + ' · ' : '') + t('home.eyebrow'),
+      subHtml: t('home.subtitle'),
+    }));
 
     const stack = document.createElement('div');
     stack.className = 'ql-stack';

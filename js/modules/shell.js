@@ -5,6 +5,7 @@ import { state, subscribe } from '../state.js';
 import { t, getLang, setLang, LANGS } from '../lib/i18n.js';
 import { getProfileName, setProfileName } from '../lib/profile.js';
 import { getTheme, setTheme } from '../lib/theme.js';
+import { wordmarkHtml } from '../lib/brand.js';
 
 // Sistema de iconos propio: 24×24, trazo 1.7, extremos redondeados, sin
 // relleno salvo los puntos de datos. Cada glifo abstrae su módulo.
@@ -140,7 +141,7 @@ export function renderShell(container, currentRoute) {
   brand.className = 'ql-brand';
   brand.href = '#/';
   brand.title = t('nav.home');
-  brand.innerHTML = BRAND_MARK + '<span class="ql-brand-name">Smart-175</span>';
+  brand.innerHTML = BRAND_MARK + wordmarkHtml('ql-brand-name');
   container.appendChild(brand);
 
   const who = getProfileName();

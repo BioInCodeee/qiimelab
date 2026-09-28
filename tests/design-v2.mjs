@@ -120,6 +120,67 @@ if (!findChrome()) {
     await c.ev(`location.hash = '#/beta'`); await sleep(1500);
     const beta = await c.ev(`({ ds: document.getElementById('app-view').getAttribute('data-ds'), accent: getComputedStyle(document.getElementById('app-view')).getPropertyValue('--accent').trim() })`);
     check('oscuro: #/beta conserva el teal de siempre', beta.ds === null && beta.accent === '#57c9be', JSON.stringify(beta));
+
+    // ---- 3. encabezado de identidad (js/lib/brand.js) en los 4 breakpoints ----
+    console.log('\n--- 3. encabezado: wordmark + motivo (375/768/1024/1440, claro y oscuro) ---');
+    const HERO = `(async () => {
+      await document.fonts.ready;
+      const hero = document.querySelector('#app-view .ql-hero-brand');
+      if (!hero) return null;
+      const wm = hero.querySelector('.ql-wordmark-hero');
+      const motifBox = hero.querySelector('.ql-hero-motif');
+      const svg = motifBox.querySelector('svg');
+      const ms = getComputedStyle(motifBox);
+      const m = motifBox.getBoundingClientRect();
+      // opacidad efectiva máxima del motivo detrás de cada texto: opacidad ×
+      // máscara (lineal de transparente en el borde izquierdo a opaca en fade%)
+      const fade = parseFloat((ms.maskImage || ms.webkitMaskImage || '').match(/([\\d.]+)%\\)?\\s*$/)?.[1] || '0') / 100 || 0.0001;
+      const alphaAt = (x) => x <= m.left ? 0 : Number(ms.opacity) * Math.min(1, (x - m.left) / (fade * m.width));
+      const parse = (c) => c.match(/[\\d.]+/g).slice(0, 3).map(Number);
+      const page = parse(getComputedStyle(document.body).backgroundColor);
+      const motifRgb = parse(ms.color);
+      const texts = [...hero.querySelectorAll('.ql-eyebrow, .ql-wordmark-hero, .ql-hero-sub')].map((el) => {
+        const r = el.getBoundingClientRect();
+        const overlapsY = r.bottom > m.top && r.top < m.bottom;
+        return { cls: el.className, fg: parse(getComputedStyle(el).color), alpha: overlapsY ? alphaAt(r.right) : 0 };
+      });
+      return {
+        font: getComputedStyle(wm).fontFamily, weight: getComputedStyle(wm).fontWeight, size: parseFloat(getComputedStyle(wm).fontSize),
+        color: getComputedStyle(wm).color, accent: getComputedStyle(wm).getPropertyValue('--accent').trim(), text: wm.textContent,
+        h1: wm.closest('h1') !== null,
+        motifShown: ms.display !== 'none' && m.width > 150 && svg.getBoundingClientRect().height > 60,
+        tree: !!svg.querySelector('.ql-motif-tree'), dots: svg.querySelectorAll('.ql-motif-dots circle').length,
+        page, motifRgb, texts,
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        sidebarWm: getComputedStyle(document.querySelector('#sidebar .ql-wordmark')).fontFamily,
+      };
+    })()`;
+    const lumC = (rgb) => lum(rgb.map(Math.round));
+    const ratioRgb = (a, b) => { const x = lumC(a), y = lumC(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    for (const theme of ['light', 'dark']) {
+      await c.ev(`(async () => { const { setTheme } = await import('/js/lib/theme.js'); setTheme('${theme}'); })()`);
+      for (const w of [375, 768, 1024, 1440]) {
+        await c.setViewport(w, 900);
+        await c.ev(`location.hash = '#/glosario'`); await sleep(500);
+        await c.ev(`location.hash = '#/'`); await sleep(1200);
+        const h = await c.ev(HERO);
+        const tag = `${theme === 'light' ? 'claro' : 'oscuro'} ${w}px`;
+        if (!h) { check(`${tag}: hay encabezado de identidad`, false); continue; }
+        check(`${tag}: wordmark «Smart-175» en <h1>, Fira Sans 700, color de marca, ≥ 44px`,
+          h.text === 'Smart-175' && h.h1 && /^"?Fira Sans/.test(h.font) && Number(h.weight) >= 700 && h.size >= 44,
+          JSON.stringify({ font: h.font, weight: h.weight, size: h.size, text: h.text }));
+        check(`${tag}: motivo (dendrograma + nube de puntos) visible`, h.motifShown && h.tree && h.dots >= 20, JSON.stringify({ shown: h.motifShown, dots: h.dots }));
+        check(`${tag}: sin scroll horizontal`, h.overflow <= 0, String(h.overflow));
+        const worst = h.texts.map((tx) => {
+          const bg = h.motifRgb.map((v, i) => v * tx.alpha + h.page[i] * (1 - tx.alpha));
+          return [tx.cls, ratioRgb(tx.fg, bg), tx.alpha];
+        }).sort((a, b) => a[1] - b[1])[0];
+        check(`${tag}: texto del encabezado ≥ 4,5:1 sobre el trazo más denso del motivo`, worst[1] >= 4.5,
+          worst[0] + ' ' + worst[1].toFixed(2) + ' (opacidad efectiva ' + worst[2].toFixed(2) + ')');
+        console.log(`      peor: ${worst[0]} ${worst[1].toFixed(2)}:1 con el motivo a opacidad efectiva ${worst[2].toFixed(2)}`);
+        if (w === 1440) check(`${tag}: la barra lateral usa el mismo wordmark (Fira Sans)`, /^"?Fira Sans/.test(h.sidebarWm), h.sidebarWm);
+      }
+    }
     check('0 errores de consola', c.problems.length === 0, c.problems.slice(0, 3).join(' | '));
   } catch (e) {
     check('sin excepciones', false, e.stack || String(e));

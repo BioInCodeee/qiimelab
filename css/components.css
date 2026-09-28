@@ -38,13 +38,18 @@
 svg.ql-brand-mark {
   width: 27px; height: 27px; flex: none; display: block;
 }
-.ql-brand-name {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 17.5px;
-  letter-spacing: -0.015em;
-  color: var(--ink);
+/* wordmark «Smart-175» (js/lib/brand.js): la misma pieza de identidad en la
+   portada (grande), la barra lateral, la barra del cajón móvil y el pie —
+   Fira Sans 700 en el azul de marca. Los tamaños van con cada sitio. */
+.ql-wordmark {
+  font-family: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums;
+  white-space: nowrap;
 }
+.ql-brand-name { font-size: 20px; line-height: 1; }
 
 .ql-nav { display: flex; flex-direction: column; gap: 2px; }
 .ql-nav-group-label {
@@ -161,7 +166,7 @@ svg.ql-brand-mark {
   .ql-navbar-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .ql-navbar-toggle .ql-ico-close, .ql-navbar-toggle[aria-expanded="true"] .ql-ico-menu { display: none; }
   .ql-navbar-toggle[aria-expanded="true"] .ql-ico-close { display: inline; }
-  .ql-navbar-title { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: -0.015em; color: var(--ink); }
+  .ql-navbar-title { font-size: 18px; line-height: 1; }
 
   .ql-has-drawer .ql-shell > #sidebar {
     position: fixed; top: var(--ql-bar-h); left: 0; bottom: 0; z-index: 95;
@@ -208,12 +213,7 @@ svg.ql-brand-mark {
   font-size: 11.5px;
   color: var(--ink-muted);
 }
-.ql-footer-brand {
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: var(--ink-2);
-  letter-spacing: -0.01em;
-}
+.ql-footer-brand { font-size: 12.5px; letter-spacing: -0.015em; }
 .ql-footer-by strong { color: var(--ink-2); font-weight: 600; }
 .ql-footer-sep { color: var(--border-strong); }
 .ql-footer-link {
@@ -2414,3 +2414,63 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
 [data-ds="v2"] .ql-badge { font-family: var(--font-body); font-weight: 600; font-size: 11px; letter-spacing: 0.01em; }
 [data-ds="v2"] .ql-badge.ql-badge-good { color: var(--good-ink); }
 [data-ds="v2"] .ql-modmore a { font-weight: 500; }
+
+/* ============================================================
+   ENCABEZADO DE IDENTIDAD (portada, js/lib/brand.js brandHero)
+   Wordmark grande + motivo de dominio (dendrograma + nube PCoA, motif.js)
+   detrás. Contraste:
+   · ≥ 1001px: el texto ocupa la columna izquierda (≤ 50 %) y el motivo la
+     derecha; su máscara es transparente hasta pasado el borde del texto, así
+     que ahí puede ir más visible sin tocar ninguna letra.
+   · ≤ 1000px: el motivo pasa por DETRÁS del texto, a opacidad 0,18 como
+     máximo — con eso el texto más débil (--ink-muted) sigue ≥ 4,9:1 en claro
+     y ≥ 5,1:1 en oscuro sobre el trazo más denso (tests/design-v2.mjs).
+   ============================================================ */
+.ql-hero.ql-hero-brand {
+  min-height: clamp(220px, 23vw, 300px);
+  padding: var(--space-xl, 32px) 0 var(--space-lg, 24px);
+  margin-bottom: var(--space-sm, 8px);
+}
+.ql-hero-brand .ql-hero-body { max-width: min(50%, 60ch); }
+.ql-hero-brand .ql-hero-title { margin: 6px 0 14px; line-height: 0.95; }
+.ql-wordmark-hero {
+  display: inline-block;
+  font-size: clamp(56px, 7.6vw, 104px);
+  letter-spacing: -0.045em;
+  /* el trazo final del 5 no se corta con el interletraje negativo */
+  padding-right: 0.04em;
+}
+.ql-hero-brand .ql-hero-sub { max-width: 58ch; }
+.ql-hero-brand .ql-hero-motif {
+  display: block;
+  top: 2%; bottom: 2%; right: -1%;
+  width: 50%;
+  opacity: 0.5;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 34%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 34%);
+}
+:root[data-theme="dark"] .ql-hero-brand .ql-hero-motif { opacity: 0.5; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ql-hero-brand .ql-hero-motif { opacity: 0.5; }
+}
+@media (max-width: 1000px) {
+  .ql-hero-brand .ql-hero-body { max-width: none; }
+  .ql-hero-brand .ql-hero-motif,
+  :root[data-theme="dark"] .ql-hero-brand .ql-hero-motif {
+    display: block;
+    top: 0; bottom: 0; right: -4%;
+    width: 78%;
+    opacity: 0.18;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 30%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 30%);
+  }
+}
+@media (max-width: 1000px) and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ql-hero-brand .ql-hero-motif { opacity: 0.18; }
+}
+@media (max-width: 720px) {
+  .ql-hero.ql-hero-brand { min-height: 0; padding: var(--space-lg, 24px) 0 var(--space-md, 16px); }
+  .ql-hero-brand .ql-hero-motif,
+  :root[data-theme="dark"] .ql-hero-brand .ql-hero-motif { display: block; width: 125%; right: -45%; }
+  .ql-wordmark-hero { font-size: clamp(48px, 15vw, 64px); }
+}
