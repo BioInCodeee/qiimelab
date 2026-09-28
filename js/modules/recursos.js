@@ -3,7 +3,7 @@
 // estática servida desde recursos/.
 
 import { t } from '../lib/i18n.js';
-import { domainMotif } from '../lib/motif.js';
+import { pageHero } from '../lib/brand.js';
 
 const RES_BASE = 'recursos/';
 
@@ -50,16 +50,11 @@ const DL_ICON =
 export function render(container) {
   container.innerHTML = '';
 
-  const header = document.createElement('header');
-  header.className = 'ql-hero';
-  header.innerHTML =
-    '<div class="ql-hero-motif">' + domainMotif() + '</div>' +
-    '<div class="ql-hero-body">' +
-    '<p class="ql-eyebrow">' + t('recursos.eyebrow') + '</p>' +
-    '<h1 class="ql-hero-title">' + t('recursos.title') + '</h1>' +
-    '<p class="ql-hero-sub">' + t('recursos.subtitle') + '</p>' +
-    '</div>';
-  container.appendChild(header);
+  container.appendChild(pageHero({
+    eyebrowHtml: t('recursos.eyebrow'),
+    titleHtml: t('recursos.title'),
+    subHtml: t('recursos.subtitle'),
+  }));
 
   const stack = document.createElement('div');
   stack.className = 'ql-stack';

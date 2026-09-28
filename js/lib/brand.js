@@ -29,6 +29,21 @@ export function wordmarkHtml(cls = '') {
  * @returns {HTMLElement}
  */
 export function brandHero({ eyebrowHtml, subHtml }) {
+  return heroEl(eyebrowHtml, wordmarkHtml('ql-wordmark-hero'), subHtml);
+}
+
+/**
+ * El mismo encabezado (maquetación + motivo) para las páginas de consulta que
+ * lo llevaban (glosario, recursos, validación), con su propio título en vez
+ * del wordmark. Mismas garantías de contraste que brandHero().
+ * @param {{ eyebrowHtml: string, titleHtml: string, subHtml: string }} opt  HTML ya escapado
+ * @returns {HTMLElement}
+ */
+export function pageHero({ eyebrowHtml, titleHtml, subHtml }) {
+  return heroEl(eyebrowHtml, titleHtml, subHtml);
+}
+
+function heroEl(eyebrowHtml, titleHtml, subHtml) {
   const header = document.createElement('header');
   header.className = 'ql-hero ql-hero-brand';
   header.innerHTML =
@@ -37,7 +52,7 @@ export function brandHero({ eyebrowHtml, subHtml }) {
     '<div class="ql-hero-motif">' + domainMotif({ w: 640, h: 330 }) + '</div>' +
     '<div class="ql-hero-body">' +
     '<p class="ql-eyebrow">' + eyebrowHtml + '</p>' +
-    '<h1 class="ql-hero-title">' + wordmarkHtml('ql-wordmark-hero') + '</h1>' +
+    '<h1 class="ql-hero-title">' + titleHtml + '</h1>' +
     '<p class="ql-hero-sub">' + subHtml + '</p>' +
     '</div>';
   return header;

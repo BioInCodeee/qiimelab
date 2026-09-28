@@ -3,7 +3,7 @@
 // GOLDEN que usa la batería tests/stats/). Sin estado ni datos que cargar.
 
 import { t } from '../lib/i18n.js';
-import { domainMotif } from '../lib/motif.js';
+import { pageHero } from '../lib/brand.js';
 import { runValidation } from '../lib/statsValidation.js';
 
 function fmtErr(x) {
@@ -19,16 +19,11 @@ export function render(container) {
   const nPass = results.filter((r) => r.pass).length;
   const allPass = nPass === results.length;
 
-  const header = document.createElement('header');
-  header.className = 'ql-hero';
-  header.innerHTML =
-    '<div class="ql-hero-motif">' + domainMotif() + '</div>' +
-    '<div class="ql-hero-body">' +
-    '<p class="ql-eyebrow">' + t('validacion.eyebrow') + '</p>' +
-    '<h1 class="ql-hero-title">' + t('validacion.title') + '</h1>' +
-    '<p class="ql-hero-sub">' + t('validacion.subtitle') + '</p>' +
-    '</div>';
-  container.appendChild(header);
+  container.appendChild(pageHero({
+    eyebrowHtml: t('validacion.eyebrow'),
+    titleHtml: t('validacion.title'),
+    subHtml: t('validacion.subtitle'),
+  }));
 
   const stack = document.createElement('div');
   stack.className = 'ql-stack';

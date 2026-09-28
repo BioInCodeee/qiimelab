@@ -6,7 +6,7 @@
 // Deep-link: #/glosario?t=<id> pre-rellena el filtro con ese término y lo abre.
 
 import { t } from '../lib/i18n.js';
-import { domainMotif } from '../lib/motif.js';
+import { pageHero } from '../lib/brand.js';
 
 // route = id de ruta (#/<route>); def = clave i18n de la definición (por
 // defecto glosario.d.<id>). El nombre visible es siempre glosario.n.<id>.
@@ -130,16 +130,11 @@ const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 export function render(container) {
   container.innerHTML = '';
 
-  const header = document.createElement('header');
-  header.className = 'ql-hero';
-  header.innerHTML =
-    '<div class="ql-hero-motif">' + domainMotif() + '</div>' +
-    '<div class="ql-hero-body">' +
-    '<p class="ql-eyebrow">' + t('glosario.eyebrow') + '</p>' +
-    '<h1 class="ql-hero-title">' + t('glosario.title') + '</h1>' +
-    '<p class="ql-hero-sub">' + t('glosario.subtitle') + '</p>' +
-    '</div>';
-  container.appendChild(header);
+  container.appendChild(pageHero({
+    eyebrowHtml: t('glosario.eyebrow'),
+    titleHtml: t('glosario.title'),
+    subHtml: t('glosario.subtitle'),
+  }));
 
   const stack = document.createElement('div');
   stack.className = 'ql-stack';
