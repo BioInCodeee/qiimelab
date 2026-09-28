@@ -2326,3 +2326,91 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   color: var(--ink-1);
   font-family: var(--font-mono, monospace);
 }
+
+/* ============================================================
+   SISTEMA DE DISEÑO v2 — PILOTO: portada (js/modules/home.js)
+   Tokens en css/tokens.css ([data-ds="v2"]); origen y decisiones en
+   design-system/smart-175/MASTER.md + design-system/README.md.
+   Todo va acotado a [data-ds="v2"]: fuera de la portada nada cambia.
+   Estilo "Data-Dense Dashboard", densidad 6: menos aire en el hero, tarjetas
+   planas con borde y sombra corta, rótulos pequeños en versalitas, estados
+   como indicador + texto legible (no color de texto a secas).
+   ============================================================ */
+[data-ds="v2"] .ql-eyebrow {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.09em;
+}
+/* ámbar del MASTER: solo como marca gráfica, nunca como color de texto */
+[data-ds="v2"] .ql-eyebrow::before { width: 16px; height: 3px; background: var(--highlight); }
+
+[data-ds="v2"] .ql-hero { min-height: 0; padding: var(--space-xl) 0 var(--space-lg); margin-bottom: var(--space-sm); }
+[data-ds="v2"] .ql-hero-body { max-width: 64ch; }
+[data-ds="v2"] .ql-hero-title {
+  font-weight: 700;
+  font-size: clamp(34px, 5.2vw, 54px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  margin: 4px 0 12px;
+}
+[data-ds="v2"] .ql-hero-sub { font-size: 15px; line-height: 1.6; max-width: 62ch; }
+@media (max-width: 720px) {
+  [data-ds="v2"] .ql-hero { padding: var(--space-md) 0 var(--space-sm); }
+}
+
+[data-ds="v2"] .ql-stack { gap: var(--space-md); }
+[data-ds="v2"] .ql-card { border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+[data-ds="v2"] .ql-panel { padding: 20px 20px 18px; }
+[data-ds="v2"] .ql-panel h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.005em; margin-bottom: 6px; }
+[data-ds="v2"] .ql-panel-note { color: var(--ink-2); }
+[data-ds="v2"] .ql-btn { border-radius: var(--radius-md); }
+
+/* "Qué hay cargado": fila de KPIs compactos */
+[data-ds="v2"] .ql-stats { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: var(--space-sm); margin-top: var(--space-md); }
+[data-ds="v2"] .ql-stat {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--page);
+  border: 1px solid var(--border);
+}
+[data-ds="v2"] .ql-stat-label {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-muted); margin-bottom: 6px; line-height: 1.35;
+}
+[data-ds="v2"] .ql-stat-value {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--ink-muted);
+}
+[data-ds="v2"] .ql-stat-value::before {
+  content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%;
+  background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-muted);
+}
+[data-ds="v2"] .ql-stat.is-on .ql-stat-value { color: var(--good-ink); }
+[data-ds="v2"] .ql-stat.is-on .ql-stat-value::before { background: var(--good); box-shadow: none; }
+
+/* cifras en Fira Code (la única función de la monoespaciada en v2) */
+[data-ds="v2"] .ql-num, [data-ds="v2"] .tabular { font-family: var(--font-mono); }
+
+/* "¿Qué quieres saber?" */
+[data-ds="v2"] .ql-modgroup-title {
+  font-family: var(--font-body); font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--ink-muted); margin: var(--space-lg) 0 var(--space-sm);
+}
+[data-ds="v2"] .ql-modgroup-title:first-of-type { margin-top: var(--space-sm); }
+[data-ds="v2"] .ql-modgrid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-sm) 12px; }
+[data-ds="v2"] .ql-modcard {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+[data-ds="v2"] .ql-modcard:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
+  background: var(--surface);
+}
+[data-ds="v2"] .ql-modcard-q .ql-modcard-head strong { font-size: 14px; font-weight: 600; }
+[data-ds="v2"] .ql-modcard p { color: var(--ink-2); }
+[data-ds="v2"] .ql-modcard-name { color: var(--ink-muted); }
+[data-ds="v2"] .ql-badge { font-family: var(--font-body); font-weight: 600; font-size: 11px; letter-spacing: 0.01em; }
+[data-ds="v2"] .ql-badge.ql-badge-good { color: var(--good-ink); }
+[data-ds="v2"] .ql-modmore a { font-weight: 500; }

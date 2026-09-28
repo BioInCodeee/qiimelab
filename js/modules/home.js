@@ -92,9 +92,11 @@ export function render(container) {
     ];
     rows.forEach(([lbl, done]) => {
       const tile = document.createElement('div');
-      tile.className = 'ql-stat';
-      tile.innerHTML = '<div class="ql-stat-label">' + lbl + '</div><div class="ql-stat-value" style="font-size:14px;color:' +
-        (done ? 'var(--good)' : 'var(--ink-muted)') + '">' + (done ? t('common.available') : t('common.noData')) + '</div>';
+      // estado como clase (no color en línea): el verde es el indicador, el
+      // texto va en un color con contraste ≥ 4,5:1 (ver [data-ds="v2"] .ql-stat)
+      tile.className = 'ql-stat' + (done ? ' is-on' : '');
+      tile.innerHTML = '<div class="ql-stat-label">' + lbl + '</div><div class="ql-stat-value">' +
+        (done ? t('common.available') : t('common.noData')) + '</div>';
       stats.appendChild(tile);
     });
     summary.appendChild(stats);
@@ -149,6 +151,11 @@ export function render(container) {
 
     container.appendChild(stack);
   }
+  // piloto del sistema de diseño v2: los tokens de [data-ds="v2"]
+  // (css/tokens.css) solo valen dentro de la portada; al salir se retira
+  // para que el resto de módulos siga con el aspecto de siempre
+  container.setAttribute('data-ds', 'v2');
   paint();
-  return subscribe(paint);
+  const unsubscribe = subscribe(paint);
+  return () => { unsubscribe(); container.removeAttribute('data-ds'); };
 }
