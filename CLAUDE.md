@@ -27,6 +27,7 @@ Este proyecto lo desarrollan EN PARALELO varias herramientas de IA (Claude, Gemi
 - Sin login ni backend real. Como mucho, un nombre de perfil cosmético en `localStorage`, sin cuentas.
 - Interfaz en 5 idiomas (es/en/it/de/zh) vía `js/lib/i18n.js`, función `t(key, params)` con interpolación `{n}`. Español es el idioma por defecto y el fallback de cualquier clave que falte en otro idioma — basta con escribir la clave en `es` para que la app no rompa, pero mantener paridad con `en` es lo ideal. Cualquier texto nuevo va como clave i18n, nunca hardcodeado; cuidado con concatenaciones tipo `${n} elementos` (plurales/orden distinto entre idiomas).
 - **Tests:** `tests/run.mjs` es un runner propio (sin Jest/Vitest), suites en `tests/*.mjs`. Antes de dar por bueno un cambio, correr `node tests/run.mjs` — algunas suites E2E necesitan Chrome local y se saltan si no está (normal, no un fallo).
+- **Gate de tests (hooks versionados en `.githooks/`):** activarlo una vez por clon con `git config core.hooksPath .githooks`. `pre-commit` corre `node tests/run.mjs --rapido` (~20 s) sobre lo que se va a commitear y `pre-push` la suite completa sobre lo que se empuja; si algo falla, bloquea. Saltarlo solo a conciencia (p. ej. commit de solo documentación): `git commit --no-verify` / `git push --no-verify`, o `SMART175_SKIP_TESTS=1` delante. Detalle en `tests/README.md`.
 
 ## Cómo trabajar aquí con cuota/tokens limitada
 

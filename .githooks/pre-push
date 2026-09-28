@@ -1,0 +1,24 @@
+#!/bin/sh
+# Gate de pre-push: la suite COMPLETA (incluidos los tests de navegador y de
+# R) sobre EXACTAMENTE los commits que se empujan (no el árbol de trabajo).
+# Bloquea el push si algo falla.
+# Se activa con:  git config core.hooksPath .githooks   (ver tests/README.md)
+if [ "$SMART175_SKIP_TESTS" = "1" ]; then
+  echo "⚠ Gate de tests (pre-push) SALTADO a conciencia (SMART175_SKIP_TESTS=1)"
+  exit 0
+fi
+root=$(git rev-parse --show-toplevel) || exit 1
+. "$root/.githooks/gate.sh"
+zero=0000000000000000000000000000000000000000
+tested=""
+status=0
+# stdin: <ref local> <sha local> <ref remoto> <sha remoto>, una línea por ref
+while read -r lref lsha rref rsha; do
+  [ "$lsha" = "$zero" ] && continue          # borrado de rama: nada que probar
+  case " $tested " in *" $lsha "*) continue ;; esac
+  tested="$tested $lsha"
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/smart175-gate.XXXXXX") || exit 1
+  git archive "$lsha" | tar -x -C "$tmp" || { rm -rf "$tmp"; exit 1; }
+  gate "pre-push $(git rev-parse --short "$lsha")" "$tmp" || status=1
+done
+exit $status

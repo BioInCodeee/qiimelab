@@ -16,6 +16,33 @@ Cada test sale con **0** (pasa), **1** (falla) o **2** (se salta: falta
 Chrome, R, un paquete de R, o Biopython). El runner sale ≠ 0 solo si algo
 **falla**; los saltados no cuentan.
 
+## Gate de tests: un test en rojo bloquea el commit y el push
+
+Los hooks viven versionados en `.githooks/` y se activan **una vez por
+clon** (también en cada `git worktree`, que comparte la configuración):
+
+```
+git config core.hooksPath .githooks
+```
+
+- **pre-commit** → `node tests/run.mjs --rapido` (estáticos + R, sin
+  navegador; ~20 s) sobre exactamente lo que está en el índice, no sobre el
+  árbol de trabajo.
+- **pre-push** → la suite **completa** (~15 min, con Chrome) sobre
+  exactamente los commits que se empujan (`git archive` a un temporal).
+
+Si algo falla, el commit/push se cancela y se listan los tests en rojo, con
+la ruta al log completo. Por defecto **bloquea**. Para saltárselo a
+conciencia (p. ej. un commit que solo toca documentación):
+
+```
+git commit --no-verify …              # o: SMART175_SKIP_TESTS=1 git commit …
+git push --no-verify                  # o: SMART175_SKIP_TESTS=1 git push
+```
+
+Los tests que se **saltan** (falta Chrome, R o Biopython) no bloquean: igual
+que en el runner, solo cuenta como fallo un test que falla.
+
 ## Qué cubre cada archivo
 
 | archivo | tipo | qué comprueba |

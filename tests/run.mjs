@@ -3,6 +3,7 @@
 //   node tests/run.mjs                 → todo
 //   node tests/run.mjs stats           → solo tests/stats/*
 //   node tests/run.mjs sweep-routes contrast   → solo esos
+//   node tests/run.mjs --rapido        → todo menos navegador (el gate de pre-commit)
 //
 // Cada test sale con 0 (pasa), 1 (falla) o 2 (se salta: falta Chrome / R / …).
 // El runner sale != 0 si algún test falla (los saltados no cuentan como fallo).
@@ -120,10 +121,13 @@ const SUITE = [
   { name: 'perf-stress', file: 'perf-stress.mjs', kind: 'navegador' },
 ];
 
-const filters = process.argv.slice(2);
-const picked = filters.length
+// --rapido: todo menos los tests de navegador (estáticos + R + Biopython, unos
+// segundos) — es lo que corre el gate de pre-commit (.githooks/pre-commit)
+const RAPIDO = process.argv.includes('--rapido');
+const filters = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const picked = (filters.length
   ? SUITE.filter((s) => filters.some((f) => s.name === f || s.name.startsWith(f + '/') || s.file === f || s.name.startsWith(f)))
-  : SUITE;
+  : SUITE).filter((s) => !RAPIDO || s.kind !== 'navegador');
 
 // avisos de entorno
 if (!findChrome()) console.log('· sin Chrome/Chromium → los tests de navegador se SALTAN\n');

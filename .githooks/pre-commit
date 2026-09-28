@@ -1,0 +1,14 @@
+#!/bin/sh
+# Gate de pre-commit: la parte rápida de la suite (estáticos + R, sin
+# navegador; ~20 s) sobre EXACTAMENTE lo que se va a commitear (el índice,
+# no el árbol de trabajo). Bloquea el commit si algo falla.
+# Se activa con:  git config core.hooksPath .githooks   (ver tests/README.md)
+if [ "$SMART175_SKIP_TESTS" = "1" ]; then
+  echo "⚠ Gate de tests (pre-commit) SALTADO a conciencia (SMART175_SKIP_TESTS=1)"
+  exit 0
+fi
+root=$(git rev-parse --show-toplevel) || exit 1
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/smart175-gate.XXXXXX") || exit 1
+git checkout-index -a --prefix="$tmp/" || { rm -rf "$tmp"; exit 1; }
+. "$root/.githooks/gate.sh"
+gate "pre-commit" "$tmp" --rapido
