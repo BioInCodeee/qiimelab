@@ -500,8 +500,8 @@ export function render(container) {
       const down = data.filter((d) => d.status === 'down').length;
       stats.innerHTML =
         '<div class="ql-stat"><div class="ql-stat-label">' + escapeHtml(cap(entPlural)) + '</div><div class="ql-stat-value">' + data.length + '</div></div>' +
-        '<div class="ql-stat"><div class="ql-stat-label">' + t('differential.statUp') + '</div><div class="ql-stat-value" style="color:var(--enriched)">' + up + '</div></div>' +
-        '<div class="ql-stat"><div class="ql-stat-label">' + t('differential.statDown') + '</div><div class="ql-stat-value" style="color:var(--depleted)">' + down + '</div></div>';
+        '<div class="ql-stat ql-stat-up"><div class="ql-stat-label">' + t('differential.statUp') + '</div><div class="ql-stat-value">' + up + '</div></div>' +
+        '<div class="ql-stat ql-stat-down"><div class="ql-stat-label">' + t('differential.statDown') + '</div><div class="ql-stat-value">' + down + '</div></div>';
     }
     function colorFor(status) { return status === 'up' ? 'var(--enriched)' : status === 'down' ? 'var(--depleted)' : 'var(--neutral)'; }
 
