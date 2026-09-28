@@ -151,6 +151,15 @@ export function renderShell(container, currentRoute) {
     container.appendChild(hi);
   }
 
+  // informe completo: accesible desde cualquier módulo (y desde el cajón en
+  // móvil). Es un enlace de navegación más; ?generar monta el informe directamente.
+  const cta = document.createElement('a');
+  cta.className = 'ql-btn ql-btn-primary ql-report-cta';
+  cta.href = '#/informe?generar';
+  cta.title = t('shell.reportCtaTitle');
+  cta.innerHTML = '<span class="ql-nav-icon" aria-hidden="true">' + ICONS.informe + '</span><span>' + t('shell.reportCta') + '</span>';
+  container.appendChild(cta);
+
   function navItem(r) {
     const a = document.createElement('a');
     a.href = '#/' + r.id;
