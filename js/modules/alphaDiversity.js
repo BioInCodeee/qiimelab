@@ -11,8 +11,9 @@ import {
 } from '../lib/alphaMetrics.js';
 import { loadExampleCommunityData, loadRealCommunityData, mountExampleButtons } from '../lib/exampleData.js';
 import { attachChartEditor, getFigureOptions, getStatsOptions } from '../lib/chartEditor.js';
-import { alphaScript } from '../lib/rScriptBuilders.js';
+import { alphaScript, alphaMethodIds } from '../lib/rScriptBuilders.js';
 import { R_EMBED_MAX_ROWS } from '../lib/rScript.js';
+import { noteMethods } from '../lib/reportLog.js';
 import { svgEl, escapeHtml, plotClip } from '../lib/dom.js';
 import { showTooltip, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
@@ -300,6 +301,15 @@ export function render(container) {
           !!(curMetric.computed && state.taxaCounts && state.taxaCounts.rows.length > R_EMBED_MAX_ROWS),
       } : null,
     });
+
+    // informe completo: qué métodos del registro de equivalencias cubre lo
+    // que se acaba de calcular (el mismo criterio que el script R)
+    if (groupNames.length >= 2) {
+      noteMethods('alfa', alphaMethodIds({
+        kind: curMetric.computed ? curMetric.name : null, computed: !!(curMetric.computed && state.taxaCounts),
+        k: groupNames.length, testChoice: statsControls.testChoice, adjust: getStatsOptions(ceKey).method || 'holm',
+      }));
+    }
 
     // tabla
     const scrollDiv = document.createElement('div');

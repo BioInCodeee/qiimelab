@@ -58,22 +58,25 @@ export function methodNoticeHtml(ids, { withA = false } = {}) {
   if (!list.length) return '';
   const byLevel = { A: [], B: [], C: [] };
   list.forEach(([, m]) => { if (!byLevel[m.level].some((x) => x.tool === m.tool)) byLevel[m.level].push(m); });
+  // data-method-ids: qué métodos del registro cubre el aviso — el informe
+  // completo (js/lib/reportLog.js) lo lee para saber qué se ejecutó
+  const idsAttr = (lv) => ' data-method-ids="' + escapeHtml(list.filter(([, m]) => m.level === lv).map(([id]) => id).join(' ')) + '"';
   const parts = [];
   if (byLevel.C.length) {
     const tools = byLevel.C.map((m) => m.tool).join(' · ');
     const where = [...new Set(byLevel.C.map((m) => m.where).filter(Boolean))].join(' · ');
-    parts.push('<div class="ql-method-notice ql-method-c" role="note" data-method-level="C">'
+    parts.push('<div class="ql-method-notice ql-method-c" role="note" data-method-level="C"' + idsAttr('C') + '>'
       + '<strong>' + escapeHtml(t('equiv.levelCTitle')) + '</strong> '
       + escapeHtml(t(where ? 'equiv.levelCBody' : 'equiv.levelCBodyNoWhere', { tool: tools, where })) + '</div>');
   }
   if (byLevel.B.length) {
     const tools = byLevel.B.map((m) => m.tool).join(' · ');
-    parts.push('<p class="ql-method-notice ql-method-b" role="note" data-method-level="B">'
+    parts.push('<p class="ql-method-notice ql-method-b" role="note" data-method-level="B"' + idsAttr('B') + '>'
       + '<strong>' + escapeHtml(t('equiv.levelBTitle')) + '</strong> '
       + escapeHtml(t('equiv.levelBBody', { tool: tools })) + '</p>');
   }
   if (withA && byLevel.A.length) {
-    parts.push('<p class="ql-method-notice ql-method-a" data-method-level="A"><strong>'
+    parts.push('<p class="ql-method-notice ql-method-a" data-method-level="A"' + idsAttr('A') + '><strong>'
       + escapeHtml(t('equiv.levelATitle')) + '</strong> '
       + escapeHtml(t('equiv.levelABody', { tool: byLevel.A.map((m) => m.tool).join(' · ') })) + '</p>');
   }

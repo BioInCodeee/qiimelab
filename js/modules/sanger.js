@@ -21,6 +21,7 @@ import { alignWithWorker } from '../lib/aligner.js';
 import { openPanel } from '../lib/modal.js';
 import { svgEl, escapeHtml, moreDetailsHtml } from '../lib/dom.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
+import { markExternal } from '../lib/reportLog.js';
 
 const STORE_KEY = 'smart-175.sanger';
 const LEGACY_STORE_KEY = 'qiimelab.sanger';
@@ -2490,6 +2491,7 @@ export function render(container) {
     batchBlastBtn.disabled = !validResults.length;
     batchBlastBtn.addEventListener('click', () => {
       sendBatchToNCBI(validResults);
+      markExternal('ncbi-blast'); // el informe completo repetirá el aviso de NCBI
     });
     actionsRow.appendChild(batchBlastBtn);
     summary.appendChild(actionsRow);
@@ -2587,6 +2589,7 @@ export function render(container) {
         blastLink.rel = 'noopener';
         blastLink.title = t('sanger.blastTitle');
         blastLink.textContent = t('sanger.blastLink') + ' ↗';
+        blastLink.addEventListener('click', () => markExternal('ncbi-blast'));
         btnRow.appendChild(blastLink);
       }
       detailWrap.appendChild(btnRow);

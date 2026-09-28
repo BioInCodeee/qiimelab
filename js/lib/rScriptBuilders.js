@@ -71,14 +71,26 @@ function effectiveTest(choice, k) {
  * @param {string} o.adjust       método de ajuste de p (nombres de p.adjust)
  * @param {number} o.threshold    nivel de significancia
  */
+/**
+ * Ids de methodEquivalence.js que cubre el análisis alfa con estas opciones
+ * (el mismo criterio que la nota de validación del script). Lo usa también el
+ * informe completo, vía alphaDiversity.js.
+ * @param {{kind:string|null, computed:boolean, k:number, testChoice:string, adjust:string}} o
+ */
+export function alphaMethodIds(o) {
+  const idx = o.computed && o.kind ? ALPHA_INDEX[o.kind] : null;
+  const ids = [];
+  if (idx && idx.method) ids.push(idx.method);
+  if (effectiveTest(o.testChoice, o.k) === 'kruskal-dunn' && o.adjust === 'BH') ids.push('bh');
+  return ids;
+}
+
 export function alphaScript(o) {
   const k = o.groupOrder.length;
   const test = effectiveTest(o.testChoice, k);
   const idx = o.computed && o.kind ? ALPHA_INDEX[o.kind] : null;
   const pkgs = idx ? ['vegan'] : [];
-  const methodIds = [];
-  if (idx && idx.method) methodIds.push(idx.method);
-  if (test === 'kruskal-dunn' && o.adjust === 'BH') methodIds.push('bh');
+  const methodIds = alphaMethodIds({ kind: o.kind, computed: o.computed, k, testChoice: o.testChoice, adjust: o.adjust });
 
   const functions = [];
   if (idx) functions.push(idx.fn + ' — índice por muestra a partir de la tabla de conteos');

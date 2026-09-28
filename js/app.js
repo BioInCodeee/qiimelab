@@ -12,6 +12,7 @@ import { watchFieldLabels, linkFieldLabels } from './lib/a11yFields.js';
 import { initPWA, onPWAChange } from './lib/pwa.js';
 import { initTheme } from './lib/theme.js';
 import { initNavDrawer } from './lib/navDrawer.js';
+import { captureRoute } from './lib/reportLog.js';
 
 const sidebar = document.getElementById('sidebar');
 const view = document.getElementById('app-view');
@@ -71,6 +72,9 @@ function currentRouteId() {
 }
 
 async function renderRoute() {
+  // instantánea para el informe completo de lo que mostraba el módulo que se
+  // deja, ANTES de su limpieza (ver js/lib/reportLog.js)
+  captureRoute(routeId, view);
   if (typeof cleanupCurrentModule === 'function') {
     try { cleanupCurrentModule(); } catch (e) { /* noop */ }
   }

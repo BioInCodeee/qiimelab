@@ -31,6 +31,7 @@ import { chartTypeField } from '../lib/chartTypeSelector.js';
 import { arcPath, polarPoint } from '../lib/sunburst.js';
 import { correlogramScript } from '../lib/rScriptBuilders.js';
 import { R_EMBED_MAX_ROWS } from '../lib/rScript.js';
+import { noteMethods } from '../lib/reportLog.js';
 
 const NET_SEED = 0x9E3779B9; // semilla fija → layout de fuerzas determinista
 
@@ -406,6 +407,7 @@ export function render(container) {
     const split = view === 'matrix' && splitHalves;
     const method2 = method === 'pearson' ? 'spearman' : 'pearson';
     const results2 = split ? Array.from({ length: k }, () => new Array(k).fill(null)) : null;
+    noteMethods('correlograma', split ? [method, method2] : [method]); // informe completo
     let nMin = Infinity, nMax = 0;
     for (let i = 0; i < k; i++) {
       for (let j = i; j < k; j++) {
@@ -483,6 +485,7 @@ export function render(container) {
         if (mode === 'cluster' && k > 2) {
           const D = results.map((row, i) => row.map((r, j) => (i === j ? 0 : (isFinite(r.r) ? 1 - Math.abs(r.r) : 1))));
           clusterOrder = leafOrder(upgma(D, names));
+          noteMethods('correlograma', 'upgma');
         }
         const perm = orderCategories(names, meanAbs, mode, clusterOrder).map(idxOf);
         const oldChosen = chosen, oldResults = results;

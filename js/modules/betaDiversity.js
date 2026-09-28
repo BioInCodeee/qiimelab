@@ -14,6 +14,7 @@ import { svgEl, escapeHtml, delegateHover, plotClip } from '../lib/dom.js';
 import { showTooltip, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
 import { methodNoticeHtml } from '../lib/methodEquivalence.js';
+import { noteMethods } from '../lib/reportLog.js';
 import { permanovaScript, constrainedScript } from '../lib/rScriptBuilders.js';
 import { rScriptControls, R_EMBED_MAX_ROWS } from '../lib/rScript.js';
 
@@ -277,6 +278,7 @@ export function render(container) {
     disc.textContent = t('beta.permDisclaimer');
     card.appendChild(disc);
     card.insertAdjacentHTML('beforeend', methodNoticeHtml('permanova'));
+    noteMethods('beta', ['permanova-f', 'permanova']); // informe completo (el pseudo-F es Nivel A)
 
     // "Descargar script R": la tabla no pasa por el editor de gráficos, así
     // que lleva su propia fila con el mismo botón (js/lib/rScript.js)
@@ -737,6 +739,7 @@ export function render(container) {
     // ---- orden (UPGMA: en el hilo principal si es pequeño, en un Web Worker
     //      si la matriz es grande — O(n³), ~170 ms a 520 muestras) ----
     const wantClustering = orderMode === 'clustering' && data.sampleIds.length > 1;
+    if (wantClustering) noteMethods('beta', 'upgma'); // informe completo
     const ck = metric + '|' + data.sourceFileId + '|' + data.sampleIds.length;
     let tree = null, order = null;
     if (!wantClustering) {

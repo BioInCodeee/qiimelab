@@ -28,6 +28,7 @@ import { svgEl, escapeHtml } from '../lib/dom.js';
 import { arcPath, polarPoint } from '../lib/sunburst.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { methodNoticeHtml } from '../lib/methodEquivalence.js';
+import { noteMethods } from '../lib/reportLog.js';
 import { phyloScript } from '../lib/rScriptBuilders.js';
 import { R_EMBED_MAX_ROWS } from '../lib/rScript.js';
 
@@ -1009,6 +1010,7 @@ export function render(container) {
       const alignedOrdered = alignCache.alignedOrdered;
       const { matrix, saturated } = buildDistanceMatrix(alignedOrdered, { correction: s.correction });
       let tree = neighborJoining(matrix, records.map((r) => r.name));
+      noteMethods('arbol', ['msa-progressive', 'nj']); // informe completo
       const newickNJ = toNewick(tree); // antes de NNI/enraizado: lo que reproduce ape::nj en el script de R
       let nniInfo = null;
       if (s.nni) { const res = nniRefine(tree, matrix, {}); tree = res.root; nniInfo = res; }
