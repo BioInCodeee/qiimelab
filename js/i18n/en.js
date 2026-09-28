@@ -686,6 +686,7 @@ export default {
     fileNote: 'Microbial count',
     unnamed: 'Unnamed',
     seriesTitle: 'Organisms loaded ({n})',
+    mappingSummary: 'Column mapping — value: {value} · groups: {groups}',
     seriesNote: 'Each organism is a series with its own column mapping. Rename, adjust the mapping or drop the ones you do not want.',
     labelAria: 'Organism name',
     add: '+ Add file',

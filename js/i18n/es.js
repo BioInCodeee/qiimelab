@@ -688,6 +688,7 @@ export default {
     // gestor de series
     seriesTitle: 'Organismos cargados ({n})',
     seriesNote: 'Cada organismo es una serie con su propio mapeo de columnas. Renombra, ajusta el mapeo o quita las que no quieras.',
+    mappingSummary: 'Mapeo de columnas — valor: {value} · grupos: {groups}',
     labelAria: 'Nombre del organismo',
     add: '+ Añadir archivo',
     mapValue: 'Columna de valor',

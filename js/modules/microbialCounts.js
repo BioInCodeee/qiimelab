@@ -52,6 +52,7 @@ export function render(container) {
                               // estaba en modo "Personalizar" antes de repintar, todos los
                               // bloques recreados vuelven a arrancar ya en ese modo
   const addVarState = new Map(); // seriesId -> { open, mode:'manual'|'file', name, joinCol, editingCol, msg }
+  const mappingOpen = new Set(); // series con el desplegable de mapeo abierto (sobrevive a paint())
 
   async function addFromFile(file, msgEl) {
     let ing;
@@ -374,6 +375,24 @@ export function render(container) {
       top.appendChild(rm);
       box.appendChild(top);
 
+      // Todo el mapeo va en un desplegable PLEGADO por defecto (Fase 2, B4):
+      // el mapeo automático ya da una gráfica, así que el texto y los
+      // controles solo se abren si hay que corregir algo — antes, con los
+      // dos ejemplos cargados, la gráfica empezaba a ~4000px. Resumen de una
+      // línea con lo esencial; se recuerda abierto entre repintados (cada
+      // cambio de mapeo repinta el módulo entero).
+      const det = document.createElement('details');
+      det.className = 'ql-exdl-details ql-mc-mapping';
+      det.open = mappingOpen.has(s.id) || !!(addVarState.get(s.id) || {}).open;
+      det.addEventListener('toggle', () => { if (det.open) mappingOpen.add(s.id); else mappingOpen.delete(s.id); });
+      const sum = document.createElement('summary');
+      const colName = (i) => s.headers[i] || t('ui.columnN', { n: i + 1 });
+      sum.textContent = t('recuentos.mappingSummary', {
+        value: s.mapping.valueCol != null ? colName(s.mapping.valueCol) : '—',
+        groups: (s.mapping.groupCols || []).map(colName).join(', ') || '—',
+      });
+      det.appendChild(sum);
+
       // ---- mapeo: columna de valor / dilución / ¿ya en log10? ----
       const map = document.createElement('div');
       map.className = 'ql-mapping-grid';
@@ -433,7 +452,7 @@ export function render(container) {
       logField.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + t('recuentos.scaleHelp') + '</p>');
       map.appendChild(logField);
 
-      box.appendChild(map);
+      det.appendChild(map);
 
       // ---- columnas de agrupación (varias) ----
       const gWrap = document.createElement('div');
@@ -457,7 +476,7 @@ export function render(container) {
         row.appendChild(document.createTextNode(' ' + (h || t('ui.columnN', { n: i + 1 }))));
         gWrap.appendChild(row);
       });
-      box.appendChild(gWrap);
+      det.appendChild(gWrap);
 
       // ---- agrupar por (una variable, separa el análisis entero en un
       // bloque por nivel — no combina réplicas como groupCols de arriba) ----
@@ -483,9 +502,10 @@ export function render(container) {
       facetField.appendChild(facetSel);
       facetField.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + t('recuentos.facetHelp') + '</p>' +
         moreDetailsHtml(t('ui.moreDetails'), t('recuentos.facetHelpMore')));
-      box.appendChild(facetField);
+      det.appendChild(facetField);
 
-      box.appendChild(renderAddVariable(s));
+      det.appendChild(renderAddVariable(s));
+      box.appendChild(det);
 
       card.appendChild(box);
     });
