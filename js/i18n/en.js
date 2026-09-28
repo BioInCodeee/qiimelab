@@ -531,6 +531,13 @@ export default {
     chartRarefaction: 'Per-sample rarefaction curves',
   },
   correlogram: {
+    matrixStylePie: 'Pies',
+    pieNote: 'Each pie sweeps |r|·360° from 12 o’clock: clockwise = positive correlation, anticlockwise = negative; colour also shows the sign.',
+    splitLabel: 'Matrix',
+    splitOff: 'Single',
+    splitOn: 'Split: {a} ▲ / {b} ▼',
+    splitHelp: 'Split: the upper triangle shows the method chosen above and the lower one the other, computed on the same sample pairs — to see at a glance where they disagree (non-linear relations, outliers).',
+    splitLegend: '▲ upper triangle: {a} · ▼ lower: {b}',
     eyebrow: 'Relationships between variables',
     title: 'Correlogram',
     subtitle: 'Correlation matrix between the numeric variables you already have loaded: numeric metadata columns, relative abundance of the most abundant taxa, and alpha diversity metrics.',

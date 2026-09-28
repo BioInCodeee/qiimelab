@@ -121,7 +121,8 @@ export function render(container) {
   let topN = TOP_N_DEFAULT;
   let selected = null;           // Set de ids de variable; null = aún sin inicializar
   let view = 'matrix';           // 'matrix' | 'network'
-  let matrixStyle = 'heatmap';   // 'heatmap' | 'bubbles' — solo aplica dentro de view === 'matrix'
+  let matrixStyle = 'heatmap';   // 'heatmap' | 'bubbles' | 'pie' — solo aplica dentro de view === 'matrix'
+  let splitHalves = false;       // matriz partida: ▲ superior = método elegido, ▼ inferior = el otro (Fase 3, C2)
   let rThresh = 0.3;             // |r| mínimo para dibujar una arista (solo vista red)
   let pThresh = 0.05;            // p máximo (solo vista red)
   let netSort = { key: 'r', dir: 'desc' };
@@ -198,7 +199,7 @@ export function render(container) {
     const chartPanel = document.createElement('section');
     chartPanel.className = 'ql-card ql-panel';
     chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' +
-      t(view === 'network' ? 'correlogram.netNote' : (matrixStyle === 'bubbles' ? 'correlogram.bubbleNote' : 'correlogram.chartNote')) + '</p>';
+      t(view === 'network' ? 'correlogram.netNote' : (matrixStyle === 'bubbles' ? 'correlogram.bubbleNote' : matrixStyle === 'pie' ? 'correlogram.pieNote' : 'correlogram.chartNote')) + '</p>';
     const chartWrap = document.createElement('div');
     chartWrap.className = 'ql-chartwrap' + (view === 'matrix' ? ' scroll-x' : '');
     const svg = svgEl('svg', {
@@ -240,10 +241,23 @@ export function render(container) {
         options: [
           { value: 'heatmap', labelKey: 'correlogram.matrixStyleHeatmap' },
           { value: 'bubbles', labelKey: 'correlogram.matrixStyleBubbles' },
+          { value: 'pie', labelKey: 'correlogram.matrixStylePie' },
         ],
         active: matrixStyle,
         onChange: (v) => { matrixStyle = v; paint(); },
         helpKey: 'correlogram.matrixStyleHelp',
+      }));
+      const other = method === 'pearson' ? 'spearman' : 'pearson';
+      const nameOf = (m) => t(m === 'pearson' ? 'correlogram.pearson' : 'correlogram.spearman');
+      controls.appendChild(chartTypeField({
+        labelKey: 'correlogram.splitLabel',
+        options: [
+          { value: 'off', label: t('correlogram.splitOff') },
+          { value: 'on', label: t('correlogram.splitOn', { a: nameOf(method), b: nameOf(other) }) },
+        ],
+        active: splitHalves ? 'on' : 'off',
+        onChange: (v) => { splitHalves = v === 'on'; paint(); },
+        helpKey: 'correlogram.splitHelp',
       }));
     }
 
@@ -368,22 +382,35 @@ export function render(container) {
     // ---- UNA sola pasada de correlación (idéntica a la que ya rellenaba la matriz) ----
     const k = chosen.length;
     const results = Array.from({ length: k }, () => new Array(k).fill(null));
+    // matriz partida (Fase 3, C2): el OTRO método se calcula en la misma
+    // pasada, sobre exactamente las mismas parejas de muestras
+    const split = view === 'matrix' && splitHalves;
+    const method2 = method === 'pearson' ? 'spearman' : 'pearson';
+    const results2 = split ? Array.from({ length: k }, () => new Array(k).fill(null)) : null;
     let nMin = Infinity, nMax = 0;
     for (let i = 0; i < k; i++) {
       for (let j = i; j < k; j++) {
-        if (i === j) { results[i][j] = { r: 1, p: NaN, n: aligned[i].filter(isFinite).length }; continue; }
+        if (i === j) {
+          results[i][j] = { r: 1, p: NaN, n: aligned[i].filter(isFinite).length };
+          if (split) results2[i][j] = results[i][j];
+          continue;
+        }
         const x = [], y = [];
         for (let s = 0; s < universe.length; s++) {
           if (isFinite(aligned[i][s]) && isFinite(aligned[j][s])) { x.push(aligned[i][s]); y.push(aligned[j][s]); }
         }
         const res = x.length >= 3 ? (method === 'pearson' ? pearson(x, y) : spearman(x, y)) : { r: NaN, p: NaN, n: x.length };
         results[i][j] = res; results[j][i] = res;
+        if (split) {
+          const res2 = x.length >= 3 ? (method2 === 'pearson' ? pearson(x, y) : spearman(x, y)) : { r: NaN, p: NaN, n: x.length };
+          results2[i][j] = res2; results2[j][i] = res2;
+        }
         if (isFinite(res.r)) { nMin = Math.min(nMin, res.n); nMax = Math.max(nMax, res.n); }
       }
     }
     const nLabel = nMin === Infinity ? '—' : (nMin === nMax ? String(nMin) : nMin + '–' + nMax);
 
-    const ctx = { svg, chartPanel, chartWrap, tooltip, tableCard, chosen, results, k, nLabel };
+    const ctx = { svg, chartPanel, chartWrap, tooltip, tableCard, chosen, results, results2, method2, k, nLabel };
     if (view === 'network') renderNetwork(ctx);
     else renderMatrix(ctx);
   }
@@ -393,14 +420,19 @@ export function render(container) {
   // =====================================================================
   function renderMatrix(ctx) {
     const { svg, chartPanel, chartWrap, tooltip, tableCard, k, nLabel } = ctx;
-    let { chosen, results } = ctx;
+    let { chosen, results, results2 } = ctx;
+    const { method2 } = ctx;
+    const nameOf = (m) => t(m === 'pearson' ? 'correlogram.pearson' : 'correlogram.spearman');
+    // celda (i,j): con la matriz partida, el triángulo inferior (i>j) sale
+    // del segundo método; el superior y la diagonal, del elegido
+    const resAt = (i, j) => (results2 && i > j ? results2[i][j] : results[i][j]);
 
     // orden de las variables (Ajustes > Estructura). Se permutan a la vez la
     // lista y la matriz de resultados, así todo lo de abajo (celdas, etiquetas,
     // tooltips) sigue siendo coherente. 'cluster' = clustering jerárquico UPGMA
     // con distancia 1-|r| (el orden 'hclust' habitual de corrplot).
     {
-      const mode = getFigureOptions(matrixStyle === 'bubbles' ? 'correlogram-bubbles' : 'correlogram').categoryOrder;
+      const mode = getFigureOptions(matrixStyle === 'bubbles' ? 'correlogram-bubbles' : matrixStyle === 'pie' ? 'correlogram-pie' : 'correlogram').categoryOrder;
       if (mode && mode !== 'original' && k > 1) {
         const SEP = '\u0001';
         const names = chosen.map((v, i) => v.label + SEP + i);
@@ -419,6 +451,7 @@ export function render(container) {
         const oldChosen = chosen, oldResults = results;
         chosen = perm.map((i) => oldChosen[i]);
         results = perm.map((i) => perm.map((j) => oldResults[i][j]));
+        if (results2) { const old2 = results2; results2 = perm.map((i) => perm.map((j) => old2[i][j])); }
       }
     }
 
@@ -437,6 +470,10 @@ export function render(container) {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
 
     const isBubbles = matrixStyle === 'bubbles';
+    const isPie = matrixStyle === 'pie';
+    // burbujas y sectores son "glifos": color por signo + tamaño/ángulo =
+    // magnitud, sin escala continua ni anotación de p en la celda
+    const isGlyph = isBubbles || isPie;
     const statsOpts = getStatsOptions('correlogram');
     // escala de color continua compartida (Paso 2 de qiimelab-prompt-
     // editor-fase-3-heatmaps-escalas-continuas.md) — dominio FIJO [-1,1]
@@ -446,7 +483,7 @@ export function render(container) {
     // escala a propósito — usa --corr-diag, un token CSS propio (no la
     // escala de datos, que no tiene sentido fijada en r=1 siempre).
     const csOv = getColorScaleOptions('correlogram');
-    const colorScale = isBubbles ? null : makeColorScale({
+    const colorScale = isGlyph ? null : makeColorScale({
       type: 'divergent',
       domain: [csOv.domainMin != null ? csOv.domainMin : -1, csOv.domainMax != null ? csOv.domainMax : 1],
       midpoint: csOv.midpoint != null ? csOv.midpoint : 0,
@@ -459,22 +496,43 @@ export function render(container) {
     // celda": nuevo, solo aplica al modo mapa de calor (bubbles ya tiene su
     // propio borde fijo var(--gridline) entre celdas).
     const showValue = csOv.showValue !== false;
-    const cellBorder = !isBubbles ? (csOv.cellBorder || null) : null;
+    const cellBorder = !isGlyph ? (csOv.cellBorder || null) : null;
     for (let i = 0; i < k; i++) {
       for (let j = 0; j < k; j++) {
-        const res = results[i][j];
+        const res = resAt(i, j);
         const isDiag = i === j;
         const x = marginL + j * cell, y = marginT + i * cell;
         const rect = svgEl('rect', {
           x, y, width: cell - 1.5, height: cell - 1.5, rx: 2, 'data-ce-role': 'cell',
-          fill: isDiag ? 'var(--corr-diag)' : (isBubbles ? 'var(--surface)' : (colorScale.scale(res.r) || 'var(--corr-zero)')),
-          stroke: (isBubbles && !isDiag) ? 'var(--gridline)' : (cellBorder ? cellBorder.color : undefined),
+          fill: isDiag ? 'var(--corr-diag)' : (isGlyph ? 'var(--surface)' : (colorScale.scale(res.r) || 'var(--corr-zero)')),
+          stroke: (isGlyph && !isDiag) ? 'var(--gridline)' : (cellBorder ? cellBorder.color : undefined),
           'stroke-width': cellBorder ? cellBorder.width : undefined,
           ...(isDiag ? {} : { 'data-i': i, 'data-j': j }),
         });
         svg.appendChild(rect);
 
-        if (!isDiag && isBubbles) {
+        if (!isDiag && isPie) {
+          // sector (tipo "pie" de corrplot): ángulo = |r|·360° desde las 12,
+          // en sentido horario si r>0 y antihorario si r<0, sobre un círculo
+          // guía; color por signo (mismos pos/neg que las burbujas)
+          if (isFinite(res.r)) {
+            const R = (cell - 1.5) / 2 - 1.5;
+            const cx = x + (cell - 1.5) / 2, cy = y + (cell - 1.5) / 2;
+            const col = res.r >= 0 ? 'var(--corr-pos)' : 'var(--corr-neg)';
+            const sid = res.r >= 0 ? 'pos' : 'neg';
+            svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: 'var(--gridline)', 'stroke-width': 1, 'pointer-events': 'none' }));
+            const a = Math.min(1, Math.abs(res.r)) * 2 * Math.PI;
+            if (a >= 2 * Math.PI - 1e-6) {
+              svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: col, 'fill-opacity': 0.82, 'data-ce-series-fill': sid, 'data-ce-role': 'marker', 'pointer-events': 'none' }));
+            } else if (a > 1e-3) {
+              const dir = res.r >= 0 ? 1 : -1;
+              const ex = cx + dir * R * Math.sin(a), ey = cy - R * Math.cos(a);
+              const d = 'M' + cx + ',' + cy + ' L' + cx + ',' + (cy - R) +
+                ' A' + R + ',' + R + ' 0 ' + (a > Math.PI ? 1 : 0) + ' ' + (dir > 0 ? 1 : 0) + ' ' + ex.toFixed(2) + ',' + ey.toFixed(2) + ' Z';
+              svg.appendChild(svgEl('path', { d, fill: col, 'fill-opacity': 0.82, 'data-ce-series-fill': sid, 'data-ce-role': 'marker', 'pointer-events': 'none', class: 'ql-corr-pie' }));
+            }
+          }
+        } else if (!isDiag && isBubbles) {
           if (isFinite(res.r)) {
             const cMax = (cell - 1.5) / 2 - 1.5;
             const r = Math.max(1.5, cMax * Math.sqrt(Math.min(1, Math.abs(res.r))));
@@ -507,10 +565,11 @@ export function render(container) {
     delegateHover(svg, 'rect[data-i]', {
       onEnter: (el) => {
         const i = +el.dataset.i, j = +el.dataset.j;
-        const res = results[i][j];
+        const res = resAt(i, j);
         const x = marginL + j * cell, y = marginT + i * cell;
         showTooltip(chartWrap, x + cell / 2, y + cell / 2,
           escapeHtml(chosen[i].label) + ' × ' + escapeHtml(chosen[j].label),
+          (results2 ? escapeHtml(nameOf(i > j ? method2 : method)) + ': ' : '') +
           'r = ' + (isFinite(res.r) ? res.r.toFixed(3) : '—') +
           ' · p = ' + formatP(res.p) + ' · n = ' + res.n,
           { svg, W, H, tooltip, rawHtml: true });
@@ -548,8 +607,15 @@ export function render(container) {
 
     // leyenda: barra divergente -1…0…+1 (mapa de calor) o 2 colores de signo
     // + referencia de tamaño |r| (burbujas — el tamaño ya es la magnitud)
+    // matriz partida: qué método lleva cada triángulo, encima de la cuadrícula
+    if (results2) {
+      const sl = svgEl('text', { x: marginL, y: marginT - 8, class: 'ql-tick-label', 'data-ce': 'splitlegend' });
+      sl.textContent = t('correlogram.splitLegend', { a: nameOf(method), b: nameOf(method2) });
+      svg.appendChild(sl);
+    }
+
     const legG = svgEl('g', { 'data-ce': 'legend' });
-    if (isBubbles) {
+    if (isGlyph) {
       const cMaxLeg = (cell - 1.5) / 2 - 1.5;
       [[t('correlogram.legendPos'), 'var(--corr-pos)', 'pos'], [t('correlogram.legendNeg'), 'var(--corr-neg)', 'neg']].forEach(([lab, col, id], i) => {
         const yy = i * 15;
@@ -561,6 +627,21 @@ export function render(container) {
       let rx = 90;
       [0.25, 0.5, 1].forEach((v) => {
         const r = Math.max(1.5, cMaxLeg * Math.sqrt(v));
+        if (isPie) {
+          // referencia de sectores: mismo radio, ángulo = |r|·360°
+          const R = cMaxLeg, cx = rx + cMaxLeg, cy = cMaxLeg, a = v * 2 * Math.PI;
+          legG.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: 'var(--ink-muted)', 'stroke-width': 1.1 }));
+          if (v < 1) {
+            legG.appendChild(svgEl('path', { d: 'M' + cx + ',' + cy + ' L' + cx + ',' + (cy - R) + ' A' + R + ',' + R + ' 0 ' + (a > Math.PI ? 1 : 0) + ' 1 ' + (cx + R * Math.sin(a)).toFixed(2) + ',' + (cy - R * Math.cos(a)).toFixed(2) + ' Z', fill: 'var(--ink-muted)', 'fill-opacity': 0.5 }));
+          } else {
+            legG.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'var(--ink-muted)', 'fill-opacity': 0.5 }));
+          }
+          const lt = svgEl('text', { x: cx, y: cMaxLeg * 2 + 13, class: 'ql-tick-label', 'text-anchor': 'middle' });
+          lt.textContent = '|r|=' + v;
+          legG.appendChild(lt);
+          rx += Math.max(cMaxLeg * 2 + 16, 50); // la etiqueta "|r|=0.25" es más ancha que el sector
+          return;
+        }
         legG.appendChild(svgEl('circle', { cx: rx + cMaxLeg, cy: cMaxLeg, r, fill: 'none', stroke: 'var(--ink-muted)', 'stroke-width': 1.1 }));
         const lt = svgEl('text', { x: rx + cMaxLeg, y: cMaxLeg * 2 + 13, class: 'ql-tick-label', 'text-anchor': 'middle' });
         lt.textContent = '|r|=' + v;
@@ -595,7 +676,7 @@ export function render(container) {
     svg.appendChild(legG);
 
     editor = attachChartEditor({
-      key: isBubbles ? 'correlogram-bubbles' : 'correlogram', svg, mount: chartPanel, lang: getLang(),
+      key: isBubbles ? 'correlogram-bubbles' : isPie ? 'correlogram-pie' : 'correlogram', svg, mount: chartPanel, lang: getLang(),
       filename: t('correlogram.title') + '-' + method,
       elements: [
         { id: 'title', create: { text: t('correlogram.figTitle', { method: method === 'pearson' ? t('correlogram.pearson') : t('correlogram.spearman') }), x: W / 2, y: 22, anchor: 'middle', cls: 'ce-title' } },
@@ -610,7 +691,7 @@ export function render(container) {
       // calor usa la escala de color continua compartida (Paso 3 de
       // qiimelab-prompt-editor-fase-3-heatmaps-escalas-continuas.md) en vez
       // del mecanismo de paleta por serie.
-      ...(isBubbles ? {
+      ...(isGlyph ? {
         paletteSeries: [
           { id: 'neg', label: t('correlogram.legendNeg') },
           { id: 'pos', label: t('correlogram.legendPos') },
@@ -625,7 +706,7 @@ export function render(container) {
       // groupBoxplot.js, sin el selector de método de ajuste (aquí cada
       // celda es una correlación independiente, no hay comparación múltiple
       // que corregir).
-      ...(isBubbles ? {} : { statsControls: { hasMultiGroup: false }, onStatsChange: () => paint() }),
+      ...(isGlyph ? {} : { statsControls: { hasMultiGroup: false }, onStatsChange: () => paint() }),
       figureOptions: { categoryOrder: ['original', 'alpha-asc', 'alpha-desc', 'value-asc', 'value-desc', 'cluster'] },
       onFigureOptionsChange: () => paint(),
       onReset: () => paint(),
@@ -644,7 +725,8 @@ export function render(container) {
     const tbl = document.createElement('table');
     tbl.className = 'ql-table';
     tbl.innerHTML = '<thead><tr><th>' + t('correlogram.colPairA') + '</th><th>' + t('correlogram.colPairB') +
-      '</th><th>r</th><th>p</th><th>n</th></tr></thead>';
+      '</th><th>r' + (results2 ? ' (' + escapeHtml(nameOf(method)) + ')' : '') + '</th><th>p</th><th>n</th>' +
+      (results2 ? '<th>r (' + escapeHtml(nameOf(method2)) + ')</th>' : '') + '</tr></thead>';
     const tbody = document.createElement('tbody');
     const flat = [];
     for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) flat.push({ i, j, res: results[i][j] });
@@ -657,7 +739,8 @@ export function render(container) {
         '<td class="ql-num tabular">' + (isFinite(res.r) ? res.r.toFixed(3) : '—') +
         (stars(res.p) ? ' <span class="mono">' + stars(res.p) + '</span>' : '') + '</td>' +
         '<td class="ql-num tabular">' + formatP(res.p) + '</td>' +
-        '<td class="ql-num tabular">' + res.n + '</td>';
+        '<td class="ql-num tabular">' + res.n + '</td>' +
+        (results2 ? '<td class="ql-num tabular">' + (isFinite(results2[i][j].r) ? results2[i][j].r.toFixed(3) : '—') + '</td>' : '');
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody);

@@ -70,6 +70,7 @@ Chrome, R, un paquete de R, o Biopython). El runner sale ≠ 0 solo si algo
 | `methodequivalence.mjs` | estático + navegador | Convención de equivalencia científica (`js/lib/methodEquivalence.js`): el registro clasifica Nivel A/B/C según la tabla acordada; el aviso Nivel C aparece en biomarcadores (KW/LEfSe, ANCOM-BC, Random Forest, consenso) y en el alineamiento del árbol, y la nota Nivel B en PERMANOVA, RDA/CCA y Neighbor-Joining. |
 | `alpha-boxstats.mjs` | navegador | #/alfa: modo "Cajas sin puntos" (mismas cajas, 0 puntos, nota propia) y el selector "Test a usar" nombrando el test aplicado ("Automático → …" + "Test aplicado: … Por qué: …"; al forzar otro, "(elegido a mano)" y lo que habría elegido el automático). |
 | `venn-sets.mjs` | navegador | #/venn con muchos conjuntos: ejemplo sintético de 10 grupos, control "Conjuntos a mostrar" y, para K = 10/6/4/3, cada región de la tabla comparada con un cálculo independiente; 5+ → UpSet (neutro por encima de 7), 4 → rectángulos, 3 → círculos. |
+| `correlogram-pie-split.mjs` | navegador | #/correlograma: glifo "Sectores" (cada sector comparado con su r de la tabla: ángulo y sentido) y matriz "Partida" (▲ Pearson / ▼ Spearman, comprobado con el tooltip de una celda y su simétrica frente a las dos columnas r); Burbujas y Red siguen dibujando. |
 
 ### Modo de los tests de `stats/`
 

@@ -531,6 +531,13 @@ export default {
     chartRarefaction: 'Curvas de rarefacción por muestra',
   },
   correlogram: {
+    matrixStylePie: 'Sectores',
+    pieNote: 'Cada sector barre |r|·360° desde las 12: sentido horario = correlación positiva, antihorario = negativa; el color también indica el signo.',
+    splitLabel: 'Matriz',
+    splitOff: 'Una sola',
+    splitOn: 'Partida: {a} ▲ / {b} ▼',
+    splitHelp: 'Partida: el triángulo superior muestra el método elegido arriba y el inferior el otro, calculados sobre las mismas parejas de muestras — para ver de un vistazo dónde discrepan (relaciones no lineales, valores extremos).',
+    splitLegend: '▲ triángulo superior: {a} · ▼ inferior: {b}',
     eyebrow: 'Relaciones entre variables',
     title: 'Correlograma',
     subtitle: 'Matriz de correlación entre las variables numéricas que ya tengas cargadas: columnas numéricas de los metadatos, abundancia relativa de los taxones más abundantes y métricas de diversidad alfa.',
