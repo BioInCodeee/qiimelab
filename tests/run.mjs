@@ -43,6 +43,7 @@ const SUITE = [
   { name: 'chartpresets', file: 'chartpresets.mjs', kind: 'navegador' },
   { name: 'globalfont', file: 'globalfont.mjs', kind: 'navegador' },
   { name: 'methodequivalence', file: 'methodequivalence.mjs', kind: 'navegador' },
+  { name: 'informe-completo', file: 'informe-completo.mjs', kind: 'navegador' },
   { name: 'alpha-boxstats', file: 'alpha-boxstats.mjs', kind: 'navegador' },
   { name: 'venn-sets', file: 'venn-sets.mjs', kind: 'navegador' },
   { name: 'correlogram-pie-split', file: 'correlogram-pie-split.mjs', kind: 'navegador' },

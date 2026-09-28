@@ -98,6 +98,7 @@ que en el runner, solo cuenta como fallo un test que falla.
 | `globalfont.mjs` | navegador | Tipografía global del editor (Fase 1): la casilla "Usar tipografía global" cambia de golpe todos los `<text>` de la figura en alfa/barplots/beta, incluido un título con fuente propia; desactiva "Fuente de ejes y marcas" mientras está activa; se exporta en el SVG, se guarda en `store.__figureStyle.globalFont`, persiste al recargar y al desactivarla cada texto vuelve a su fuente. |
 | `zipbomb.mjs` | estático | Límites anti zip-bomb de `minizip.js` con ZIP reales fabricados (`tests/lib/zip.mjs`): ratio >100× (bomba de 64 MB de ceros), entrada >250 MB, presupuesto total, >2000 entradas, cabecera que miente (se corta el flujo), `.gz` suelto; los rechazos previos ocurren sin crear ningún `DecompressionStream`, e `ingestFile()` lo convierte en un aviso legible sin perder el resto del artefacto. |
 | `methodequivalence.mjs` | estático + navegador | Convención de equivalencia científica (`js/lib/methodEquivalence.js`): el registro clasifica Nivel A/B/C según la tabla acordada; el aviso Nivel C aparece en biomarcadores (KW/LEfSe, ANCOM-BC, Random Forest, consenso) y en el alineamiento del árbol, y la nota Nivel B en PERMANOVA, RDA/CCA y Neighbor-Joining. |
+| `informe-completo.mjs` | navegador | Informe completo (`#/informe`, `js/lib/reportLog.js`): sin análisis abiertos → estado vacío; tras ejecutar alfa, beta (PERMANOVA) y correlograma y pulsar «Generar informe completo» en la barra lateral, el informe trae exactamente esos 3 módulos, Métodos = `methodsText()` tal cual, figuras `<img>` que cargan y no están en blanco, los mismos avisos A/B/C que el módulo; en impresión emulada no se ve la interfaz, un salto de página por sección, negro sobre blanco con tema oscuro, PDF A4 real; se regenera en inglés; aviso de NCBI solo si se lanzó un BLAST. `REPORT_PDF_OUT=… ` guarda el PDF. |
 | `alpha-boxstats.mjs` | navegador | #/alfa: modo "Cajas sin puntos" (mismas cajas, 0 puntos, nota propia) y el selector "Test a usar" nombrando el test aplicado ("Automático → …" + "Test aplicado: … Por qué: …"; al forzar otro, "(elegido a mano)" y lo que habría elegido el automático). |
 | `venn-sets.mjs` | navegador | #/venn con muchos conjuntos: ejemplo sintético de 10 grupos, control "Conjuntos a mostrar" y, para K = 10/6/4/3, cada región de la tabla comparada con un cálculo independiente; 5+ → UpSet (neutro por encima de 7), 4 → rectángulos, 3 → círculos. |
 | `correlogram-pie-split.mjs` | navegador | #/correlograma: glifo "Sectores" (cada sector comparado con su r de la tabla: ángulo y sentido) y matriz "Partida" (▲ Pearson / ▼ Spearman, comprobado con el tooltip de una celda y su simétrica frente a las dos columnas r); Burbujas y Red siguen dibujando. |
@@ -144,8 +145,9 @@ R instalado.
   comprobación de que la pestaña “Biomarcadores” pinta esos números — incluida
   la subvista "Consenso entre métodos" (taxón × método) — no está persistida
   (sí lo está la equivalente de “Comparar varias”, ver `compare-overlap.mjs`).
-- **Exportación SVG/PNG del editor de gráficos**, **impresión del informe
-  combinado**, **descarga del HTML autocontenido**: no automatizadas.
+- **Descarga del HTML autocontenido del informe**: no automatizada (la
+  impresión/PDF del informe sí: `informe-completo.mjs`; la exportación del
+  editor, en `security-headers.mjs`).
 - **`#/arbol` interactivo**: `sweep-routes.mjs` carga el ejemplo, espera a que
   termine el pipeline y prueba "Personalizar" sobre el árbol ya dibujado (con
   las fórmulas cubiertas por `phyloalign.mjs`/`stats/neighborjoining.mjs`/
