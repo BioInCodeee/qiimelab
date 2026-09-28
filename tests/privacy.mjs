@@ -25,7 +25,7 @@ const TEXT_EXT = new Set(['.js', '.mjs', '.cjs', '.json', '.css', '.html', '.md'
 // .md2-cache: caché local (gitignored) de datos públicos de MD2 descargados
 // por scripts/build-phenotypes-md2.mjs — nunca se commitea, pero al ser un
 // volcado íntegro de una base de datos de virus/hospedadores puede coincidir
-// por casualidad con algún término del denylist del TFG. Igual que
+// por casualidad con algún término del denylist del estudio. Igual que
 // node_modules/dist: artefacto local regenerable, fuera del alcance de este gate.
 const SKIP_DIR = new Set(['.git', 'node_modules', 'dist', '.md2-cache']);
 // binarios grandes / comprimidos que no son texto

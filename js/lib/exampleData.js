@@ -106,7 +106,7 @@ function brayCurtis(a, b) {
 
 /** Metadatos + barplot taxonómico + alfa + beta, todo derivado del mismo vector de abundancias por muestra. */
 export function loadExampleCommunityData() {
-  const rnd = mulberry32(175); // BIO175
+  const rnd = mulberry32(175); // semilla fija
   const nPerGroup = 10;
   const samples = [];
   for (let i = 0; i < nPerGroup; i++) samples.push({ id: 'CTRL-' + String(i + 1).padStart(2, '0'), grupo: 'Control' });

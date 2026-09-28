@@ -58,7 +58,7 @@ const HARNESS = `(async () => {
 
   const S = ${S_SAMPLES}, T = ${T_TAXA}, DENS = ${DENSITY};
   const NDIST = ${N_DIST}, NDIFF = ${N_DIFF};
-  const rnd = mulberry32(0xB1017 ^ 175); // semilla fija — BIO175
+  const rnd = mulberry32(0xB1017 ^ 175); // semilla fija
 
   // ---- tabla de conteos S×T dispersa (lognormal), estilo microbioma ----
   const counts = [];
