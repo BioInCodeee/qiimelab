@@ -106,6 +106,23 @@ subconjuntos latin/latin-ext, ~256 KB), así que la app carga y funciona sin
 conexión desde la primera visita cacheada. La única excepción es el BLAST
 opcional del módulo Sanger, que sí necesita red y envía la secuencia a NCBI. Si una fuente faltara, el CSS degrada a la del sistema.
 
+## Privacidad y conexiones externas
+
+Sin analítica, sin píxeles de seguimiento, sin cookies y sin ninguna petición
+de fondo a terceros: todo lo que la app descarga sale de su propio sitio
+(código, fuentes, datos de ejemplo). Lo único que sale hacia fuera son
+**enlaces que el usuario pulsa**:
+
+- **NCBI BLAST** (módulo Sanger, opcional): *envía la secuencia elegida* a
+  `blast.ncbi.nlm.nih.gov`. El botón y su nota lo avisan antes de usarlo.
+- **Ficha de un KO en KEGG** (`www.kegg.jp/entry/K…`, índices funcionales):
+  la URL solo lleva el código KO, que es público.
+- **Código en GitHub** (pie de página).
+
+`index.html` declara una Content-Security-Policy que solo permite cargar
+recursos del propio origen, y `referrer: no-referrer` para que esos enlaces no
+envíen la URL de la app.
+
 ## Datos de ejemplo (`datos-ejemplo/`)
 
 Recorte pequeño y curado de resultados **reales** de un estudio de microbioma
