@@ -442,7 +442,7 @@ export function rerootAtLeaf(root, leafId) {
   return { root: rebuildRootedAtSplit(edges, nodesById, leafId, parentId, into, edgeLen) };
 }
 
-function escapeNewickLabel(label) {
+export function escapeNewickLabel(label) {
   return String(label).replace(/[\s():,;]+/g, '_');
 }
 

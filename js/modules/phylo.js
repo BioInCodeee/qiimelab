@@ -18,7 +18,7 @@ import { t, getLang } from '../lib/i18n.js';
 import { parseFasta } from '../lib/primerTemplate.js';
 import { needlemanWunsch, buildProgressiveAlignment } from '../lib/phyloAlign.js';
 import { pDistance, buildDistanceMatrix } from '../lib/phyloDistance.js';
-import { neighborJoining, toNewick, collectLeaves, computeDrawDepths, nniRefine, midpointRoot, rerootAtLeaf } from '../lib/neighborJoining.js';
+import { neighborJoining, toNewick, escapeNewickLabel, collectLeaves, computeDrawDepths, nniRefine, midpointRoot, rerootAtLeaf } from '../lib/neighborJoining.js';
 import { upgma } from '../lib/stats.js';
 import { attachChartEditor } from '../lib/chartEditor.js';
 import { getSlot, subscribe } from '../state.js';
@@ -28,6 +28,8 @@ import { svgEl, escapeHtml } from '../lib/dom.js';
 import { arcPath, polarPoint } from '../lib/sunburst.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { methodNoticeHtml } from '../lib/methodEquivalence.js';
+import { phyloScript } from '../lib/rScriptBuilders.js';
+import { R_EMBED_MAX_ROWS } from '../lib/rScript.js';
 
 const STORE_KEY = 'smart-175.phylo';
 const LEGACY_STORE_KEY = 'qiimelab.phylo';
@@ -1007,6 +1009,7 @@ export function render(container) {
       const alignedOrdered = alignCache.alignedOrdered;
       const { matrix, saturated } = buildDistanceMatrix(alignedOrdered, { correction: s.correction });
       let tree = neighborJoining(matrix, records.map((r) => r.name));
+      const newickNJ = toNewick(tree); // antes de NNI/enraizado: lo que reproduce ape::nj en el script de R
       let nniInfo = null;
       if (s.nni) { const res = nniRefine(tree, matrix, {}); tree = res.root; nniInfo = res; }
       let rootInfo = null;
@@ -1084,6 +1087,14 @@ export function render(container) {
         ],
         paletteType: 'categorical',
         onReset: () => paint(),
+        rScript: {
+          build: () => phyloScript({
+            names: records.map((r) => escapeNewickLabel(r.name)), aligned: alignedOrdered,
+            correction: s.correction, nni: s.nni, rooting: s.rooting,
+            referenceLeaf: escapeNewickLabel(s.referenceLeaf || ''), newickNJ,
+          }),
+          hasDataFiles: records.length > R_EMBED_MAX_ROWS,
+        },
       });
 
       const newickCard = document.createElement('section');
