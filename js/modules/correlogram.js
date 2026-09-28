@@ -29,6 +29,8 @@ import { svgEl, escapeHtml, delegateHover } from '../lib/dom.js';
 import { showTooltip, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
 import { arcPath, polarPoint } from '../lib/sunburst.js';
+import { correlogramScript } from '../lib/rScriptBuilders.js';
+import { R_EMBED_MAX_ROWS } from '../lib/rScript.js';
 
 const NET_SEED = 0x9E3779B9; // semilla fija → layout de fuerzas determinista
 
@@ -128,6 +130,7 @@ export function render(container) {
   let rThresh = 0.3;             // |r| mínimo para dibujar una arista (solo vista red)
   let pThresh = 0.05;            // p máximo (solo vista red)
   let netSort = { key: 'r', dir: 'desc' };
+  let rScriptCfg = null;         // "Descargar script R" — mismo cálculo para las tres figuras (ver paint())
   let editor = null;
   let wasEditing = false; // ver cfg.startEditing en chartEditor.js — capturado en paint() antes de
                            // destruir el editor, leído por renderMatrix/renderNetwork (funciones
@@ -426,6 +429,22 @@ export function render(container) {
     }
     const nLabel = nMin === Infinity ? '—' : (nMin === nMax ? String(nMin) : nMin + '–' + nMax);
 
+    // "Descargar script R": las mismas variables alineadas sobre el mismo
+    // universo de muestras y el mismo método (o los dos, en la matriz partida)
+    rScriptCfg = {
+      build: () => {
+        const so = getStatsOptions('correlogram');
+        return correlogramScript({
+          methods: split ? [method, method2] : [method],
+          sampleIds: universe,
+          vars: chosen.map((v, i) => ({ label: v.label, values: aligned[i] })),
+          threshold: view === 'network' ? pThresh : (so.threshold != null ? so.threshold : 0.05),
+          rMin: view === 'network' ? rThresh : null,
+        });
+      },
+      hasDataFiles: universe.length > R_EMBED_MAX_ROWS,
+    };
+
     const ctx = { svg, chartPanel, chartWrap, tooltip, tableCard, chosen, results, results2, method2, k, nLabel };
     if (view === 'network') renderNetwork(ctx);
     else renderMatrix(ctx);
@@ -705,6 +724,7 @@ export function render(container) {
     editor = attachChartEditor({
       key: isBubbles ? 'correlogram-bubbles' : isPie ? 'correlogram-pie' : 'correlogram', svg, mount: chartPanel, lang: getLang(),
       filename: t('correlogram.title') + '-' + method,
+      rScript: rScriptCfg,
       elements: [
         { id: 'title', create: { text: t('correlogram.figTitle', { method: method === 'pearson' ? t('correlogram.pearson') : t('correlogram.spearman') }), x: W / 2, y: 22, anchor: 'middle', cls: 'ce-title' } },
         { id: 'xtitle', selector: '[data-ce="xtitle"]' },
@@ -917,6 +937,7 @@ export function render(container) {
     editor = attachChartEditor({
       key: ceKey, svg, mount: chartPanel, lang: getLang(),
       filename: t('correlogram.title') + '-' + method + '-circular',
+      rScript: rScriptCfg,
       elements: [
         { id: 'title', create: { text: t('correlogram.figTitle', { method: nameOf(method) }), x: W / 2, y: 22, anchor: 'middle', cls: 'ce-title' } },
         { id: 'rowlabels', selector: '[data-ce="rowlabels"]', kind: 'group' },
@@ -1055,6 +1076,7 @@ export function render(container) {
     editor = attachChartEditor({
       key: 'correlogramNetwork', svg, mount: chartPanel, lang: getLang(),
       filename: t('correlogram.title') + '-red-' + method,
+      rScript: rScriptCfg,
       elements: [
         { id: 'title', create: { text: t('correlogram.netFigTitle', { method: method === 'pearson' ? t('correlogram.pearson') : t('correlogram.spearman') }), x: W / 2, y: 20, anchor: 'middle', cls: 'ce-title' } },
         { id: 'labels', selector: '[data-ce="labels"]', kind: 'group' },
