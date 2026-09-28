@@ -566,7 +566,7 @@ export function openOverlapModal(resultItem, opts = {}) {
       if (resultItem.method === 'stitched') {
         const note = document.createElement('p');
         note.className = 'ql-panel-note';
-        note.style.cssText = 'color:var(--warning);margin:0;';
+        note.style.cssText = 'color:var(--warning-ink);margin:0;';
         note.textContent = t('sanger.overlapMethodStitched');
         wrap.appendChild(note);
       }
@@ -2514,7 +2514,7 @@ export function render(container) {
       detailWrap.innerHTML = '<h2>' + escapeHtml(r.id) + '</h2>';
       if (r.needsReview) {
         detailWrap.insertAdjacentHTML('beforeend',
-          '<p class="ql-panel-note" style="color:var(--warning);"><strong>' + t('sanger.reviewNeeded') + '</strong> — ' + t(REASON_KEY[r.reason] || r.reason) + '</p>');
+          '<p class="ql-panel-note" style="color:var(--warning-ink);"><strong>' + t('sanger.reviewNeeded') + '</strong> — ' + t(REASON_KEY[r.reason] || r.reason) + '</p>');
       }
       const stats = document.createElement('div');
       stats.className = 'ql-stats';

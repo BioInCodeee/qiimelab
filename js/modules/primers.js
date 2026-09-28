@@ -1023,7 +1023,7 @@ export function render(container) {
       const { headers, rows } = parseTable(taxText);
       const { map: taxMap, idCol, taxCol } = buildTaxonomyMap(headers, rows);
       if (!idCol || !taxCol) {
-        resultsCard.insertAdjacentHTML('beforeend', '<p class="ql-field-help" style="margin-top:12px;color:var(--warning);">' + t('primers.covTaxNotRecognised') + '</p>');
+        resultsCard.insertAdjacentHTML('beforeend', '<p class="ql-field-help" style="margin-top:12px;color:var(--warning-ink);">' + t('primers.covTaxNotRecognised') + '</p>');
       } else {
         const grouped = groupCoverageByTaxon(cov, taxMap, RANK_DEPTHS[s.covRankIdx]);
         const scroll = document.createElement('div');

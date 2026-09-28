@@ -33,7 +33,7 @@ const DARK = { ...LIGHT, ...block(/:root\[data-theme="dark"\] \[data-ds="v2"\]\s
 const DARK_MQ = block(/:root:not\(\[data-theme="light"\]\) \[data-ds="v2"\]\s*\{([^}]*)\}/);
 check('los dos bloques oscuros (media query y data-theme) son idénticos',
   JSON.stringify(DARK_MQ) === JSON.stringify(block(/:root\[data-theme="dark"\] \[data-ds="v2"\]\s*\{([^}]*)\}/)));
-check('v2 no redefine ningún color de DATOS', !Object.keys({ ...LIGHT, ...DARK }).some((k) => /^(cat-\d|enriched|depleted|neutral|corr-|good$|warning|critical)/.test(k)));
+check('v2 no redefine ningún color de DATOS', !Object.keys({ ...LIGHT, ...DARK }).some((k) => /^(cat-\d|enriched|depleted|neutral|corr-|good$|warning$|critical$)/.test(k)));
 
 const hex = (h) => { h = h.replace('#', ''); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); };
 const lum = (rgb) => { const c = rgb.map((v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
@@ -49,9 +49,27 @@ for (const [name, T] of [['claro', LIGHT], ['oscuro', DARK]]) {
     ['good-ink / page (KPI)', T['good-ink'], T.page],
   ].map(([n, a, b]) => [n, ratio(hex(a), hex(b))]);
   pairs.push(['good-ink / insignia (good 16% sobre surface)', ratio(hex(T['good-ink']), mix(good, hex(T.surface), 0.16))]);
+  pairs.push(['warning-ink / page', ratio(hex(T['warning-ink']), hex(T.page))]);
+  pairs.push(['warning-ink / insignia (warning 22% sobre surface)', ratio(hex(T['warning-ink']), mix(hex(ROOT.warning), hex(T.surface), 0.22))]);
   const bad = pairs.filter(([, r]) => r < 4.5);
   check(`${name}: todo el texto v2 ≥ 4,5:1`, bad.length === 0, bad.map(([n, r]) => n + ' ' + r.toFixed(2)).join(', '));
   console.log('      ' + pairs.map(([n, r]) => n + ' ' + r.toFixed(1)).join(' · '));
+}
+
+// ---------- 1a. --good / --warning nunca como color de TEXTO ----------
+// Como texto dan 3,2:1 y 1,8:1 sobre claro: el color de datos va en el fondo,
+// el borde o el indicador, y el texto en su tono --good-ink / --warning-ink.
+{
+  const { readdirSync } = await import('node:fs');
+  const files = ['css/components.css', 'css/base.css', 'css/print.css'];
+  const walk = (d) => readdirSync(APP_ROOT + '/' + d, { withFileTypes: true }).forEach((e) => {
+    if (e.isDirectory()) walk(d + '/' + e.name); else if (e.name.endsWith('.js')) files.push(d + '/' + e.name);
+  });
+  walk('js');
+  const re = /(?<![-\w])color\s*[:=]\s*['"]?var\(--(good|warning)\)/g;
+  const hits = files.flatMap((f) => readFileSync(APP_ROOT + '/' + f, 'utf8').split('\n')
+    .map((l, i) => (l.match(re) ? f + ':' + (i + 1) : null)).filter(Boolean));
+  check('ningún texto en var(--good) / var(--warning) (usar --good-ink / --warning-ink)', hits.length === 0, hits.join(', '));
 }
 
 // ---------- 1b. marca frente a colores de DATOS ----------

@@ -1028,7 +1028,7 @@ export function render(container) {
         '<div class="ql-stat"><div class="ql-stat-label">' + t('phylo.statWidth') + '</div><div class="ql-stat-value" style="font-size:20px;">' + alignedOrdered[0].length + '</div></div>');
       if (s.correction === 'jc' && saturated.length > 0) {
         statsBox.insertAdjacentHTML('beforeend',
-          '<div class="ql-stat"><div class="ql-stat-label">' + t('phylo.statSaturated') + '</div><div class="ql-stat-value" style="font-size:20px;color:var(--warning);">' + saturated.length + '</div></div>');
+          '<div class="ql-stat"><div class="ql-stat-label">' + t('phylo.statSaturated') + '</div><div class="ql-stat-value" style="font-size:20px;color:var(--warning-ink);">' + saturated.length + '</div></div>');
       }
       if (nniInfo) {
         statsBox.insertAdjacentHTML('beforeend',

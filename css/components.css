@@ -474,8 +474,9 @@ svg.ql-brand-mark {
   display: inline-block;
 }
 .ql-badge.ql-badge-muted { background: color-mix(in srgb, var(--ink-muted) 20%, transparent); color: var(--ink-2); }
-.ql-badge.ql-badge-good { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
-.ql-badge.ql-badge-warn { background: color-mix(in srgb, var(--warning) 22%, transparent); color: #8a5a00; }
+/* estado: el color de DATOS va en el fondo/indicador; el texto, en su tono -ink (≥ 4,5:1) */
+.ql-badge.ql-badge-good { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good-ink, var(--good)); }
+.ql-badge.ql-badge-warn { background: color-mix(in srgb, var(--warning) 22%, transparent); color: var(--warning-ink, #8a5a00); }
 .ql-badge.ql-badge-crit { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical); }
 
 /* ---------- dropzone ---------- */
@@ -575,7 +576,7 @@ svg.ql-brand-mark {
 .ql-consensus th[scope="row"] { text-align: left; font-weight: 600; white-space: nowrap; }
 .ql-consensus .ql-cons-diag { font-weight: 700; background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .ql-cons-disc { color: var(--critical); font-size: 12px; white-space: nowrap; }
-.ql-cons-ok { color: var(--good); font-weight: 700; }
+.ql-cons-ok { color: var(--good-ink, var(--good)); font-weight: 700; }
 
 /* ---------- calculadora UFC/mL ---------- */
 .ql-ufc-table td { vertical-align: middle; padding: 5px 8px 5px 0; }
@@ -589,7 +590,7 @@ svg.ql-brand-mark {
 .ql-ufc-table td:nth-child(2) { min-width: 90px; }
 .ql-ufc-table td:nth-child(3), .ql-ufc-table td:nth-child(4) { min-width: 76px; max-width: 110px; }
 .ql-ufc-out { color: var(--ink); white-space: nowrap; }
-.ql-ufc-bad .ql-ufc-out { color: var(--warning); }
+.ql-ufc-bad .ql-ufc-out { color: var(--warning-ink, var(--warning)); }
 .ql-ufc-bad td:nth-child(4) .ql-ufc-in { border-color: color-mix(in srgb, var(--warning) 55%, var(--border-strong)); }
 
 /* ---------- checklist de datos requeridos ---------- */
@@ -1064,7 +1065,7 @@ table.ql-table td.ql-num { font-family: var(--font-mono); }
   color: var(--ink-2);
 }
 .ql-code .tok-comment { color: var(--ink-muted); }
-.ql-code .tok-string { color: var(--good); }
+.ql-code .tok-string { color: var(--good-ink, var(--good)); }
 .ql-code .tok-fn { color: var(--accent); }
 
 .ql-note { font-size: 12px; color: var(--ink-muted); margin: 14px 0 0; }
@@ -2295,7 +2296,7 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
 
 .ql-inference-banner svg {
   flex: none;
-  color: var(--warning);
+  color: var(--warning-ink, var(--warning)); /* icono de aviso: --warning da 1,8:1 sobre claro (< 3:1) */
   margin-top: 2px;
 }
 
@@ -2417,7 +2418,6 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
 [data-ds="v2"] .ql-modcard p { color: var(--ink-2); }
 [data-ds="v2"] .ql-modcard-name { color: var(--ink-muted); }
 [data-ds="v2"] .ql-badge { font-family: var(--font-body); font-weight: 600; font-size: 11px; letter-spacing: 0.01em; }
-[data-ds="v2"] .ql-badge.ql-badge-good { color: var(--good-ink); }
 [data-ds="v2"] .ql-modmore a { font-weight: 500; }
 
 /* ============================================================

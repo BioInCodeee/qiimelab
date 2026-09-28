@@ -115,10 +115,14 @@ const VK = { good: 'Good', warning: 'Warn', critical: 'Crit' };
 function verdictColor(level) {
   return level === 'good' ? 'var(--good)' : level === 'warning' ? 'var(--warning)' : level === 'critical' ? 'var(--critical)' : 'var(--ink-muted)';
 }
+// el mismo estado como color de TEXTO: --good/--warning dan 3,2:1 / 1,8:1
+// sobre claro; su tono -ink (css/tokens.css) queda ≥ 4,5:1 en los dos temas
+function verdictInk(level) {
+  return level === 'good' ? 'var(--good-ink)' : level === 'warning' ? 'var(--warning-ink)' : verdictColor(level);
+}
 function verdictBadge(level) {
   const c = verdictColor(level);
-  const textCol = level === 'warning' ? '#8a5a00' : c;
-  return '<span class="ql-badge" style="flex:none;background:color-mix(in srgb, ' + c + ' 16%, transparent);color:' + textCol + ';">' + t('qc.verdict.' + level) + '</span>';
+  return '<span class="ql-badge" style="flex:none;background:color-mix(in srgb, ' + c + ' 16%, transparent);color:' + verdictInk(level) + ';">' + t('qc.verdict.' + level) + '</span>';
 }
 
 // ---------------------------------------------------------------------------
@@ -403,7 +407,7 @@ function metricCard(container, { titleKey, verdict, explainKey, interpretKey, ve
   texts.style.marginTop = '12px';
   if (explainKey) texts.innerHTML += '<p class="ql-panel-note" style="margin-bottom:6px;">' + t(explainKey) + '</p>';
   if (interpretKey) texts.innerHTML += '<p class="ql-field-help" style="margin:0 0 6px;">' + t(interpretKey) + '</p>';
-  if (verdictTextKey) texts.innerHTML += '<p style="font-size:12.5px;margin:6px 0 0;"><strong style="color:' + verdictColor(verdict) + ';">' + t('qc.verdict.' + verdict) + ':</strong> ' + t(verdictTextKey, verdictParams || {}) + '</p>';
+  if (verdictTextKey) texts.innerHTML += '<p style="font-size:12.5px;margin:6px 0 0;"><strong style="color:' + verdictInk(verdict) + ';">' + t('qc.verdict.' + verdict) + ':</strong> ' + t(verdictTextKey, verdictParams || {}) + '</p>';
   if (noteKey) texts.innerHTML += '<p class="ql-field-help" style="margin:6px 0 0;font-style:italic;">' + t(noteKey) + '</p>';
   card.appendChild(texts);
   container.appendChild(card);
@@ -714,7 +718,7 @@ function renderGlobalSummary(container, entries) {
 
   const line = document.createElement('p');
   line.style.cssText = 'margin:12px 0 0;font-size:13.5px;';
-  line.innerHTML = '<strong style="color:' + verdictColor(verdict) + ';">' +
+  line.innerHTML = '<strong style="color:' + verdictInk(verdict) + ';">' +
     t('qc.summary.verdictLabel') + ':</strong> ' + t('qc.summary.verdict' + VK[verdict]);
   card.appendChild(line);
 

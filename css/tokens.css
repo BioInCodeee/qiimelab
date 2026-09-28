@@ -244,6 +244,8 @@
      blanco; en v2 el verde de datos queda como indicador y el texto va en
      este tono, ≥ 4,5:1 también sobre su fondo teñido */
   --good-ink: #166534;
+  /* igual para --warning (#fab219): como texto da 1,8:1 sobre blanco */
+  --warning-ink: #8a5a00;
 
   --font-display: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-body: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -286,6 +288,7 @@
     --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 50%, transparent);
     --highlight: #f59e0b;
     --good-ink: #4ade80;
+    --warning-ink: #fbbf24;
   }
 }
 
@@ -307,4 +310,5 @@
   --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 50%, transparent);
   --highlight: #f59e0b;
   --good-ink: #4ade80;
+  --warning-ink: #fbbf24;
 }

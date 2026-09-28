@@ -283,7 +283,7 @@ export function render(container) {
     if (matched < matrix.samples.length) {
       const w = document.createElement('p');
       w.className = 'ql-field-help';
-      w.style.color = 'var(--warning)';
+      w.style.color = 'var(--warning-ink)';
       w.textContent = t('venn.unmatched', { n: matrix.samples.length - matched, total: matrix.samples.length });
       controls.appendChild(w);
     }

@@ -61,7 +61,7 @@ export function render(container) {
   results.forEach((r) => {
     const tr = document.createElement('tr');
     const badge = r.pass
-      ? '<span style="color:var(--good);font-weight:600;">✓</span>'
+      ? '<span style="color:var(--good-ink);font-weight:600;">✓</span>'
       : '<span style="color:var(--critical);font-weight:600;">✗</span>';
     tr.innerHTML =
       '<td>' + badge + '</td>' +

@@ -260,7 +260,7 @@ export function render(container) {
 
     const verdict = document.createElement('p');
     verdict.style.cssText = 'margin:12px 0 0;font-size:13px;';
-    verdict.innerHTML = '<strong style="color:' + (sig ? 'var(--good)' : 'var(--ink-muted)') + ';">' +
+    verdict.innerHTML = '<strong style="color:' + (sig ? 'var(--good-ink)' : 'var(--ink-muted)') + ';">' +
       (sig ? t('beta.permSig') : t('beta.permNs')) + '</strong> ' +
       t('beta.permInterpret', { pct: (r.R2 * 100).toFixed(1), group: escapeHtml(permGroupCol), n: r.permutations });
     card.appendChild(verdict);
