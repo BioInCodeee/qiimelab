@@ -79,7 +79,12 @@ function supExp(n) {
   return String(n).split('').map((c) => map[c] || c).join('');
 }
 
-export function render(container) {
+/**
+ * @param {HTMLElement} container
+ * @param {{ embedded?: boolean }} [opts]  embedded: dentro de la pestaña
+ *        "Calculadora UFC/mL" de #/recuentos — sin cabecera de página propia
+ */
+export function render(container, opts = {}) {
   let s = load();
 
   function computeRows() {
@@ -97,13 +102,15 @@ export function render(container) {
     container.innerHTML = '';
     save(s);
 
-    const header = document.createElement('header');
-    header.className = 'ql-page-header';
-    header.innerHTML =
-      '<p class="ql-eyebrow">' + t('ufc.eyebrow') + '</p>' +
-      '<h1 class="ql-page-title">' + t('ufc.title') + '</h1>' +
-      '<p class="ql-page-sub">' + t('ufc.subtitle') + '</p>';
-    container.appendChild(header);
+    if (!opts.embedded) {
+      const header = document.createElement('header');
+      header.className = 'ql-page-header';
+      header.innerHTML =
+        '<p class="ql-eyebrow">' + t('ufc.eyebrow') + '</p>' +
+        '<h1 class="ql-page-title">' + t('ufc.title') + '</h1>' +
+        '<p class="ql-page-sub">' + t('ufc.subtitle') + '</p>';
+      container.appendChild(header);
+    }
 
     const grid = document.createElement('div');
     grid.className = 'ql-grid-2';
@@ -239,7 +246,7 @@ export function render(container) {
     const link = document.createElement('p');
     link.className = 'ql-field-help';
     link.style.marginTop = '14px';
-    link.innerHTML = t('ufc.recuentosNote') + ' <a href="#/recuentos">' + t('nav.recuentos') + '</a>.';
+    link.innerHTML = t('ufc.recuentosNote') + ' <a href="#/recuentos">' + t(opts.embedded ? 'recuentos.sectionData' : 'nav.recuentos') + '</a>.';
     ctrl.appendChild(link);
 
     grid.appendChild(ctrl);

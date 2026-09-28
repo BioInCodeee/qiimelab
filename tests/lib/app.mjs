@@ -7,7 +7,7 @@ export { sleep };
 
 // 19 rutas de módulo (#/…#/validacion) + la subvista "Red" del correlograma = 20.
 export const ROUTES = ['#/', '#/cargar', '#/barplots', '#/alfa', '#/beta', '#/diferencial',
-  '#/recuentos', '#/ufc', '#/primers', '#/arbol', '#/sanger', '#/venn', '#/correlograma', '#/funcional', '#/qc', '#/informe',
+  '#/recuentos', '#/recuentos?tab=calc', '#/primers', '#/arbol', '#/sanger', '#/venn', '#/correlograma', '#/funcional', '#/qc', '#/informe',
   '#/recursos', '#/glosario', '#/validacion'];
 
 // carga TODOS los ejemplos reales (+ conteos sintéticos + 3 comparaciones + 2 recuentos)
@@ -59,7 +59,7 @@ export async function walkRoute(c, route, { report = false, onInfo = () => {} } 
     await c.ev(`(() => { const n = document.querySelector('#clR'); if (n) { n.value = '0.1'; n.dispatchEvent(new Event('change')); } })()`);
     await sleep(400);
   }
-  if (route === '#/ufc') {
+  if (route === '#/recuentos?tab=calc') {
     // rellenar una fila y probar el envío a #/recuentos como serie nueva
     await c.ev(`(() => {
       const tr = document.querySelector('.ql-ufc-table tbody tr');

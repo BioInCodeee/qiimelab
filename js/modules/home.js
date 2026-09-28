@@ -27,7 +27,7 @@ const MODULES_INFO = [
 ];
 
 const MORE_LINKS = [
-  { route: 'ufc', navKey: 'nav.ufc' },
+  { route: 'recuentos?tab=calc', navKey: 'nav.ufc' },
   { route: 'informe', navKey: 'nav.informe' },
   { route: 'recursos', navKey: 'nav.recursos' },
   { route: 'glosario', navKey: 'nav.glosario' },

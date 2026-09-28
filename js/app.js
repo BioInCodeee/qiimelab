@@ -40,7 +40,9 @@ const moduleLoaders = {
   temporal: () => import('./modules/temporal.js'),
   diferencial: () => import('./modules/differentialAbundance.js'),
   recuentos: () => import('./modules/microbialCounts.js'),
-  ufc: () => import('./modules/cfuCalculator.js'),
+  // #/ufc: la calculadora vive ahora como pestaña de #/recuentos (Fase 2, B4);
+  // el alias redirige para no romper enlaces guardados
+  ufc: () => { location.replace('#/recuentos?tab=calc'); return import('./modules/microbialCounts.js'); },
   calculadora: () => import('./modules/labcalc.js'),
   primers: () => import('./modules/primers.js'),
   arbol: () => import('./modules/phylo.js'),

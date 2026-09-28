@@ -688,6 +688,7 @@ export default {
     // gestor de series
     seriesTitle: 'Organismos cargados ({n})',
     seriesNote: 'Cada organismo es una serie con su propio mapeo de columnas. Renombra, ajusta el mapeo o quita las que no quieras.',
+    sectionData: 'Análisis de recuentos', sectionCalc: 'Calculadora UFC/mL',
     mappingSummary: 'Mapeo de columnas — valor: {value} · grupos: {groups}',
     labelAria: 'Nombre del organismo',
     add: '+ Añadir archivo',
