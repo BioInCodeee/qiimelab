@@ -18,6 +18,10 @@ const {
   getDefaultCommercialMix,
   computeCommercialMix,
   RECOMMENDED_PRIMER_FINAL_UM,
+  getDefaultQpcrMix,
+  qpcrReactionCount,
+  computeQpcrMix,
+  QPCR_PRIMER_FINAL_UM,
   render,
 } = await import(APP_ROOT + '/js/modules/labcalc.js');
 
@@ -429,6 +433,26 @@ console.log('\n--- 14. Master Mix — Modo A: Master Mix comercial (2X/5X/10X) -
 }
 
 
+console.log('\n--- qPCR (Fase 2, B4): química, sonda y recuento de placa ---');
+{
+  check('placa: (8 muestras + 5 estándares + 1 NTC) × 3 réplicas = 42', qpcrReactionCount({ samples: 8, standards: 5, ntc: 1, replicates: 3 }) === 42);
+  check('placa: réplicas 0 cuenta como 1; valores vacíos como 0', qpcrReactionCount({ samples: 4, standards: '', ntc: 1, replicates: 0 }) === 5);
+  const sy = computeQpcrMix(getDefaultQpcrMix('sybr'));
+  const v = (res, id) => (res.reagents.find((r) => r.id === id) || {}).unitVol;
+  check('SYBR 20 µL: mezcla 2X = 10 µL', approxEqual(v(sy, 'mix'), 10));
+  check('SYBR: cebadores a 0,4 µM desde 10 µM = 0,8 µL cada uno', QPCR_PRIMER_FINAL_UM.sybr === 0.4 && approxEqual(v(sy, 'primerFwd'), 0.8) && approxEqual(v(sy, 'primerRev'), 0.8));
+  check('SYBR: sin fila de sonda', v(sy, 'probe') === undefined);
+  check('SYBR: agua completa hasta 20 µL (6,4 µL con 2 µL de molde)', approxEqual(v(sy, 'h2o'), 6.4) && !sy.overflow);
+  const pr = computeQpcrMix(getDefaultQpcrMix('probe'));
+  check('Sonda: cebadores a 0,9 µM = 1,8 µL cada uno', approxEqual(v(pr, 'primerFwd'), 1.8));
+  check('Sonda: 0,25 µM desde 10 µM = 0,5 µL, dentro de la mezcla', approxEqual(v(pr, 'probe'), 0.5) && pr.reagents.find((r) => r.id === 'probe').inMix === true);
+  const sum = pr.reagents.reduce((a, r) => a + r.unitVol, 0);
+  check('Sonda: todo suma exactamente el volumen final (20 µL)', approxEqual(sum, 20) && approxEqual(v(pr, 'h2o'), 3.9));
+  const rows = calculateMasterMix(pr.reagents, 42, 10);
+  check('la placa de 42 reacciones + 10% pasa por el mismo multiplicador (46,2×)', approxEqual(rows.effectiveReactions, 46.2));
+  const big = computeQpcrMix({ ...getDefaultQpcrMix('probe'), templateVol: 10 });
+  check('molde excesivo en sonda: agua nunca negativa y overflow=true', v(big, 'h2o') === 0 && big.overflow === true);
+}
 
 console.log(failed ? '\n❌ ALGUNAS PRUEBAS FALLARON\n' : '\n✅ TODAS LAS PRUEBAS DE LAB CALC PASARON EXITOSAMENTE (100%)\n');
 process.exit(failed ? 1 : 0);

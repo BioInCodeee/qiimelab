@@ -3,7 +3,7 @@
 // preparación de disoluciones molares (m = C × V × MW) y diluciones (C1V1 = C2V2).
 
 import { t } from '../lib/i18n.js';
-import { escapeHtml } from '../lib/dom.js';
+import { escapeHtml, moreDetailsHtml } from '../lib/dom.js';
 
 const STORE_KEY = 'smart-175.labcalc';
 
@@ -583,7 +583,7 @@ export function computeCommercialMix(commercial) {
   const volPrimer = primerStock > 0 ? Math.round(((primerFinal * vf) / primerStock) * 10000) / 10000 : 0;
 
   const withoutWater = [
-    { id: 'mix', name: t('calc.mmComMixRowName', { x: fmtLabNumber(mixX, 2) }) || `Master Mix comercial (${fmtLabNumber(mixX, 2)}X)`, unitVol: volMix, inMix: true },
+    { id: 'mix', name: c.mixName || t('calc.mmComMixRowName', { x: fmtLabNumber(mixX, 2) }) || `Master Mix comercial (${fmtLabNumber(mixX, 2)}X)`, unitVol: volMix, inMix: true },
     { id: 'primerFwd', name: t('calc.mmDefaultFwd') || 'Cebador Forward', unitVol: volPrimer, inMix: true },
     { id: 'primerRev', name: t('calc.mmDefaultRev') || 'Cebador Reverse', unitVol: volPrimer, inMix: true },
     ...extras.map((e) => ({
@@ -599,6 +599,62 @@ export function computeCommercialMix(commercial) {
   const { reagents, water, overflow } = balanceWaterToVolume(withoutWater, vf, 'h2o');
 
   return { reagents, volMix, volPrimer, water, overflow };
+}
+
+// ---- qPCR (Fase 2, B4) -------------------------------------------------------
+// Una qPCR se prepara igual que el "Master Mix comercial" (mezcla 2X lista +
+// cebadores + molde + agua), así que reutiliza computeCommercialMix; lo que
+// cambia son los valores de partida y dos cosas propias de qPCR: la sonda
+// (química TaqMan/hidrólisis) y el nº de reacciones de la placa, que se
+// cuenta como (muestras + puntos de la curva estándar + NTC) × réplicas
+// técnicas. Concentraciones finales de partida (editables):
+//  - SYBR Green: cebadores 0,4 µM (rango habitual 0,1–0,5 µM).
+//  - Sonda (TaqMan): cebadores 0,9 µM y sonda 0,25 µM (las del protocolo
+//    estándar de Applied Biosystems para ensayos TaqMan).
+export const QPCR_PRIMER_FINAL_UM = Object.freeze({ sybr: 0.4, probe: 0.9 });
+export const QPCR_PROBE_FINAL_UM = 0.25;
+
+/** Valores de partida del modo qPCR para la química dada ('sybr' | 'probe'). */
+export function getDefaultQpcrMix(chem = 'sybr') {
+  const c = chem === 'probe' ? 'probe' : 'sybr';
+  return {
+    chem: c,
+    vf: 20,
+    mixX: 2,
+    primerStock: 10,
+    primerFinal: QPCR_PRIMER_FINAL_UM[c],
+    probeStock: 10,
+    probeFinal: QPCR_PROBE_FINAL_UM,
+    templateVol: 2,
+    extras: [],
+    plate: { samples: 8, standards: 5, ntc: 1, replicates: 3 },
+  };
+}
+
+/** Reacciones de una placa de qPCR: (muestras + estándares + NTC) × réplicas técnicas. */
+export function qpcrReactionCount(plate) {
+  const p = plate || {};
+  const n = (k) => Math.max(0, Math.floor(parseFloat(p[k]) || 0));
+  return (n('samples') + n('standards') + n('ntc')) * Math.max(1, n('replicates'));
+}
+
+/**
+ * Mezcla de qPCR: la del modo comercial con la fila de la mezcla rotulada por
+ * química y, si es de sonda, una fila derivada para la sonda
+ * (vol = conc. final × VF / stock), antes del agua.
+ */
+export function computeQpcrMix(q) {
+  const c = q || {};
+  const vf = Math.max(0, parseFloat(c.vf) || 0);
+  const probeStock = Math.max(0, parseFloat(c.probeStock) || 0);
+  const probeFinal = Math.max(0, parseFloat(c.probeFinal) || 0);
+  const volProbe = c.chem === 'probe' && probeStock > 0 ? Math.round(((probeFinal * vf) / probeStock) * 10000) / 10000 : 0;
+  const extras = [
+    ...(c.chem === 'probe' ? [{ id: 'probe', name: t('calc.qpcrProbeRow', { stock: fmtLabNumber(probeStock, 2) }), unitVol: volProbe, inMix: true }] : []),
+    ...(Array.isArray(c.extras) ? c.extras : []),
+  ];
+  const mixName = t(c.chem === 'probe' ? 'calc.qpcrMixRowProbe' : 'calc.qpcrMixRowSybr', { x: fmtLabNumber(parseFloat(c.mixX) || 0, 2) });
+  return { ...computeCommercialMix({ ...c, extras, mixName }), volProbe };
 }
 
 // ============================================================================
@@ -633,13 +689,38 @@ function defaultState() {
       lastAuto: 'v1',
     },
     masterMix: {
-      mode: 'commercial', // 'commercial' (Modo A, por defecto) | 'components' (Modo B)
+      mode: 'commercial', // 'commercial' (Modo A, por defecto) | 'components' (Modo B) | 'qpcr'
       numReactions: 10,
       excessPct: 10,
       dnaConc: '',
       dnaTargetMass: 30,
       reagents: getDefaultMasterMixReagents(),
       commercial: getDefaultCommercialMix(),
+      qpcr: getDefaultQpcrMix('sybr'),
+    },
+  };
+}
+
+/** Sanea el estado qPCR guardado (mismo criterio que el comercial). */
+function loadQpcr(raw) {
+  const chem = raw && raw.chem === 'probe' ? 'probe' : 'sybr';
+  const def = getDefaultQpcrMix(chem);
+  if (!raw || typeof raw !== 'object') return def;
+  const numOr = (v, d) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : d);
+  const p = raw.plate && typeof raw.plate === 'object' ? raw.plate : {};
+  return {
+    chem,
+    vf: numOr(raw.vf, def.vf), mixX: numOr(raw.mixX, def.mixX),
+    primerStock: numOr(raw.primerStock, def.primerStock), primerFinal: numOr(raw.primerFinal, def.primerFinal),
+    probeStock: numOr(raw.probeStock, def.probeStock), probeFinal: numOr(raw.probeFinal, def.probeFinal),
+    templateVol: numOr(raw.templateVol, def.templateVol),
+    extras: Array.isArray(raw.extras) ? raw.extras.map((r, i) => ({
+      id: String(r.id || `q_${i}_${Date.now()}`), name: typeof r.name === 'string' ? r.name : '',
+      unitVol: numOr(r.unitVol, 0), inMix: r.inMix !== false,
+    })) : [],
+    plate: {
+      samples: numOr(p.samples, def.plate.samples), standards: numOr(p.standards, def.plate.standards),
+      ntc: numOr(p.ntc, def.plate.ntc), replicates: numOr(p.replicates, def.plate.replicates),
     },
   };
 }
@@ -657,7 +738,8 @@ function loadState() {
         molarity: { ...def.molarity, ...(raw.molarity || {}) },
         dilution: { ...def.dilution, ...(raw.dilution || {}) },
         masterMix: raw.masterMix && typeof raw.masterMix === 'object' ? {
-          mode: ['commercial', 'components'].includes(raw.masterMix.mode) ? raw.masterMix.mode : def.masterMix.mode,
+          mode: ['commercial', 'components', 'qpcr'].includes(raw.masterMix.mode) ? raw.masterMix.mode : def.masterMix.mode,
+          qpcr: loadQpcr(raw.masterMix.qpcr),
           numReactions: typeof raw.masterMix.numReactions === 'number' ? raw.masterMix.numReactions : (parseFloat(raw.masterMix.numReactions) || def.masterMix.numReactions),
           excessPct: typeof raw.masterMix.excessPct === 'number' ? raw.masterMix.excessPct : (parseFloat(raw.masterMix.excessPct) || def.masterMix.excessPct),
           dnaConc: typeof raw.masterMix.dnaConc === 'string' || typeof raw.masterMix.dnaConc === 'number' ? String(raw.masterMix.dnaConc) : def.masterMix.dnaConc,
@@ -1442,6 +1524,7 @@ export function render(container) {
     [
       ['commercial', t('calc.mmModeCommercial')],
       ['components', t('calc.mmModeComponents')],
+      ['qpcr', t('calc.mmModeQpcr')],
     ].forEach(([m, label]) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -1460,9 +1543,86 @@ export function render(container) {
 
     if (s.masterMix.mode === 'components') {
       paintMasterMixComponents(parent);
+    } else if (s.masterMix.mode === 'qpcr') {
+      paintQpcrSetup(parent);
+      paintMasterMixCommercial(parent, { variant: 'qpcr' });
     } else {
       paintMasterMixCommercial(parent);
     }
+  }
+
+  // qPCR: química (SYBR / sonda), sonda y recuento de reacciones de la placa.
+  // La tabla de la mezcla la pinta paintMasterMixCommercial({variant:'qpcr'}).
+  function paintQpcrSetup(parent) {
+    const q = s.masterMix.qpcr;
+    const card = document.createElement('section');
+    card.className = 'ql-card ql-panel ql-qpcr-setup';
+    card.style.marginBottom = '18px';
+    const total = qpcrReactionCount(q.plate);
+    const num = (id, label, val, extra = '') => `
+        <div class="ql-calc-control-group">
+          <label class="ql-calc-label" for="${id}">${label}</label>
+          <input type="number" id="${id}" min="0" step="1" value="${val}" class="ql-calc-number-input" style="width:110px;" ${extra} />
+        </div>`;
+    card.innerHTML = `
+      <h2>${t('calc.qpcrTitle')}</h2>
+      <p class="ql-panel-note">${t('calc.qpcrDesc')}</p>
+      <div class="ql-segmented" role="group" aria-label="${escapeHtml(t('calc.qpcrChemLabel'))}" style="margin:6px 0 14px;">
+        <button type="button" class="ql-seg-btn${q.chem === 'sybr' ? ' is-on' : ''}" data-chem="sybr">${t('calc.qpcrChemSybr')}</button>
+        <button type="button" class="ql-seg-btn${q.chem === 'probe' ? ' is-on' : ''}" data-chem="probe">${t('calc.qpcrChemProbe')}</button>
+      </div>
+      ${q.chem === 'probe' ? `<div class="ql-calc-controls-bar">
+        <div class="ql-calc-control-group">
+          <label class="ql-calc-label" for="ql-qpcr-probe-stock">${t('calc.qpcrProbeStock')}</label>
+          <div class="ql-calc-unit-group" style="width:120px;"><input type="number" id="ql-qpcr-probe-stock" min="0" step="any" value="${q.probeStock}" class="ql-calc-number-input" /><span class="ql-calc-unit-badge">µM</span></div>
+        </div>
+        <div class="ql-calc-control-group">
+          <label class="ql-calc-label" for="ql-qpcr-probe-final">${t('calc.qpcrProbeFinal')}</label>
+          <div class="ql-calc-unit-group" style="width:120px;"><input type="number" id="ql-qpcr-probe-final" min="0" step="any" value="${q.probeFinal}" class="ql-calc-number-input" /><span class="ql-calc-unit-badge">µM</span></div>
+        </div>
+      </div>` : ''}
+      <h3 class="ql-calc-subtitle" style="margin:14px 0 6px;font-size:13px;">${t('calc.qpcrPlateTitle')}</h3>
+      <div class="ql-calc-controls-bar">
+        ${num('ql-qpcr-samples', t('calc.qpcrSamples'), q.plate.samples)}
+        ${num('ql-qpcr-standards', t('calc.qpcrStandards'), q.plate.standards)}
+        ${num('ql-qpcr-ntc', t('calc.qpcrNtc'), q.plate.ntc)}
+        ${num('ql-qpcr-reps', t('calc.qpcrReplicates'), q.plate.replicates, 'min="1"')}
+      </div>
+      <p class="ql-field-help" id="ql-qpcr-total">${t('calc.qpcrTotal', { n: total })}</p>
+      <button type="button" id="ql-qpcr-use" class="ql-btn ql-btn-sm">${t('calc.qpcrUseTotal', { n: total })}</button>
+      ${moreDetailsHtml(t('ui.moreDetails'), t('calc.qpcrHelp'))}`;
+    parent.appendChild(card);
+
+    card.querySelectorAll('[data-chem]').forEach((b) => b.addEventListener('click', () => {
+      const chem = b.getAttribute('data-chem');
+      if (chem === q.chem) return;
+      // cambiar de química recoloca las concentraciones de cebador a las de
+      // partida de esa química (el resto de lo escrito se conserva)
+      q.chem = chem;
+      q.primerFinal = QPCR_PRIMER_FINAL_UM[chem];
+      saveState(s); paint();
+    }));
+    const probeStock = card.querySelector('#ql-qpcr-probe-stock');
+    const probeFinal = card.querySelector('#ql-qpcr-probe-final');
+    [probeStock, probeFinal].forEach((el) => el && el.addEventListener('change', () => {
+      q.probeStock = Math.max(0, parseFloat(probeStock.value) || 0);
+      q.probeFinal = Math.max(0, parseFloat(probeFinal.value) || 0);
+      saveState(s); paint();
+    }));
+    const plateIds = { samples: '#ql-qpcr-samples', standards: '#ql-qpcr-standards', ntc: '#ql-qpcr-ntc', replicates: '#ql-qpcr-reps' };
+    const totalP = card.querySelector('#ql-qpcr-total');
+    const useBtn = card.querySelector('#ql-qpcr-use');
+    Object.entries(plateIds).forEach(([k, sel]) => card.querySelector(sel).addEventListener('input', (e) => {
+      q.plate[k] = Math.max(k === 'replicates' ? 1 : 0, parseInt(e.target.value, 10) || 0);
+      const n = qpcrReactionCount(q.plate);
+      totalP.textContent = t('calc.qpcrTotal', { n });
+      useBtn.textContent = t('calc.qpcrUseTotal', { n });
+      saveState(s);
+    }));
+    useBtn.addEventListener('click', () => {
+      s.masterMix.numReactions = Math.max(1, qpcrReactionCount(q.plate));
+      saveState(s); paint();
+    });
   }
 
   function paintMasterMixComponents(parent) {
@@ -1805,16 +1965,18 @@ export function render(container) {
   // --------------------------------------------------------------------------
   // SUB-PESTAÑA 4, MODO A: MASTER MIX COMERCIAL (2X/5X/10X)
   // --------------------------------------------------------------------------
-  function paintMasterMixCommercial(parent) {
+  function paintMasterMixCommercial(parent, { variant = 'commercial' } = {}) {
+    const isQpcr = variant === 'qpcr';
     const card = document.createElement('section');
     card.className = 'ql-card ql-panel';
-    const cm = s.masterMix.commercial;
+    const cm = isQpcr ? s.masterMix.qpcr : s.masterMix.commercial;
+    const recommendedPrimer = isQpcr ? QPCR_PRIMER_FINAL_UM[cm.chem] : RECOMMENDED_PRIMER_FINAL_UM;
 
     card.innerHTML = `
       <div class="ql-calc-header-row">
         <div>
-          <h2>${t('calc.mmTitle')}</h2>
-          <p class="ql-panel-note">${t('calc.mmComDesc')}</p>
+          <h2>${t(isQpcr ? 'calc.qpcrMixTitle' : 'calc.mmTitle')}</h2>
+          <p class="ql-panel-note">${t(isQpcr ? 'calc.qpcrMixDesc' : 'calc.mmComDesc')}</p>
         </div>
         <button type="button" id="ql-mmcom-reset" class="ql-btn ql-btn-subtle ql-btn-sm">${t('calc.mmReset')}</button>
       </div>
@@ -1866,11 +2028,11 @@ export function render(container) {
             <input type="number" id="ql-mmcom-primer-final" min="0" step="any" value="${cm.primerFinal}" class="ql-calc-number-input" />
             <span class="ql-calc-unit-badge">µM</span>
           </div>
-          <button type="button" id="ql-mmcom-primer-recommend" class="ql-calc-preset-tag" style="margin-top:6px; align-self:flex-start;">${t('calc.mmComPrimerUseRecommended')}</button>
+          <button type="button" id="ql-mmcom-primer-recommend" class="ql-calc-preset-tag" style="margin-top:6px; align-self:flex-start;">${isQpcr ? t('calc.qpcrPrimerUseRecommended', { v: recommendedPrimer }) : t('calc.mmComPrimerUseRecommended')}</button>
         </div>
         <div id="ql-mmcom-primer-hint" class="ql-calc-control-hint"></div>
       </div>
-      <div class="ql-metric-explain">${t('calc.mmPrimerConcHint')}</div>
+      <div class="ql-metric-explain">${t(isQpcr ? (cm.chem === 'probe' ? 'calc.qpcrPrimerHintProbe' : 'calc.qpcrPrimerHintSybr') : 'calc.mmPrimerConcHint')}</div>
 
       <div class="ql-calc-controls-bar" style="margin-top:12px;">
         <div class="ql-calc-control-group">
@@ -1972,7 +2134,7 @@ export function render(container) {
 
     // Ids fijos/derivados: sus filas se muestran de solo lectura (el valor
     // sale de la fórmula, no se edita celda a celda como en el Modo B).
-    const FIXED_IDS = new Set(['mix', 'primerFwd', 'primerRev', 'h2o', 'template']);
+    const FIXED_IDS = new Set(['mix', 'primerFwd', 'primerRev', 'probe', 'h2o', 'template']);
 
     function recalc() {
       s.masterMix.numReactions = Math.max(1, parseInt(inputRxns.value, 10) || 1);
@@ -1983,7 +2145,7 @@ export function render(container) {
       cm.primerFinal = Math.max(0, parseFloat(inputPrimerFinal.value) || 0);
       cm.templateVol = Math.max(0, parseFloat(inputTemplateVol.value) || 0);
 
-      const mixRes = computeCommercialMix(cm);
+      const mixRes = isQpcr ? computeQpcrMix(cm) : computeCommercialMix(cm);
       const calcRes = calculateMasterMix(mixRes.reagents, s.masterMix.numReactions, s.masterMix.excessPct);
 
       badgeEffective.innerHTML = t('calc.mmEffectiveBadge', {
@@ -2076,7 +2238,7 @@ export function render(container) {
     inputDnaMass.addEventListener('input', handleDnaInputChange);
 
     primerRecommendBtn.addEventListener('click', () => {
-      inputPrimerFinal.value = RECOMMENDED_PRIMER_FINAL_UM;
+      inputPrimerFinal.value = recommendedPrimer;
       recalc();
     });
 
@@ -2133,7 +2295,7 @@ export function render(container) {
 
     // Botón Restablecer (solo el propio de este modo, no toca s.masterMix.reagents)
     resetBtn.addEventListener('click', () => {
-      Object.assign(cm, getDefaultCommercialMix());
+      Object.assign(cm, isQpcr ? getDefaultQpcrMix(cm.chem) : getDefaultCommercialMix());
       s.masterMix.numReactions = 10;
       s.masterMix.excessPct = 10;
       s.masterMix.dnaConc = '';
