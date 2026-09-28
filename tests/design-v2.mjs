@@ -159,7 +159,7 @@ if (!findChrome()) {
       await document.fonts.ready;
       const hero = document.querySelector('#app-view .ql-hero-brand');
       if (!hero) return null;
-      const wm = hero.querySelector('.ql-wordmark-hero');
+      const wm = hero.querySelector('.ql-wordmark-hero') || hero.querySelector('.ql-hero-title');
       const motifBox = hero.querySelector('.ql-hero-motif');
       const svg = motifBox.querySelector('svg');
       const ms = getComputedStyle(motifBox);
@@ -171,7 +171,7 @@ if (!findChrome()) {
       const parse = (c) => c.match(/[\\d.]+/g).slice(0, 3).map(Number);
       const page = parse(getComputedStyle(document.body).backgroundColor);
       const motifRgb = parse(ms.color);
-      const texts = [...hero.querySelectorAll('.ql-eyebrow, .ql-wordmark-hero, .ql-hero-sub')].map((el) => {
+      const texts = [...hero.querySelectorAll('.ql-eyebrow, .ql-hero-title, .ql-hero-sub')].map((el) => {
         const r = el.getBoundingClientRect();
         const overlapsY = r.bottom > m.top && r.top < m.bottom;
         return { cls: el.className, fg: parse(getComputedStyle(el).color), alpha: overlapsY ? alphaAt(r.right) : 0 };
@@ -211,6 +211,20 @@ if (!findChrome()) {
           worst[0] + ' ' + worst[1].toFixed(2) + ' (opacidad efectiva ' + worst[2].toFixed(2) + ')');
         console.log(`      peor: ${worst[0]} ${worst[1].toFixed(2)}:1 con el motivo a opacidad efectiva ${worst[2].toFixed(2)}`);
         if (w === 1440) check(`${tag}: la barra lateral usa el mismo wordmark (Fira Sans)`, /^"?Fira Sans/.test(h.sidebarWm), h.sidebarWm);
+      }
+      // el mismo encabezado en las páginas de consulta (pageHero): glosario
+      for (const w of [375, 1440]) {
+        await c.setViewport(w, 900);
+        await c.ev(`location.hash = '#/glosario'`); await sleep(1200);
+        const h = await c.ev(HERO);
+        const tag = `${theme === 'light' ? 'claro' : 'oscuro'} ${w}px #/glosario`;
+        if (!h) { check(`${tag}: encabezado con motivo`, false); continue; }
+        check(`${tag}: motivo visible, sin scroll horizontal`, h.motifShown && h.dots >= 20 && h.overflow <= 0, JSON.stringify({ shown: h.motifShown, overflow: h.overflow }));
+        const worst = h.texts.map((tx) => {
+          const bg = h.motifRgb.map((v, i) => v * tx.alpha + h.page[i] * (1 - tx.alpha));
+          return [tx.cls, ratioRgb(tx.fg, bg), tx.alpha];
+        }).sort((a, b) => a[1] - b[1])[0];
+        check(`${tag}: texto del encabezado ≥ 4,5:1 sobre el motivo`, worst[1] >= 4.5, worst[0] + ' ' + worst[1].toFixed(2));
       }
     }
     check('0 errores de consola', c.problems.length === 0, c.problems.slice(0, 3).join(' | '));

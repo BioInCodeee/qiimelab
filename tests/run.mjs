@@ -45,6 +45,7 @@ const SUITE = [
   { name: 'methodequivalence', file: 'methodequivalence.mjs', kind: 'navegador' },
   { name: 'informe-completo', file: 'informe-completo.mjs', kind: 'navegador' },
   { name: 'design-v2', file: 'design-v2.mjs', kind: 'navegador' },
+  { name: 'design-v2-modules', file: 'design-v2-modules.mjs', kind: 'navegador' },
   { name: 'alpha-boxstats', file: 'alpha-boxstats.mjs', kind: 'navegador' },
   { name: 'venn-sets', file: 'venn-sets.mjs', kind: 'navegador' },
   { name: 'correlogram-pie-split', file: 'correlogram-pie-split.mjs', kind: 'navegador' },
