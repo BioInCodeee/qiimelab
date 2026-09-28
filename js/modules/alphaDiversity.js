@@ -8,7 +8,9 @@ import {
   collectAlphaMetrics, groupRichnessEstimators, RICHNESS_ESTIMATORS, countVectors,
 } from '../lib/alphaMetrics.js';
 import { loadExampleCommunityData, loadRealCommunityData, mountExampleButtons } from '../lib/exampleData.js';
-import { attachChartEditor, getFigureOptions } from '../lib/chartEditor.js';
+import { attachChartEditor, getFigureOptions, getStatsOptions } from '../lib/chartEditor.js';
+import { alphaScript } from '../lib/rScriptBuilders.js';
+import { R_EMBED_MAX_ROWS } from '../lib/rScript.js';
 import { svgEl, escapeHtml, plotClip } from '../lib/dom.js';
 import { showTooltip, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
@@ -264,6 +266,11 @@ export function render(container) {
       legendPositions: (legendPositions || []).map((p) => ({ ...p, label: legendPositionLabel(p.id, getLang()) })),
       onReset: () => paint(),
       startEditing: wasEditing,
+      rScript: groupNames.length >= 2 ? {
+        build: () => buildAlphaScript(curMetric, groupNames, perSampleRows, statsControls, ceKey),
+        hasDataFiles: perSampleRows.length > R_EMBED_MAX_ROWS ||
+          !!(curMetric.computed && state.taxaCounts && state.taxaCounts.rows.length > R_EMBED_MAX_ROWS),
+      } : null,
     });
 
     // tabla
@@ -285,6 +292,26 @@ export function render(container) {
     tableCard.appendChild(scrollDiv);
 
     renderGroupEstimators(groupCol);
+  }
+
+  // "Descargar script R": índice + Kruskal-Wallis + el mismo test por pares
+  // (automático o forzado) y el mismo ajuste que los corchetes del gráfico
+  function buildAlphaScript(curMetric, groupNames, rows, statsControls, ceKey) {
+    const so = getStatsOptions(ceKey);
+    let counts = null;
+    if (curMetric.computed && state.taxaCounts) {
+      const tc = state.taxaCounts;
+      const taxonKey = tc.taxonKey || tc.headers[0];
+      const { sampleIds, vectors } = countVectors(tc);
+      counts = { taxa: tc.rows.map((r) => String(r[taxonKey])), sampleIds, vectors };
+    }
+    return alphaScript({
+      metricName: curMetric.name, kind: curMetric.computed ? curMetric.name : null, computed: !!counts,
+      groupCol, groupOrder: groupNames, rows,
+      counts, testChoice: statsControls.testChoice,
+      overridden: !!(so.testOverride && so.testOverride !== 'auto'),
+      adjust: so.method || 'holm', threshold: so.threshold != null ? so.threshold : 0.05,
+    });
   }
 
   // Tabla comparativa por grupo: Chao2, jackknife 1º/2º orden, bootstrap — todos
