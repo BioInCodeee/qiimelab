@@ -25,6 +25,7 @@ import { getSlot, subscribe } from '../state.js';
 import { CATEGORICAL } from '../lib/palettes.js';
 import { makeGroupResolver } from '../lib/sampleMatch.js';
 import { svgEl, escapeHtml } from '../lib/dom.js';
+import { arcPath, polarPoint } from '../lib/sunburst.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { methodNoticeHtml } from '../lib/methodEquivalence.js';
 
@@ -46,7 +47,7 @@ function load() {
       return {
         fastaText: raw.fastaText,
         correction: raw.correction === 'jc' ? 'jc' : 'p',
-        layout: raw.layout === 'circular' ? 'circular' : 'rect',
+        layout: ['circular', 'sunburst'].includes(raw.layout) ? raw.layout : 'rect',
         nni: !!raw.nni,
         rooting: raw.rooting === 'midpoint' ? 'midpoint' : (raw.rooting === 'reference' ? 'reference' : 'none'),
         referenceLeaf: typeof raw.referenceLeaf === 'string' ? raw.referenceLeaf : '',
@@ -462,6 +463,12 @@ function drawCladogramCircular(svg, tree, { colorForLeaf = () => null, matchedCa
   }
 
   // Leyenda en SVG (recuadro)
+  appendBoxLegend(svg, matchedCategories, categoryColorMap, colorCol);
+}
+
+/** Leyenda de categorías en un recuadro en columna (arriba a la izquierda),
+ *  compartida por el cladograma circular y el sunburst. */
+function appendBoxLegend(svg, matchedCategories, categoryColorMap, colorCol) {
   if (matchedCategories.length > 0) {
     const legG = svgEl('g', { 'data-ce': 'legend', class: 'ql-legend' });
     const legBoxX = 20;
@@ -505,6 +512,117 @@ function drawCladogramCircular(svg, tree, { colorForLeaf = () => null, matchedCa
 
     svg.appendChild(legG);
   }
+}
+
+/**
+ * Vista sunburst del MISMO árbol NJ (Fase 3, C3): capas concéntricas, una por
+ * nivel topológico desde la raíz (centro). Cada nodo es un sector de anillo
+ * cuyo ángulo es proporcional a su nº de hojas, en el mismo orden que
+ * collectLeaves (así un clado es siempre un arco contiguo, como en el
+ * cladograma circular). Las hojas se prolongan hasta el anillo exterior para
+ * que todos los nombres queden alineados fuera. OJO: las longitudes de rama
+ * NO se representan (es una vista de la jerarquía, no de la distancia) —
+ * para las distancias, el rectangular o el circular.
+ * Color: por la columna de metadatos elegida si la hay (hojas con su
+ * categoría; un clado interno toma el color solo si todas sus hojas
+ * comparten categoría); si no, por clado de primer nivel, más tenue cuanto
+ * más interno. Devuelve las series de clado para la paleta del editor.
+ */
+function drawTreeSunburst(svg, tree, { matchedCategories = [], categoryColorMap = new Map(), colorCol = '', resolveCat = () => null } = {}) {
+  const leaves = collectLeaves(tree);
+  const n = leaves.length;
+  // profundidad topológica y nº de hojas por nodo
+  const depth = new Map(), nLeaves = new Map();
+  let maxD = 0;
+  (function walk(node, d) {
+    depth.set(node.id, d); maxD = Math.max(maxD, d);
+    if (!node.children.length) { nLeaves.set(node.id, 1); return 1; }
+    const c = node.children.reduce((a, ch) => a + walk(ch.node, d + 1), 0);
+    nLeaves.set(node.id, c);
+    return c;
+  })(tree, 0);
+
+  const ring = Math.max(22, Math.min(46, 300 / Math.max(1, maxD)));
+  const r0 = 18; // disco de la raíz
+  const R = r0 + ring * maxD;
+  const marginLabels = 170;
+  const cx = R + marginLabels, cy = R + marginLabels;
+  const W = 2 * (R + marginLabels), H = W;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const catIdxOf = (label) => { const cat = resolveCat(label); return cat ? matchedCategories.indexOf(cat) : -1; };
+  const useCats = matchedCategories.length > 0;
+  // categoría común de un clado (índice) o -1 si mezcla / sin categoría
+  const cladeCat = new Map();
+  (function cat(node) {
+    if (!node.children.length) { const c = catIdxOf(node.label); cladeCat.set(node.id, c); return c; }
+    const cs = node.children.map((ch) => cat(ch.node));
+    const c = cs.every((x) => x === cs[0]) ? cs[0] : -1;
+    cladeCat.set(node.id, c);
+    return c;
+  })(tree);
+  // sin columna de color: un color por clado de primer nivel (hijos de la raíz)
+  const topClade = new Map();
+  tree.children.forEach((ch, i) => { (function mark(node) { topClade.set(node.id, i); node.children.forEach((c) => mark(c.node)); })(ch.node); });
+  const cladeSeries = useCats ? [] : tree.children.map((_, i) => ({ id: 'clade' + i, label: t('phylo.sunburstClade', { n: i + 1 }) }));
+
+  const arcsG = svgEl('g', { class: 'ql-phylo-sunburst' });
+  const labelsG = svgEl('g', { 'data-ce': 'leaflabels' });
+  arcsG.appendChild(svgEl('circle', { cx, cy, r: r0 - 2, fill: 'var(--ink-muted)', 'fill-opacity': 0.35, 'data-ce-series-fill': 'branch' }));
+
+  (function draw(node, a0) {
+    const span = (nLeaves.get(node.id) / n) * 2 * Math.PI;
+    const d = depth.get(node.id);
+    const isLeaf = !node.children.length;
+    if (d > 0) {
+      const inner = r0 + ring * (d - 1), outer = isLeaf ? R : r0 + ring * d;
+      let fill, sid, op;
+      if (useCats) {
+        const ci = cladeCat.get(node.id);
+        fill = ci >= 0 ? categoryColorMap.get(matchedCategories[ci]) : 'var(--ink-muted)';
+        sid = ci >= 0 ? 's' + ci : 'branch';
+        op = isLeaf ? 0.9 : (ci >= 0 ? 0.35 + 0.35 * (d / maxD) : 0.18);
+      } else {
+        const ti = topClade.get(node.id);
+        fill = 'var(' + ['--cat-1', '--cat-2', '--cat-3', '--cat-4', '--cat-5', '--cat-6', '--cat-7'][ti % 7] + ')';
+        sid = 'clade' + ti;
+        op = isLeaf ? 0.9 : 0.3 + 0.4 * (d / maxD);
+      }
+      const path = svgEl('path', {
+        d: arcPath(cx, cy, inner, outer, a0, a0 + span), fill, 'fill-opacity': op,
+        stroke: 'var(--surface)', 'stroke-width': 1, 'data-ce-series-fill': sid, 'data-ce-role': 'cell',
+        class: isLeaf ? 'ql-phylo-sb-leaf' : 'ql-phylo-sb-clade',
+      });
+      const tip = svgEl('title', {});
+      tip.textContent = isLeaf ? node.label : t('phylo.sunburstCladeTip', { n: nLeaves.get(node.id), d });
+      path.appendChild(tip);
+      arcsG.appendChild(path);
+    }
+    if (isLeaf) {
+      const a = a0 + span / 2;
+      const pLab = polarPoint(cx, cy, R + 6, a);
+      const angleDeg = (a * 180) / Math.PI;
+      const flip = angleDeg > 180;
+      const ci = catIdxOf(node.label);
+      const lab = svgEl('text', {
+        x: pLab.x, y: pLab.y, class: 'ql-phylo-leaflabel',
+        'text-anchor': flip ? 'end' : 'start', 'dominant-baseline': 'middle',
+        transform: 'rotate(' + (angleDeg - 90 + (flip ? 180 : 0)) + ' ' + pLab.x + ' ' + pLab.y + ')',
+        ...(ci >= 0 ? { 'data-ce-series-fill': 's' + ci } : {}),
+      });
+      lab.textContent = node.label;
+      labelsG.appendChild(lab);
+      return;
+    }
+    let a = a0;
+    node.children.forEach((ch) => { draw(ch.node, a); a += (nLeaves.get(ch.node.id) / n) * 2 * Math.PI; });
+  })(tree, 0);
+
+  svg.appendChild(arcsG);
+  svg.appendChild(labelsG);
+  appendBoxLegend(svg, matchedCategories, categoryColorMap, colorCol);
+  return { cladeSeries };
 }
 
 export function render(container) {
@@ -731,10 +849,10 @@ export function render(container) {
 
     const chartPanel = document.createElement('section');
     chartPanel.className = 'ql-card ql-panel';
-    chartPanel.innerHTML = '<p class="ql-panel-note">' + t('phylo.treeNote') + '</p>';
+    chartPanel.innerHTML = '<p class="ql-panel-note">' + t(s.layout === 'sunburst' ? 'phylo.sunburstNote' : 'phylo.treeNote') + '</p>';
     const chartWrap = document.createElement('div');
     chartWrap.className = 'ql-chartwrap';
-    const svg = svgEl('svg', { class: 'ql-svg', role: 'img', 'aria-label': t(s.layout === 'circular' ? 'a11y.chartPhyloCircular' : 'a11y.chartPhylo') });
+    const svg = svgEl('svg', { class: 'ql-svg', role: 'img', 'aria-label': t(s.layout === 'circular' ? 'a11y.chartPhyloCircular' : s.layout === 'sunburst' ? 'a11y.chartPhyloSunburst' : 'a11y.chartPhylo') });
     chartWrap.appendChild(svg);
     chartPanel.appendChild(chartWrap);
     grid.appendChild(chartPanel);
@@ -761,7 +879,7 @@ export function render(container) {
     layoutField.innerHTML = '<label>' + t('phylo.layoutLabel') + '</label>';
     const layoutSeg = document.createElement('div');
     layoutSeg.className = 'ql-segmented';
-    [['rect', t('phylo.layoutRect')], ['circular', t('phylo.layoutCircular')]].forEach(([v, lbl]) => {
+    [['rect', t('phylo.layoutRect')], ['circular', t('phylo.layoutCircular')], ['sunburst', t('phylo.layoutSunburst')]].forEach(([v, lbl]) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'ql-seg-btn' + (s.layout === v ? ' is-on' : '');
@@ -942,23 +1060,27 @@ export function render(container) {
       };
 
       const isCircular = s.layout === 'circular';
-      if (isCircular) drawCladogramCircular(svg, tree, colorOpts); else drawCladogramRect(svg, tree, colorOpts);
+      const isSunburst = s.layout === 'sunburst';
+      let cladeSeries = [];
+      if (isSunburst) ({ cladeSeries } = drawTreeSunburst(svg, tree, colorOpts));
+      else if (isCircular) drawCladogramCircular(svg, tree, colorOpts); else drawCladogramRect(svg, tree, colorOpts);
       // la leyenda de categorías ya se dibuja DENTRO del <svg> (data-ce="legend",
       // con data-ce-series-fill por clado -> editable vía paletteSeries más
       // abajo); no duplicarla en un bloque HTML aparte debajo del gráfico.
 
       editor = attachChartEditor({
-        key: isCircular ? 'phylo-circular' : 'phylo', svg, mount: chartPanel, lang: getLang(),
-        filename: t('phylo.figTitle') + (isCircular ? '-' + t('phylo.layoutCircular') : ''),
+        key: isSunburst ? 'phylo-sunburst' : isCircular ? 'phylo-circular' : 'phylo', svg, mount: chartPanel, lang: getLang(),
+        filename: t('phylo.figTitle') + (isCircular ? '-' + t('phylo.layoutCircular') : isSunburst ? '-' + t('phylo.layoutSunburst') : ''),
         elements: [
           { id: 'title', create: { text: t('phylo.figTitle'), x: 8, y: 14, anchor: 'start', cls: 'ce-title' } },
           { id: 'leaflabels', selector: '[data-ce="leaflabels"]', kind: 'group' },
           ...(matchedCategories.length > 0 ? [{ id: 'legend', selector: '[data-ce="legend"]', kind: 'group' }] : []),
-          { id: 'scalebar', selector: '[data-ce="scalebar"]', kind: 'group' },
+          ...(isSunburst ? [] : [{ id: 'scalebar', selector: '[data-ce="scalebar"]', kind: 'group' }]),
         ],
         paletteSeries: [
           { id: 'branch', label: t('phylo.branchLabel') },
           ...matchedCategories.map((cat, i) => ({ id: 's' + i, label: cat })),
+          ...cladeSeries,
         ],
         paletteType: 'categorical',
         onReset: () => paint(),

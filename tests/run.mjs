@@ -45,6 +45,7 @@ const SUITE = [
   { name: 'alpha-boxstats', file: 'alpha-boxstats.mjs', kind: 'navegador' },
   { name: 'venn-sets', file: 'venn-sets.mjs', kind: 'navegador' },
   { name: 'correlogram-pie-split', file: 'correlogram-pie-split.mjs', kind: 'navegador' },
+  { name: 'phylo-sunburst', file: 'phylo-sunburst.mjs', kind: 'navegador' },
   { name: 'temporal', file: 'temporal.mjs', kind: 'navegador' },
   { name: 'ui-fixes-editor-alluvial', file: 'ui-fixes-editor-alluvial.mjs', kind: 'navegador' },
   { name: 'chart-consistency', file: 'chart-consistency.mjs', kind: 'navegador' },
