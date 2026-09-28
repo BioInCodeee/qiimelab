@@ -3,6 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Seguridad (GitHub Pages no deja fijar cabeceras HTTP, así que van en <meta>):
+       · CSP: todo (scripts, estilos, fuentes, workers, datos) sale del propio
+         origen; sin terceros. script-src solo admite el script de tema de
+         abajo por su hash — SI SE EDITA ESE SCRIPT HAY QUE RECALCULAR EL HASH
+         (tests/security-headers.mjs lo comprueba). style-src necesita
+         'unsafe-inline' (el editor de figuras inyecta un <style> y hay atributos
+         style en el HTML generado). img/font blob:/data: = exportación de
+         figuras y fuentes incrustadas en el informe. form-action permite el
+         envío por lotes a NCBI BLAST (módulo Sanger); los enlaces normales
+         (BLAST, KEGG, GitHub) son navegación y no los limita la CSP.
+       · referrer no-referrer: ningún enlace de salida envía la URL de la app. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-0YEc3ueYMTvpmdPDFA0GDRHQA8s9eHlaX+2zvfwkMdE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://blast.ncbi.nlm.nih.gov" />
+  <meta name="referrer" content="no-referrer" />
   <title>Smart-175 — plataforma bioinformática integral</title>
   <meta name="description" content="Plataforma bioinformática que se ejecuta en tu navegador (los archivos no se envían a ningún servidor). Analiza metabarcoding, procesa cromatogramas Sanger, ejecuta alineamientos Smith-Waterman y visualiza filogenias y dinámicas temporales. Privacidad absoluta: todos los cálculos se realizan localmente en tu navegador." />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
