@@ -21,6 +21,15 @@ const { connect } = await import('./lib/cdp.mjs');
 const { sleep } = await import('./lib/app.mjs');
 const server = await ensureServer();
 const c = await connect({ url: server.url + '/index.html', label: 'biomarker-volcano' });
+const EXPORT_PROBE = `(async () => {
+  const svg = document.querySelector('#app-view .ql-chartwrap svg');
+  const { exportFigure } = await import('/js/lib/figureExport.js');
+  const r = await exportFigure(svg, { formats: ['svg', 'png', 'tiff', 'pdf'], dpi: 150 });
+  const sig = (u8) => [...u8.slice(0, 4)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const out = { svg: r.svg.length, png: sig(r.png), tiff: sig(r.tiff), pdf: sig(r.pdf), circles: (r.svg.match(/<circle/g) || []).length };
+  out.ok = out.svg > 2000 && out.png === '89504e47' && /^(49492a00|4d4d002a)$/.test(out.tiff) && out.pdf === '25504446';
+  return out;
+})()`;
 const click = (sel, re) => c.ev(`(() => { const b = [...document.querySelectorAll(${JSON.stringify(sel)})].find((x) => ${re}.test(x.textContent)); if (b) b.click(); return !!b; })()`);
 const tableTaxa = () => c.ev(`[...document.querySelectorAll('#app-view .ql-table tbody tr')].map((tr) => tr.cells.length > 1 ? tr.cells[0].textContent : null).filter(Boolean).sort()`);
 // taxón de cada punto de color, leído del tooltip real (hover delegado)
@@ -78,15 +87,9 @@ try {
     }
   }
 
-  // exportación: el editor compartido genera SVG y PNG
-  const exp = await c.ev(`(async () => {
-    const svg = document.querySelector('#app-view .ql-chartwrap svg');
-    const fx = await import('/js/lib/figureExport.js');
-    const names = Object.keys(fx);
-    const s = new XMLSerializer().serializeToString(svg);
-    return { names, svgLen: s.length, hasCircles: /<circle/.test(s) };
-  })()`);
-  check('la figura se serializa (base del export SVG/PNG/TIFF/PDF)', exp.svgLen > 2000 && exp.hasCircles, JSON.stringify(exp.names));
+  // exportación: el mismo pipeline que usa el botón "Descargar" del editor
+  const exp = await c.ev(EXPORT_PROBE);
+  check('exporta SVG/PNG/TIFF/PDF (firmas de archivo correctas)', exp.ok, JSON.stringify(exp));
   check('sin errores de consola', c.problems.length === 0, c.problems.join('; '));
 } catch (e) {
   console.error('EXCEPCIÓN:', e.message);

@@ -28,6 +28,7 @@ import { loadExampleCommunityData, loadRealCommunityData, mountExampleButtons } 
 import { svgEl, escapeHtml, delegateHover } from '../lib/dom.js';
 import { showTooltip, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
+import { arcPath, polarPoint } from '../lib/sunburst.js';
 
 const NET_SEED = 0x9E3779B9; // semilla fija → layout de fuerzas determinista
 
@@ -122,6 +123,7 @@ export function render(container) {
   let selected = null;           // Set de ids de variable; null = aún sin inicializar
   let view = 'matrix';           // 'matrix' | 'network'
   let matrixStyle = 'heatmap';   // 'heatmap' | 'bubbles' | 'pie' — solo aplica dentro de view === 'matrix'
+  let matrixLayout = 'rect';     // 'rect' | 'circular' — solo para el mapa de calor (reproyección polar de la misma matriz)
   let splitHalves = false;       // matriz partida: ▲ superior = método elegido, ▼ inferior = el otro (Fase 3, C2)
   let rThresh = 0.3;             // |r| mínimo para dibujar una arista (solo vista red)
   let pThresh = 0.05;            // p máximo (solo vista red)
@@ -247,6 +249,20 @@ export function render(container) {
         onChange: (v) => { matrixStyle = v; paint(); },
         helpKey: 'correlogram.matrixStyleHelp',
       }));
+      // disposición: solo el mapa de calor (burbujas/sectores ya son glifos
+      // dentro de una celda cuadrada; en un sector anular no se leerían)
+      if (matrixStyle === 'heatmap') {
+        controls.appendChild(chartTypeField({
+          labelKey: 'correlogram.layoutLabel',
+          options: [
+            { value: 'rect', labelKey: 'correlogram.layoutRect' },
+            { value: 'circular', labelKey: 'correlogram.layoutCircular' },
+          ],
+          active: matrixLayout,
+          onChange: (v) => { matrixLayout = v; paint(); },
+          helpKey: matrixLayout === 'circular' ? 'correlogram.layoutCircularHelp' : undefined,
+        }));
+      }
       const other = method === 'pearson' ? 'spearman' : 'pearson';
       const nameOf = (m) => t(m === 'pearson' ? 'correlogram.pearson' : 'correlogram.spearman');
       controls.appendChild(chartTypeField({
@@ -426,13 +442,15 @@ export function render(container) {
     // celda (i,j): con la matriz partida, el triángulo inferior (i>j) sale
     // del segundo método; el superior y la diagonal, del elegido
     const resAt = (i, j) => (results2 && i > j ? results2[i][j] : results[i][j]);
+    const isCircular = matrixStyle === 'heatmap' && matrixLayout === 'circular';
+    const ceKey = matrixStyle === 'bubbles' ? 'correlogram-bubbles' : matrixStyle === 'pie' ? 'correlogram-pie' : isCircular ? 'correlogram-circular' : 'correlogram';
 
     // orden de las variables (Ajustes > Estructura). Se permutan a la vez la
     // lista y la matriz de resultados, así todo lo de abajo (celdas, etiquetas,
     // tooltips) sigue siendo coherente. 'cluster' = clustering jerárquico UPGMA
     // con distancia 1-|r| (el orden 'hclust' habitual de corrplot).
     {
-      const mode = getFigureOptions(matrixStyle === 'bubbles' ? 'correlogram-bubbles' : matrixStyle === 'pie' ? 'correlogram-pie' : 'correlogram').categoryOrder;
+      const mode = getFigureOptions(ceKey).categoryOrder;
       if (mode && mode !== 'original' && k > 1) {
         const SEP = '\u0001';
         const names = chosen.map((v, i) => v.label + SEP + i);
@@ -453,6 +471,15 @@ export function render(container) {
         results = perm.map((i) => perm.map((j) => oldResults[i][j]));
         if (results2) { const old2 = results2; results2 = perm.map((i) => perm.map((j) => old2[i][j])); }
       }
+    }
+
+    if (isCircular) {
+      drawCircular({ svg, chartPanel, chartWrap, tooltip, k, chosen, resAt, method, method2, nameOf, split: !!results2, ceKey });
+      chartPanel.insertAdjacentHTML('beforeend',
+        '<p class="ql-field-help" style="margin-top:6px;">' +
+        t('correlogram.figMeta', { method: nameOf(method), k, n: nLabel }) + '</p>');
+      renderPairsTable();
+      return;
     }
 
     const cell = Math.max(16, Math.min(34, 560 / k));
@@ -719,7 +746,10 @@ export function render(container) {
       t('correlogram.figMeta', { method: method === 'pearson' ? t('correlogram.pearson') : t('correlogram.spearman'), k, n: nLabel }) +
       '</p>');
 
-    // ---- tabla de todas las parejas ----
+    renderPairsTable();
+
+    // ---- tabla de todas las parejas (la misma en las dos disposiciones) ----
+    function renderPairsTable() {
     const scrollDiv = document.createElement('div');
     scrollDiv.className = 'ql-table-scroll';
     const tbl = document.createElement('table');
@@ -746,6 +776,160 @@ export function render(container) {
     tbl.appendChild(tbody);
     scrollDiv.appendChild(tbl);
     tableCard.appendChild(scrollDiv);
+    }
+  }
+
+  // =====================================================================
+  //  MAPA DE CALOR CIRCULAR — reproyección polar de la MISMA matriz (mismo
+  //  orden de variables, misma escala de color, mismos resultados): la
+  //  columna j es un sector alrededor del círculo (en sentido horario desde
+  //  el hueco de arriba) y la fila i un anillo (0 = el más interior). La
+  //  celda (i,j) es el sector anular donde se cruzan. Con la matriz partida
+  //  vale la misma regla que en la rectangular (i>j → segundo método): en
+  //  polar eso cae POR FUERA de la escalera que forma la diagonal, y el
+  //  triángulo superior (el método elegido) por dentro.
+  // =====================================================================
+  function drawCircular({ svg, chartPanel, chartWrap, tooltip, k, chosen, resAt, method, method2, nameOf, split, ceKey }) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const th = Math.max(6, Math.min(16, 200 / k));            // grosor de anillo
+    const R0 = Math.max(30, k * th * 0.3);                     // hueco central
+    const R = R0 + k * th;
+    const labelChars = Math.max(...chosen.map((v) => v.label.length));
+    const labelPad = Math.min(230, 16 + (labelChars + 4) * 7); // +4: prefijo «n · »; ~7 px/carácter en la fuente mono
+    const GAP = (28 * Math.PI) / 180;                          // hueco arriba para numerar los anillos
+    const dA = (2 * Math.PI - GAP) / k;
+    const angle = (j) => GAP / 2 + j * dA;                     // 0 = las 12, sentido horario
+    const marginT = 44 + (split ? 18 : 0);
+    const cx = labelPad + R + 24, cy = marginT + labelPad + R;
+    const W = 2 * cx, legendTop = cy + R + labelPad + 8;
+    const H = legendTop + 56;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    // a diferencia de la rectangular (que crece con k y hace scroll), el
+    // círculo se escala al ancho del panel: recortado no se lee
+    svg.style.width = '';
+    svg.style.maxWidth = '';
+
+    const csOv = getColorScaleOptions(ceKey);
+    const colorScale = makeColorScale({
+      type: 'divergent',
+      domain: [csOv.domainMin != null ? csOv.domainMin : -1, csOv.domainMax != null ? csOv.domainMax : 1],
+      midpoint: csOv.midpoint != null ? csOv.midpoint : 0,
+      range: paletteColorsOf(csOv.paletteId || 'app:divergent'),
+      steps: csOv.steps, invert: csOv.invert,
+    });
+    const cellBorder = csOv.cellBorder || null;
+    const PAD_A = Math.min(0.012, dA * 0.08), PAD_R = Math.min(0.9, th * 0.08);
+    const cellsG = svgEl('g', {});
+    for (let i = 0; i < k; i++) {
+      const r0 = R0 + i * th + PAD_R, r1 = R0 + (i + 1) * th - PAD_R;
+      for (let j = 0; j < k; j++) {
+        const res = resAt(i, j);
+        const isDiag = i === j;
+        cellsG.appendChild(svgEl('path', {
+          d: arcPath(cx, cy, r0, r1, angle(j) + PAD_A, angle(j + 1) - PAD_A),
+          'data-ce-role': 'cell',
+          fill: isDiag ? 'var(--corr-diag)' : (colorScale.scale(res.r) || 'var(--corr-zero)'),
+          // la diagonal, perfilada: en polar es una escalera en espiral (y la
+          // frontera de la matriz partida) y su gris se confunde con r ≈ 0
+          stroke: isDiag ? 'var(--ink-2)' : (cellBorder ? cellBorder.color : undefined),
+          'stroke-width': isDiag ? 1 : (cellBorder ? cellBorder.width : undefined),
+          ...(isDiag ? {} : { 'data-i': i, 'data-j': j }),
+        }));
+      }
+    }
+    svg.appendChild(cellsG);
+    delegateHover(svg, 'path[data-i]', {
+      onEnter: (el) => {
+        const i = +el.dataset.i, j = +el.dataset.j;
+        const res = resAt(i, j);
+        const p = polarPoint(cx, cy, R0 + (i + 0.5) * th, angle(j) + dA / 2);
+        showTooltip(chartWrap, p.x, p.y,
+          escapeHtml(chosen[i].label) + ' × ' + escapeHtml(chosen[j].label),
+          (split ? escapeHtml(nameOf(i > j ? method2 : method)) + ': ' : '') +
+          'r = ' + (isFinite(res.r) ? res.r.toFixed(3) : '—') +
+          ' · p = ' + formatP(res.p) + ' · n = ' + res.n,
+          { svg, W, H, tooltip, rawHtml: true });
+      },
+      onLeave: () => hideTooltip(tooltip),
+    });
+
+    // etiquetas de columna: radiales por fuera del círculo, legibles en las
+    // dos mitades (la izquierda se gira 180° para no quedar boca abajo)
+    const colLabels = svgEl('g', { 'data-ce': 'collabels' });
+    chosen.forEach((v, j) => {
+      const a = angle(j) + dA / 2;
+      const p = polarPoint(cx, cy, R + 8, a);
+      const deg = (a * 180) / Math.PI - 90;
+      const flip = a > Math.PI;
+      const tx = svgEl('text', {
+        x: p.x, y: p.y, class: 'ql-tick-label', 'dominant-baseline': 'middle',
+        'text-anchor': flip ? 'end' : 'start',
+        transform: 'rotate(' + (flip ? deg + 180 : deg).toFixed(2) + ' ' + p.x.toFixed(2) + ' ' + p.y.toFixed(2) + ')',
+      });
+      tx.textContent = (j + 1) + ' · ' + v.label;
+      colLabels.appendChild(tx);
+    });
+    svg.appendChild(colLabels);
+    // anillos: numerados en el hueco de arriba (anillo n = variable n)
+    const rowLabels = svgEl('g', { 'data-ce': 'rowlabels' });
+    const ringFont = Math.max(7, Math.min(11, th * 0.75));
+    chosen.forEach((v, i) => {
+      const tx = svgEl('text', { x: cx, y: cy - (R0 + (i + 0.5) * th), class: 'ql-tick-label', 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': ringFont });
+      tx.textContent = String(i + 1);
+      rowLabels.appendChild(tx);
+    });
+    svg.appendChild(rowLabels);
+    const note = svgEl('text', { x: cx, y: cy + 4, class: 'ql-tick-label', 'text-anchor': 'middle', fill: 'var(--ink-muted)', 'data-ce': 'xtitle' });
+    note.textContent = t('correlogram.circularCenter');
+    if (R0 >= 40) svg.appendChild(note);
+
+    if (split) {
+      const sl = svgEl('text', { x: W / 2, y: 44 + 4, class: 'ql-tick-label', 'text-anchor': 'middle', 'data-ce': 'splitlegend' });
+      sl.textContent = t('correlogram.splitLegendCircular', { a: nameOf(method), b: nameOf(method2) });
+      svg.appendChild(sl);
+    }
+
+    // leyenda: la misma barra divergente que la vista rectangular
+    const legG = svgEl('g', { 'data-ce': 'legend' });
+    const defs = svgEl('defs', {});
+    const legendGradId = 'ql-cscale-correlogram-circular';
+    const grad = svgEl('linearGradient', { id: legendGradId, x1: '0', y1: '0', x2: '1', y2: '0' });
+    colorScale.legendStops.forEach((st) => grad.appendChild(svgEl('stop', { offset: st.offset + '%', 'stop-color': st.color })));
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+    const barW = 180;
+    legG.appendChild(svgEl('rect', { x: 0, y: 0, width: barW, height: 11, rx: 2, fill: 'url(#' + legendGradId + ')', stroke: 'var(--baseline)' }));
+    const midT = colorScale.domain[1] === colorScale.domain[0] ? 0.5
+      : (colorScale.midpoint - colorScale.domain[0]) / (colorScale.domain[1] - colorScale.domain[0]);
+    const fmt = (v) => (Math.round(v * 100) / 100).toString();
+    [[fmt(colorScale.domain[0]), 0, 'start'], [fmt(colorScale.midpoint), Math.max(0, Math.min(barW, midT * barW)), 'middle'], [fmt(colorScale.domain[1]), barW, 'end']]
+      .forEach(([lab, xx, anchor]) => {
+        const lt = svgEl('text', { x: xx, y: 25, class: 'ql-tick-label', 'text-anchor': anchor });
+        lt.textContent = lab;
+        legG.appendChild(lt);
+      });
+    const legNote = svgEl('text', { x: barW / 2, y: 42, class: 'ql-tick-label', 'text-anchor': 'middle', fill: 'var(--ink-muted)' });
+    legNote.textContent = t('correlogram.circularLegendNote');
+    legG.appendChild(legNote);
+    legG.setAttribute('transform', 'translate(' + (W / 2 - barW / 2) + ',' + legendTop + ')');
+    svg.appendChild(legG);
+
+    editor = attachChartEditor({
+      key: ceKey, svg, mount: chartPanel, lang: getLang(),
+      filename: t('correlogram.title') + '-' + method + '-circular',
+      elements: [
+        { id: 'title', create: { text: t('correlogram.figTitle', { method: nameOf(method) }), x: W / 2, y: 22, anchor: 'middle', cls: 'ce-title' } },
+        { id: 'rowlabels', selector: '[data-ce="rowlabels"]', kind: 'group' },
+        { id: 'collabels', selector: '[data-ce="collabels"]', kind: 'group' },
+        { id: 'legend', selector: '[data-ce="legend"]', kind: 'group' },
+      ],
+      colorScale: { type: 'divergent', domain: [-1, 1], defaultMidpoint: 0 },
+      onColorScaleChange: () => paint(),
+      figureOptions: { categoryOrder: ['original', 'alpha-asc', 'alpha-desc', 'value-asc', 'value-desc', 'cluster'] },
+      onFigureOptionsChange: () => paint(),
+      onReset: () => paint(),
+      startEditing: wasEditing,
+    });
   }
 
   // =====================================================================
