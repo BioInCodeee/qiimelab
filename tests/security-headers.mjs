@@ -96,6 +96,8 @@ try {
   check('el enlace de BLAST apunta a blast.ncbi.nlm.nih.gov y abre en pestaña nueva', !!blast && /^https:\/\/blast\.ncbi\.nlm\.nih\.gov\/Blast\.cgi\?/.test(blast.href) && blast.target === '_blank', JSON.stringify(blast));
   check('A6: junto al botón, a la vista (no plegado), se avisa de que la secuencia sale hacia NCBI', !!blast && blast.noteVisible && /(Envía|Sends).*NCBI/.test(blast.note), blast && blast.note.slice(0, 140));
   check('A6: el propio botón lo dice al pasar el ratón', !!blast && /NCBI/.test(blast.title) && /(Envía|Sends)/.test(blast.title), blast && blast.title);
+  const batchNote = await c.ev(`(() => { const p = document.querySelector('.ql-blast-batch-note'); return p && p.getClientRects().length ? p.textContent : ''; })()`);
+  check('A6: el botón de BLAST por lotes tiene su aviso a la vista (envía TODOS los consensos a NCBI)', /(envía|sends).*NCBI/i.test(batchNote), batchNote.slice(0, 120));
 
   const v = await violations();
   check('0 violaciones de CSP en todo el recorrido', v.length === 0, v.slice(0, 5).join(' | '));

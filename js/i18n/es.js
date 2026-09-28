@@ -1166,6 +1166,7 @@ export default {
     scopeNote: 'No identifica taxonómicamente el consenso (BLAST aparte), no ensambla más de 2 lecturas por muestra y no resuelve dobles picos de heterocigotos.',
     blastLink: 'Buscar en NCBI BLAST', blastTitle: 'Envía esta secuencia a NCBI BLAST (servicio externo) y abre el resultado en una pestaña nueva',
     blastBatch: 'Buscar lote en NCBI BLAST', blastBatchTitle: 'Envía todos los consensos a NCBI BLAST (servicio externo) y abre el resultado en una pestaña nueva',
+    blastBatchNote: '«Buscar lote en NCBI BLAST» envía todos los consensos de esta tabla a NCBI (un servicio externo); es lo único de la app que sale de tu navegador.',
     blastNote: 'Envía el consenso a NCBI (un servicio externo) y abre blastn en una pestaña nueva. Es lo único de la app que sale de tu navegador: la búsqueda corre en los servidores de NCBI.',
     blastNoteMore: 'Abre blastn contra la base "nt" de NCBI en una pestaña nueva, con el consenso ya cargado en la búsqueda — no hace falta pegarlo a mano. La búsqueda corre en los servidores de NCBI, no en esta app: identificar el resultado (a qué especie corresponde) es cosa tuya en esa pestaña.',
     compareWithRef: 'Comparar con Referencia',

@@ -1163,6 +1163,7 @@ export default {
     scopeNote: 'It does not identify the consensus taxonomically (BLAST is separate), does not assemble more than 2 reads per sample and does not resolve heterozygote double peaks.',
     blastLink: 'Search on NCBI BLAST', blastTitle: 'Sends this sequence to NCBI BLAST (external service) and opens the result in a new tab',
     blastBatch: 'Search batch on NCBI BLAST', blastBatchTitle: 'Sends all the consensus sequences to NCBI BLAST (external service) and opens the result in a new tab',
+    blastBatchNote: '“Search batch on NCBI BLAST” sends every consensus in this table to NCBI (an external service); it is the only thing in the app that leaves your browser.',
     blastNote: 'Sends the consensus to NCBI (an external service) and opens blastn in a new tab. It is the only thing in the app that leaves your browser: the search runs on NCBI’s servers.',
     blastNoteMore: 'Opens blastn against NCBI\'s "nt" database in a new tab, with the consensus already loaded into the search — no need to paste it by hand. The search runs on NCBI\'s own servers, not in this app: identifying the result (which species it matches) is up to you over there.',
     compareWithRef: 'Compare with Reference',

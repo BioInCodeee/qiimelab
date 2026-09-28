@@ -2493,6 +2493,12 @@ export function render(container) {
     });
     actionsRow.appendChild(batchBlastBtn);
     summary.appendChild(actionsRow);
+    // aviso a la vista (no solo en el title del botón, que en táctil no se ve):
+    // el lote envía TODOS los consensos a un servicio externo
+    const batchNote = document.createElement('p');
+    batchNote.className = 'ql-field-help ql-blast-batch-note';
+    batchNote.textContent = t('sanger.blastBatchNote');
+    summary.appendChild(batchNote);
     stack.appendChild(summary);
 
     const detailWrap = document.createElement('section');
