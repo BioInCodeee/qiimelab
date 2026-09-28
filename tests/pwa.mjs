@@ -112,7 +112,7 @@ try {
   check('el shell se sirve sin red: sidebar con enlaces', shell.sidebar >= 5, shell.sidebar + ' enlaces');
   check('el shell se sirve sin red: #app-view con contenido', shell.mainKids > 0);
   check('el shell se sirve sin red: footer presente', shell.footer);
-  check('document.title correcto', /(Smart-175|QiimeLab)/.test(shell.title || ''), shell.title);
+  check('document.title correcto', /Smart-175/.test(shell.title || ''), shell.title);
 
   const newProblems = c.problems.slice(problemsBefore)
     .filter((p) => !/Failed to load resource|net::ERR|fonts\.(googleapis|gstatic)/.test(p));

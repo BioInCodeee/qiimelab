@@ -1,5 +1,5 @@
 // methodEquivalence.js — registro central de cuán equivalente es cada
-// método de QiimeLab a la herramienta de referencia, y el aviso de UI que lo
+// método de Smart-175 a la herramienta de referencia, y el aviso de UI que lo
 // dice. Sustituye a los avisos ad hoc que había repartidos por los módulos
 // ("inspirado en LEfSe…", "inspirado en RDA/CCA de R…"), para que el
 // criterio sea el mismo en todas partes.

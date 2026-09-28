@@ -54,5 +54,5 @@ qiime feature-table summarize \
   --m-sample-metadata-file "${METADATOS}"
 
 echo "Hecho: taxonomy.qzv (asignaciones) + table_summary.qzv (lecturas por muestra)"
-echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a QiimeLab:"
+echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
 echo "    https://lucadoktor.github.io/qiimelab/"

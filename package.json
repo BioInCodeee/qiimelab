@@ -2,7 +2,7 @@
   "name": "qiimelab",
   "private": true,
   "type": "module",
-  "description": "QiimeLab — análisis de resultados QIIME2 en el navegador. Este package.json es solo la interfaz de desarrollo: sin dependencias, sin build; la app son módulos ES nativos servidos tal cual.",
+  "description": "Smart-175 — análisis de resultados QIIME2 en el navegador. Este package.json es solo la interfaz de desarrollo: sin dependencias, sin build; la app son módulos ES nativos servidos tal cual.",
   "license": "MIT",
   "scripts": {
     "serve": "python3 -m http.server 8000",

@@ -10,7 +10,7 @@
 //      (media.githubusercontent.com — raw.githubusercontent.com solo da el
 //      puntero LFS, no el contenido, porque MD2 versiona sus .csv con LFS).
 //   2. Agrega esas filas a nivel de GÉNERO (no de especie: el 16S/ITS que
-//      analiza QiimeLab rara vez resuelve más allá de género) por consenso:
+//      analiza Smart-175 rara vez resuelve más allá de género) por consenso:
 //      un género solo recibe un rasgo si el % de especies con evidencia que
 //      apuntan a ese rasgo supera --threshold (por defecto 0.7 = 70%).
 //   3. Compara automáticamente contra los géneros ya curados a mano en

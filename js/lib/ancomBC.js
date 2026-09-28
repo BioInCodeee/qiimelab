@@ -36,7 +36,7 @@
 //     bucle más abajo).
 //  3. El contraste es siempre "grupo con la media corregida más alta" frente
 //     al resto agrupado (one-vs-rest), igual que el resto del panel de
-//     biomarcadores de QiimeLab (δ de Cliff, LDA bootstrapeado) — no un
+//     biomarcadores de Smart-175 (δ de Cliff, LDA bootstrapeado) — no un
 //     modelo con todos los grupos como covariables simultáneas de una tabla
 //     ANOVA, que es lo que hace ANCOMBC con >2 grupos.
 //  4. El p-valor usa una t de Student (grados de libertad = n1+n2−2) sobre el

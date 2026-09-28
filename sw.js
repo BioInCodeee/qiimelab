@@ -22,7 +22,7 @@
 
 // Súbelo a mano cuando quieras forzar un vaciado de caché (normalmente no hace
 // falta: el propio cambio de bytes de este archivo ya instala un SW nuevo).
-const VERSION = 'v3';
+const VERSION = 'v4'; // v4 (Fase 4a): shell con la identidad Smart-175 (textos sin "QiimeLab")
 const CACHE = 'smart-175-' + VERSION;
 
 // El shell mínimo que garantiza que la app arranca sin red la primera vez que
@@ -56,6 +56,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
+    // 'qiimelab-*' = cachés del nombre heredado: también se borran (Fase 4a)
     await Promise.all(keys.filter((k) => (k.startsWith('smart-175-') || k.startsWith('qiimelab-')) && k !== CACHE).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());

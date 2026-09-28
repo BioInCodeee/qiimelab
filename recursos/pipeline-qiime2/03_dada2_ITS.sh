@@ -65,5 +65,5 @@ qiime feature-table summarize \
   --o-visualization "${RES_DIR}/03_dada2/table_summary.qzv" >> "${LOG_DIR}/03_dada2_ITS.log" 2>&1
 
 echo "Hecho: revisa dada2_stats.qzv y table_summary.qzv"
-echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a QiimeLab:"
+echo "  · los .qzv se ven en https://view.qiime2.org o subiéndolos a Smart-175:"
 echo "    https://lucadoktor.github.io/qiimelab/"

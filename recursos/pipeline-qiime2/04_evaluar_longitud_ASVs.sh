@@ -32,5 +32,5 @@ qiime feature-table tabulate-seqs \
 
 echo "Hecho: abre rep_seqs_summary.qzv y mira la tabla de estadísticas de"
 echo "longitud para decidir tu clasificador."
-echo "  · el .qzv se ve en https://view.qiime2.org o subiéndolo a QiimeLab:"
+echo "  · el .qzv se ve en https://view.qiime2.org o subiéndolo a Smart-175:"
 echo "    https://lucadoktor.github.io/qiimelab/"

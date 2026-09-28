@@ -1,4 +1,11 @@
-# QiimeLab
+# Smart-175
+
+> **Producto: Smart-175. Repositorio: `qiimelab`, sin cambios (decisión deliberada).** "QiimeLab" es el nombre
+> heredado: ya no aparece en nada de lo que ve el usuario. El repo, la URL de GitHub Pages
+> (`lucadoktor.github.io/qiimelab/`), la carpeta y el `name` de `package.json` se quedan como están
+> a propósito — renombrarlos rompería enlaces y forks sin aportar nada a quien usa la app.
+> Las claves antiguas `qiimelab.*` de localStorage se migran solas a `smart-175.*` al arrancar
+> (`js/lib/storageMigration.js`).
 
 [![verify](https://github.com/LucaDoktor/qiimelab/actions/workflows/verify.yml/badge.svg)](https://github.com/LucaDoktor/qiimelab/actions/workflows/verify.yml)
 

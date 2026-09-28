@@ -12,7 +12,7 @@ métricas…) es una variable comentada al principio del script con `# EJEMPLO`.
 
 Los artefactos `.qzv` que generan estos scripts se pueden ver en
 [view.qiime2.org](https://view.qiime2.org) **o subiéndolos directamente a
-QiimeLab** ([lucadoktor.github.io/qiimelab](https://lucadoktor.github.io/qiimelab/))
+Smart-175** ([lucadoktor.github.io/qiimelab](https://lucadoktor.github.io/qiimelab/))
 para visualizarlos sin salir del navegador.
 
 ## `pipeline-qiime2/`

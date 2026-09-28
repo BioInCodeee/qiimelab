@@ -139,7 +139,7 @@ function styleToAttrs(srcEl, dstEl) {
 }
 
 /**
- * Serializa un <svg> de QiimeLab listo para editor vectorial / revista.
+ * Serializa un <svg> de Smart-175 listo para editor vectorial / revista.
  * @param {SVGSVGElement} svg
  * @param {object} [o]
  * @param {'light'|'current'} [o.scheme='light']  esquema con el que resolver los colores

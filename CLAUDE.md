@@ -1,4 +1,6 @@
-# QiimeLab — contexto del proyecto
+# Smart-175 — contexto del proyecto
+
+**Producto: Smart-175. Repositorio: qiimelab, sin cambios (decisión deliberada).** "QiimeLab" es el nombre heredado y no debe volver a aparecer en nada de cara al usuario (títulos, manifest, textos i18n en los 5 idiomas, README, scripts de `recursos/`). Se quedan con "qiimelab" a propósito: el nombre del repo y su URL de GitHub Pages, la carpeta, `package.json` → `name`, los nombres de los documentos de trabajo `qiimelab-*.md` y las referencias a ellos en comentarios, y las claves heredadas `qiimelab.*` que `js/lib/storageMigration.js` migra a `smart-175.*` (el prefijo vigente de localStorage, con guion). No "corregir" el nombre del repo sin este contexto.
 
 Analiza resultados de QIIME2 (microbioma 16S) y archivos FASTQ enteramente en el navegador. Sin backend, sin instalación, sin subir datos a ningún sitio: todo el cálculo ocurre en el navegador del usuario. Marca: BioInCode (bioincode.info@gmail.com). Hosting: GitHub Pages (repo `LucaDoktor/qiimelab`).
 
@@ -13,7 +15,7 @@ Este proyecto lo desarrollan EN PARALELO varias herramientas de IA (Claude, Gemi
 - **Dos tipos de módulo:** la mayoría lee/escribe `js/state.js` y entra en la sesión exportable (`js/lib/session.js`); unos pocos son autónomos (`phylo.js`, `primers.js`, `labcalc.js`...) y persisten solo en su propio `localStorage` — es intencional, no un olvido.
 - **DOM/tooltips/SVG centralizados** en `js/lib/dom.js` (`escapeHtml`, `svgEl`) y `js/lib/tooltip.js` (`showTooltip`/`hideTooltip`/`createTooltip`) — todo gráfico nuevo debe consumir esto, no reimplementar a mano.
 - La estadística se verifica contra R (vegan, DESeq2, etc.) en la suite de tests propia — cualquier fórmula nueva sigue ese mismo patrón de validación.
-- Nunca reimplementar por completo una herramienta externa (QIIME2, LEfSe, PICRUSt2...) — QiimeLab es la capa de análisis/visualización posterior, y donde se apoye en un método inspirado en otra herramienta, decirlo explícitamente en la UI (ya se hace con el biomarcador tipo LEfSe).
+- Nunca reimplementar por completo una herramienta externa (QIIME2, LEfSe, PICRUSt2...) — Smart-175 es la capa de análisis/visualización posterior, y donde se apoye en un método inspirado en otra herramienta, decirlo explícitamente en la UI (ya se hace con el biomarcador tipo LEfSe).
 
 ## Convenciones de trabajo
 
