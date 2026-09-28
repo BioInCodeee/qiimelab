@@ -679,7 +679,7 @@ export default {
     title: 'Microbial counts (plate / MPN)',
     subtitle: 'Upload your lab counts (plate: CFU/mL; MPN: MPN/mL already resolved). This module groups the replicates, averages in log10 and draws bars with an error bar. It does not compute MPN from tube codes — the lab already delivers that.',
     emptyTitle: 'No counts loaded yet',
-    emptyDesc: 'A table with one or more grouping columns (farm, sampling point, group, time…), one or more value columns (CFU/mL, MPN/mL…) and the replicates in rows. Or try an example.',
+    emptyDesc: 'A table with one or more grouping columns (farm, sampling point, group, time…), one or more value columns (CFU/mL for plate counts; MPN/mL for coliforms and E. coli by the tube method) and the replicates in rows. Or try an example.',
     exPlate: 'Example: plate count (CFU/mL)',
     exMPN: 'Example: MPN count (MPN/mL)',
     notRecognised: '"{name}" is not recognised as a microbial count table. You can still load it and map the columns by hand if the detector got it wrong.',

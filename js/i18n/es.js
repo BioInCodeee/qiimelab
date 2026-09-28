@@ -679,7 +679,7 @@ export default {
     title: 'Recuentos microbianos (placa / NMP)',
     subtitle: 'Sube tus recuentos de laboratorio (placa: UFC/mL; NMP: NMP/mL ya resuelto). Este módulo agrupa las réplicas, promedia en log10 y dibuja barras con barra de error. No calcula el NMP desde el código de tubos: eso ya lo entrega el laboratorio.',
     emptyTitle: 'Todavía no has cargado ningún recuento',
-    emptyDesc: 'Una tabla con una o varias columnas de agrupación (granja, punto de muestreo, grupo, tiempo…), una o varias columnas de valor (UFC/mL, NMP/mL…) y las réplicas en filas. O prueba con un ejemplo.',
+    emptyDesc: 'Una tabla con una o varias columnas de agrupación (granja, punto de muestreo, grupo, tiempo…), una o varias columnas de valor (UFC/mL en recuentos en placa; NMP/mL para coliformes y E. coli por el método de tubos) y las réplicas en filas. O prueba con un ejemplo.',
     exPlate: 'Ejemplo: recuento en placa (UFC/mL)',
     exMPN: 'Ejemplo: recuento por NMP (NMP/mL)',
     notRecognised: '«{name}» no se reconoce como una tabla de recuento microbiano. Puedes cargarla igualmente y mapear las columnas a mano si el detector no acertó.',
