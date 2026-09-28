@@ -1016,7 +1016,9 @@ export function render(container) {
       const rad = 5 + Math.min(6, degree[i] * 1.1);
       const c = svgEl('circle', {
         cx: p.x, cy: p.y, r: rad,
-        fill: 'var(--accent-soft)', stroke: 'var(--accent)', 'stroke-width': 1.5, 'data-ce-role': 'marker',
+        // nodo = variable (dato): neutro, sin el azul de marca — las aristas
+        // ya codifican el signo en azul/rojo (--corr-pos/--corr-neg)
+        fill: 'color-mix(in srgb, var(--ink-2) 14%, var(--surface))', stroke: 'var(--ink-2)', 'stroke-width': 1.5, 'data-ce-role': 'marker',
         'data-ni': i,
       });
       nodeLayer.appendChild(c);

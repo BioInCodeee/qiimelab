@@ -603,7 +603,7 @@ export function render(container) {
         }));
         const lab = svgEl('text', {
           x: xd, y: mT - 6, class: 'ql-tick-label', 'text-anchor': 'middle',
-          fill: depthDiffers ? 'var(--ink-2)' : 'var(--accent)',
+          fill: depthDiffers ? 'var(--ink-2)' : 'var(--ink)',
         });
         lab.textContent = depthDiffers
           ? t('alpha.rareMinDepthMark', { n: fmtN(minDepth) })
@@ -614,7 +614,7 @@ export function render(container) {
       if (depthDiffers && rareDepth > 0 && rareDepth < maxN) {
         const xc = sx(rareDepth);
         g.appendChild(svgEl('line', { x1: xc, x2: xc, y1: mT, y2: mT + innerH, class: 'ql-threshold-line-accent' }));
-        const labC = svgEl('text', { x: xc, y: mT + 14, class: 'ql-tick-label', 'text-anchor': 'middle', fill: 'var(--accent)' });
+        const labC = svgEl('text', { x: xc, y: mT + 14, class: 'ql-tick-label', 'text-anchor': 'middle', fill: 'var(--ink)' });
         labC.textContent = t('alpha.rareDepthMark', { n: fmtN(rareDepth) });
         g.appendChild(labC);
       }

@@ -1259,7 +1259,8 @@ export function drawChromatogram(svg, read, trimRange) {
       d += ' L' + xOfBase(bi).toFixed(1) + ',' + y.toFixed(1);
     }
     d += ' L' + xOfBase(nBases - 1).toFixed(1) + ',' + qualBase + ' Z';
-    svg.appendChild(svgEl('path', { d, fill: 'var(--accent)', opacity: '0.28', stroke: 'var(--accent)', 'stroke-width': '1' }));
+    // calidad Phred = dato: gris de datos (--neutral), no el azul de marca
+    svg.appendChild(svgEl('path', { d, fill: 'var(--neutral)', opacity: '0.4', stroke: 'var(--neutral)', 'stroke-width': '1' }));
   }
 
   // Ejes de coordenadas (líneas de referencia fijas)
