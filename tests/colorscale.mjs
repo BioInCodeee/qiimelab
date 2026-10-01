@@ -151,22 +151,6 @@ console.log('\n-- casos límite --');
   check('sin parámetros: usa la paleta secuencial por defecto de palettes.js y domain [0,1]', isValidHex(s2.scale(0)) && isValidHex(s2.scale(1)));
 }
 
-// ---- 10. differentialAbundance.js: invert-por-defecto con la paleta
-// divergente de la app (reproduce exactamente js/modules/
-// differentialAbundance.js heatColorScale() — ver ese módulo para el
-// porqué: DIVERGENT = [neg=rojo, mid=gris, pos=azul] pero domain[0]
-// (log2FC negativo = "down") debe salir azul/depleted, no rojo) ----
-console.log('\n-- differentialAbundance.js: invert-por-defecto de la paleta app:divergent --');
-{
-  const DIVERGENT_APP = paletteColorsOf('app:divergent'); // [neg(rojo), mid(gris), pos(azul)] — ver js/lib/palettes.js defaultPaletteEntry
-  const s = makeColorScale({ type: 'divergent', domain: [-1, 1], range: DIVERGENT_APP, invert: true, midpoint: 0 });
-  check('domain[0] (log2FC muy negativo, "down") sale azul/depleted (DIVERGENT.pos), NO rojo',
-    s.scale(-1) === DIVERGENT_APP[2], 'scale(-1)=' + s.scale(-1) + ' esperado=' + DIVERGENT_APP[2]);
-  check('domain[1] (log2FC muy positivo, "up") sale rojo/enriched (DIVERGENT.neg)',
-    s.scale(1) === DIVERGENT_APP[0], 'scale(1)=' + s.scale(1) + ' esperado=' + DIVERGENT_APP[0]);
-  check('el punto medio (log2FC=0) sigue siendo el gris neutro (invert no toca el centro de un rango simétrico)',
-    s.scale(0) === DIVERGENT_APP[1]);
-}
 
 console.log('\nRESULTADO: ' + (failed ? 'FAIL' : 'PASS'));
 process.exit(failed ? 1 : 0);

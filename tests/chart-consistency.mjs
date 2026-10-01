@@ -50,7 +50,7 @@ try {
     ['#/barplots', ['Barras']], ['#/barplots', ['Flujos']], ['#/barplots', ['Sunburst']], ['#/barplots', ['Taxa candidatos']], ['#/barplots', ['Burbujas']],
     ['#/alfa', ['Boxplot']], ['#/alfa', ['Curvas']], ['#/alfa', ['Violín']],
     ['#/beta', ['Mapa de calor']], ['#/beta', ['PCoA']], ['#/beta', ['RDA']],
-    ['#/diferencial', ['Individual', 'Volcano']], ['#/diferencial', ['Individual', 'Lollipop']], ['#/diferencial', ['Individual', 'Mapa de calor']], ['#/diferencial', ['Individual', 'Cajas']], ['#/diferencial', ['Comparar']],
+    ['#/diferencial', ['Individual', 'Volcano']], ['#/diferencial', ['Individual', 'Lollipop']], ['#/diferencial', ['Comparar']],
     ['#/recuentos', []], ['#/correlograma', ['Matriz']], ['#/correlograma', ['Red']], ['#/funcional', []],
     ['#/inferencia', ['Gráfico de Barras']], ['#/inferencia', ['Lollipop']],
     ['#/temporal', []], ['#/venn', []], ['#/arbol', []],

@@ -7,17 +7,11 @@ import {
 import { ingestFile } from '../lib/ingest.js';
 import { formatP } from '../lib/stats.js';
 import { partitionByMask, drawVenn } from '../lib/setDiagram.js';
-import { attachChartEditor, getColorScaleOptions, getFigureOptions } from '../lib/chartEditor.js';
-import { makeColorScale } from '../lib/colorScale.js';
-import { paletteColorsOf } from '../lib/palettes.js';
+import { attachChartEditor, getFigureOptions } from '../lib/chartEditor.js';
 import { annotateKO, keggEntryUrl } from '../lib/koAnnotate.js';
 import { svgEl, escapeHtml, delegateHover, plotClip } from '../lib/dom.js';
 import { showTooltip as showTooltipCentral, hideTooltip } from '../lib/tooltip.js';
 import { chartTypeField } from '../lib/chartTypeSelector.js';
-import { drawGroupBoxplot, legendPositionLabel } from '../lib/groupBoxplot.js';
-import { taxaRelativeAbundance } from '../lib/taxaAbundance.js';
-import { shortTaxonName } from './taxaBarplot.js';
-import { makeGroupResolver } from '../lib/sampleMatch.js';
 
 const MARGIN = { top: 48, right: 28, bottom: 86, left: 58 };
 const W = 900, H = 560;
@@ -28,19 +22,6 @@ function shortenTaxon(name) {
   return parts[0].charAt(0) + '. ' + parts.slice(1).join(' ');
 }
 
-// El taxón de la tabla de resultados (DESeq2/ANCOM-BC) y el de la tabla de
-// abundancia (taxaBarplot/taxaCounts) rara vez se escriben igual — una puede
-// traer el linaje completo ("d__Bacteria;...;g__Lactobacillus") y la otra
-// solo el nombre corto. Se compara por nombre corto normalizado; sin
-// coincidencia devuelve null (no se inventa un emparejamiento dudoso).
-function matchTaxonToAbundance(diffTaxon, relAbund) {
-  if (!relAbund) return null;
-  if (relAbund.bySample[diffTaxon]) return diffTaxon; // misma convención, ya coincide
-  const norm = (s) => shortTaxonName(s).toLowerCase().trim();
-  const target = norm(diffTaxon);
-  if (!target) return null;
-  return Object.keys(relAbund.bySample).find((full) => norm(full) === target) || null;
-}
 function niceStep(range, targetTicks) {
   if (range <= 0) return 1;
   const raw = range / targetTicks;
@@ -108,12 +89,6 @@ write.csv(subset(res, estado != "No significativo"),
 `;
 }
 
-// formas específicas de "log2 fold change" (evita cazar lfcSE, log10, etc.)
-const LFC_STRONG = ['log2foldchange', 'log2fc', 'l2fc', 'logfoldchange', 'foldchange'];
-const normHdr = (h) => String(h == null ? '' : h).toLowerCase().replace(/[^a-z0-9]/g, '');
-// columnas que NO son un log2FC aunque lo parezcan (error estándar, estadístico…)
-const NOT_LFC = /(^|[^a-z])(se|stderr|std|error|stat|pval|pvalue|padj|fdr|qval|mean|rank|conf|lower|upper|neglog|log10)([^a-z]|$)/i;
-
 // nombre legible de la comparación a partir del archivo de origen
 // ("DESeq2_D_vs_Control.csv" -> "D vs Control")
 function comparisonLabel(fileName) {
@@ -130,9 +105,7 @@ export function render(container) {
   let mapping = null;
   let mappedFileId = null; // para re-mapear si se carga otra tabla distinta
   let showRScript = false;
-  let chartType = 'volcano'; // 'volcano' | 'lollipop' | 'heatmap' | 'boxplot'
-  let boxplotTaxon = null;     // taxón elegido en la vista de cajas y bigotes
-  let boxplotGroupCol = null;  // columna de metadatos para agrupar esa vista
+let chartType = 'volcano'; // 'volcano' | 'lollipop'
   let mainView = 'individual'; // 'individual' | 'compare'
   let cmpPadj = 0.05;          // umbral padj de "significativo en N de M"
   let cmpSort = { key: 'count', dir: 'desc' };
@@ -140,27 +113,10 @@ export function render(container) {
   let editor = null;
   let wasEditing = false; // capturado en paint(); lo leen renderChart() y renderCompare() (ver cfg.startEditing en chartEditor.js)
 
-  // columnas de log2FoldChange presentes en la tabla (la mapeada + cualquier
-  // otra que lo parezca, para el mapa de calor multi-comparación)
-  function lfcColumns(headers) {
-    const cols = [];
-    headers.forEach((h, i) => {
-      if (i === mapping.taxon || i === mapping.padj) return;
-      if (i === mapping.lfc) { cols.push({ key: h, idx: i }); return; }
-      const n = normHdr(h);
-      const looksLfc = LFC_STRONG.some((k) => n.includes(k)) || /\blfc\b/i.test(String(h));
-      if (looksLfc && !NOT_LFC.test(String(h))) cols.push({ key: h, idx: i });
-    });
-    if (!cols.some((c) => c.idx === mapping.lfc)) cols.unshift({ key: headers[mapping.lfc], idx: mapping.lfc });
-    cols.sort((a, b) => (a.idx === mapping.lfc ? -1 : b.idx === mapping.lfc ? 1 : a.idx - b.idx));
-    return cols;
-  }
-
   function computeDerived() {
     const da = state.differentialAbundance;
     const headers = da.headers;
     const taxonKey = headers[mapping.taxon], lfcKey = headers[mapping.lfc], padjKey = headers[mapping.padj];
-    const lfcCols = lfcColumns(headers);
     const out = [];
     let skipped = 0;
     da.rows.forEach((r) => {
@@ -175,10 +131,9 @@ export function render(container) {
         if (lfc >= thresholds.lfc) status = 'up';
         else if (lfc <= -thresholds.lfc) status = 'down';
       }
-      const lfcExtra = lfcCols.map((c) => { const v = parseFloat(r[c.key]); return isFinite(v) ? v : null; });
-      out.push({ taxon, lfc, padj, neglog, status, capped: padj < 1e-10, lfcExtra });
+      out.push({ taxon, lfc, padj, neglog, status, capped: padj < 1e-10 });
     });
-    return { data: out, skipped, taxonKey, lfcKey, padjKey, lfcCols };
+    return { data: out, skipped, taxonKey, lfcKey, padjKey };
   }
 
   function paint() {
@@ -285,33 +240,10 @@ export function render(container) {
     mapCard.appendChild(mapGrid);
     container.appendChild(mapCard);
 
-    const { data, skipped, taxonKey, lfcKey, padjKey, lfcCols } = computeDerived();
-
-    // "Cajas y bigotes" cruza el taxón significativo con una tabla de
-    // abundancia por muestra APARTE (taxaBarplot/taxaCounts) — no siempre
-    // está cargada, y no aplica a diferencial funcional (KOs). Si falta
-    // cualquiera de las dos cosas, la opción ni se ofrece (no se rompe nada,
-    // simplemente no aparece un tipo de gráfico que no podría dibujar nada).
-    const relAbund = (!isKO && state.metadata) ? taxaRelativeAbundance() : null;
-    const canBoxplot = !!relAbund;
-    if (chartType === 'boxplot' && !canBoxplot) chartType = 'volcano';
-    // taxones que hoy cumplen los umbrales (arriba/abajo) Y tienen una columna
-    // de abundancia emparejada por nombre — únicos candidatos al boxplot.
-    const sigMatched = canBoxplot
-      ? data.filter((d) => d.status !== 'ns').map((d) => ({ ...d, matchedKey: matchTaxonToAbundance(d.taxon, relAbund) }))
-        .filter((d) => d.matchedKey).sort((a, b) => a.padj - b.padj)
-      : [];
-    if (chartType === 'boxplot' && (!boxplotTaxon || !sigMatched.some((d) => d.taxon === boxplotTaxon))) {
-      boxplotTaxon = sigMatched.length ? sigMatched[0].taxon : null;
-    }
-    const groupOptionsForBoxplot = state.metadata ? state.metadata.headers.filter((h) => h !== state.metadata.sampleIdKey) : [];
-    if (chartType === 'boxplot' && (!boxplotGroupCol || !groupOptionsForBoxplot.includes(boxplotGroupCol))) {
-      boxplotGroupCol = groupOptionsForBoxplot[0] || null;
-    }
+    const { data, skipped, taxonKey, lfcKey, padjKey } = computeDerived();
 
     // ---- selector de tipo de gráfico ----
-    const tabOptions = [['volcano', t('differential.viewVolcano')], ['lollipop', t('differential.viewLollipop')], ['heatmap', t('differential.viewHeatmap')]];
-    if (canBoxplot) tabOptions.push(['boxplot', t('differential.viewBoxplot')]);
+    const tabOptions = [['volcano', t('differential.viewVolcano')], ['lollipop', t('differential.viewLollipop')]];
     const tabs = document.createElement('div');
     tabs.className = 'ql-tabs';
     tabOptions.forEach(([v, label]) => {
@@ -329,14 +261,11 @@ export function render(container) {
 
     const chartPanel = document.createElement('section');
     chartPanel.className = 'ql-card ql-panel';
-    const chartNoteKey = chartType === 'lollipop' ? 'differential.chartNoteLolli'
-      : chartType === 'heatmap' ? 'differential.chartNoteHeat'
-      : chartType === 'boxplot' ? 'differential.chartNoteBoxplot' : 'differential.chartNote';
+    const chartNoteKey = chartType === 'lollipop' ? 'differential.chartNoteLolli' : 'differential.chartNote';
     chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' + t(chartNoteKey) + '</p>';
     const chartWrap = document.createElement('div');
     chartWrap.className = 'ql-chartwrap';
     const svg = svgEl('svg', { class: 'ql-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': t('a11y.chartVolcano') });
-    if (chartType === 'heatmap') chartWrap.classList.add('scroll-x');
     const tooltip = document.createElement('div');
     tooltip.className = 'ql-tooltip';
     chartWrap.appendChild(svg);
@@ -385,51 +314,10 @@ export function render(container) {
       controls.appendChild(labelField);
     }
 
-    let searchField = null;
-    if (chartType !== 'boxplot') {
-      searchField = document.createElement('div');
-      searchField.className = 'ql-field';
-      searchField.innerHTML = '<label>' + t('differential.searchLabel', { ent: entName }) + '</label><input type="text" id="searchInput" placeholder="' + t(isKO ? 'differential.searchPlaceholderKO' : 'differential.searchPlaceholder') + '" value="' + escapeHtml(search) + '" />';
-      controls.appendChild(searchField);
-    }
-
-    if (chartType === 'boxplot') {
-      const taxonField = document.createElement('div');
-      taxonField.className = 'ql-field';
-      taxonField.innerHTML = '<label>' + t('differential.boxplotTaxonLabel', { ent: cap(entName) }) + '</label>';
-      const taxonSel = document.createElement('select');
-      sigMatched.forEach((d) => {
-        const opt = document.createElement('option');
-        opt.value = d.taxon;
-        opt.textContent = d.taxon + ' (padj ' + formatP(d.padj) + ', log2FC ' + d.lfc.toFixed(2) + ')';
-        if (d.taxon === boxplotTaxon) opt.selected = true;
-        taxonSel.appendChild(opt);
-      });
-      taxonSel.addEventListener('change', () => { boxplotTaxon = taxonSel.value; paint(); });
-      taxonField.appendChild(taxonSel);
-      controls.appendChild(taxonField);
-
-      if (groupOptionsForBoxplot.length > 0) {
-        const grpField = document.createElement('div');
-        grpField.className = 'ql-field';
-        grpField.innerHTML = '<label>' + t('barplots.groupCol') + '</label>';
-        const grpSel = document.createElement('select');
-        groupOptionsForBoxplot.forEach((h) => {
-          const opt = document.createElement('option');
-          opt.value = h; opt.textContent = h;
-          if (h === boxplotGroupCol) opt.selected = true;
-          grpSel.appendChild(opt);
-        });
-        grpSel.addEventListener('change', () => { boxplotGroupCol = grpSel.value; paint(); });
-        grpField.appendChild(grpSel);
-        controls.appendChild(grpField);
-      }
-
-      const matchNote = document.createElement('p');
-      matchNote.className = 'ql-field-help';
-      matchNote.textContent = t('differential.boxplotMatchNote', { n: sigMatched.length, total: data.filter((d) => d.status !== 'ns').length });
-      controls.appendChild(matchNote);
-    }
+    const searchField = document.createElement('div');
+    searchField.className = 'ql-field';
+    searchField.innerHTML = '<label>' + t('differential.searchLabel', { ent: entName }) + '</label><input type="text" id="searchInput" placeholder="' + t(isKO ? 'differential.searchPlaceholderKO' : 'differential.searchPlaceholder') + '" value="' + escapeHtml(search) + '" />';
+    controls.appendChild(searchField);
 
     const rBtn = document.createElement('button');
     rBtn.type = 'button';
@@ -533,33 +421,6 @@ export function render(container) {
       parent.appendChild(g);
     }
 
-    // divergente por log2FC: azul (reducido) — neutro — rojo (enriquecido).
-    // Escala de color continua compartida (Paso 2 de qiimelab-prompt-
-    // editor-fase-3-heatmaps-escalas-continuas.md) en vez de color-mix()
-    // por celda. Dominio simétrico [-maxAbs, maxAbs] (mismo criterio que ya
-    // tenía esta vista), editable desde el panel igual que los demás.
-    function heatColorScale(maxAbs) {
-      const csOv = getColorScaleOptions('differentialAbundance-heatmap');
-      const domain = [
-        csOv.domainMin != null ? csOv.domainMin : -maxAbs,
-        csOv.domainMax != null ? csOv.domainMax : maxAbs,
-      ];
-      return makeColorScale({
-        type: 'divergent', domain,
-        range: paletteColorsOf(csOv.paletteId || 'app:divergent'),
-        // la paleta divergente por defecto de la app es [neg=rojo, mid=gris,
-        // pos=azul] (js/lib/palettes.js) pero aquí domain[0] (el extremo
-        // negativo) es "down" = azul/depleted: sin invertir, un log2FC muy
-        // negativo saldría rojo. Solo se invierte SI se usa la paleta de la
-        // app (paletteId ausente) — si el usuario elige otra paleta del
-        // catálogo a propósito, se respeta tal cual la trae, mismo criterio
-        // que beta/correlograma (sin casos especiales por paleta).
-        invert: csOv.invert != null ? csOv.invert : !csOv.paletteId,
-        midpoint: csOv.midpoint != null ? csOv.midpoint : 0,
-        steps: csOv.steps,
-      });
-    }
-
     const SIG_CAP = 40;
     function significantTaxa(searchTerm) {
       const all = data.filter((d) => d.status !== 'ns');
@@ -615,8 +476,6 @@ export function render(container) {
       svg.style.marginRight = '';
       const term = search.trim().toLowerCase();
       if (chartType === 'lollipop') ceCfg = renderLollipop(term);
-      else if (chartType === 'heatmap') ceCfg = renderHeatmap(term);
-      else if (chartType === 'boxplot') ceCfg = renderBoxplot();
       else ceCfg = renderVolcano(term);
     }
 
@@ -838,188 +697,6 @@ export function render(container) {
       return lolliCfg(autoLX);
     }
 
-    // ===== Mapa de calor =====
-    function heatCfg(HW, maxAbs) {
-      return {
-        key: 'differentialAbundance-heatmap',
-        filename: t('differential.title') + '-heatmap',
-        elements: [
-          { id: 'title', create: { text: t('differential.chartHeat'), x: HW / 2, y: 22, anchor: 'middle', cls: 'ce-title' } },
-          { id: 'xtitle', selector: '[data-ce="xtitle"]' },
-          { id: 'ytitle', selector: '[data-ce="ytitle"]' },
-          { id: 'legend', selector: '[data-ce="legend"]', kind: 'group' },
-        ],
-        colorScale: { type: 'divergent', domain: [-(maxAbs || 1), maxAbs || 1], defaultMidpoint: 0 },
-        onColorScaleChange: () => paint(),
-      };
-    }
-    function renderHeatmap(searchTerm) {
-      const { sig, capped, totalSig } = significantTaxa(searchTerm);
-      const anyMatch = searchTerm && sig.some((d) => d.taxon.toLowerCase().includes(searchTerm));
-      const single = lfcCols.length <= 1;
-      const srcName = (state.files.find((f) => f.id === state.differentialAbundance.sourceFileId) || {}).name;
-      const colLabels = single ? [comparisonLabel(srcName) || t('differential.heatOneCol')] : lfcCols.map((c) => c.key);
-      const nCols = colLabels.length;
-      const cellW = single ? 108 : Math.max(52, Math.min(104, 460 / nCols));
-      const mL = 210, mR = 24, mT = single ? 74 : 100, mB = 78;
-      const gridW = cellW * nCols;
-      const HW = mL + gridW + mR;
-
-      if (sig.length === 0) { noSigText(HW, 300); return heatCfg(HW); }
-
-      const rowH = Math.max(15, Math.min(24, 520 / sig.length));
-      const plotH = sig.length * rowH;
-      const HH = mT + plotH + mB;
-      svg.setAttribute('viewBox', '0 0 ' + HW + ' ' + HH);
-      svg.style.width = (single ? HW : Math.max(HW, 460)) + 'px';
-      svg.style.maxWidth = 'none';
-      if (single) { svg.style.marginLeft = 'auto'; svg.style.marginRight = 'auto'; }
-      const g = svgEl('g', {});
-      svg.appendChild(g);
-
-      let maxAbs = 0;
-      sig.forEach((d) => (single ? [d.lfc] : d.lfcExtra).forEach((v) => { if (v != null && isFinite(v)) maxAbs = Math.max(maxAbs, Math.abs(v)); }));
-      maxAbs = maxAbs || 1;
-      const colorScale = heatColorScale(maxAbs);
-      const lfcFill = (v) => (v == null || !isFinite(v) ? 'var(--page)' : (colorScale.scale(v) || 'var(--page)'));
-      // controles de celda (Paso 4): "valor en celda" hace toggle del
-      // número de log2FC que antes era incondicional (por defecto sigue
-      // apareciendo). "Borde de celda": nuevo.
-      const heatCsOv = getColorScaleOptions('differentialAbundance-heatmap');
-      const showValue = heatCsOv.showValue !== false;
-      const cellBorder = heatCsOv.cellBorder || null;
-
-      activeTooltip = (el) => {
-        const [ri, ci] = el.dataset.tt.split(':').map(Number);
-        const d = sig[ri], cl = colLabels[ci];
-        const v = single ? d.lfc : d.lfcExtra[ci];
-        tooltipRaw(escapeHtml(d.taxon), (nCols > 1 ? escapeHtml(cl) + ' · ' : '') + 'log2FC ' + (v == null ? '—' : v.toFixed(2)), +el.dataset.cx, +el.dataset.cy, d.taxon);
-      };
-      sig.forEach((d, ri) => {
-        const y = mT + ri * rowH;
-        const matches = anyMatch && d.taxon.toLowerCase().includes(searchTerm);
-        const dim = anyMatch && !matches;
-        colLabels.forEach((cl, ci) => {
-          const v = single ? d.lfc : d.lfcExtra[ci];
-          const x = mL + ci * cellW;
-          const rect = svgEl('rect', {
-            x, y, width: cellW - 2, height: rowH - 2, rx: 2, fill: lfcFill(v), opacity: dim ? 0.3 : 1, 'data-ce-role': 'cell',
-            ...(cellBorder ? { stroke: cellBorder.color, 'stroke-width': cellBorder.width } : {}),
-            'data-tt': ri + ':' + ci, 'data-cx': x + cellW / 2, 'data-cy': y + rowH / 2,
-          });
-          g.appendChild(rect);
-          if (showValue && v != null && isFinite(v) && cellW >= 40 && rowH >= 15) {
-            const strong = Math.abs(v) / maxAbs > 0.55;
-            const tx = svgEl('text', { x: x + (cellW - 2) / 2, y: y + rowH / 2 + 3, class: 'ql-cell-value', 'text-anchor': 'middle', 'font-size': Math.min(11, rowH * 0.5).toFixed(1), fill: strong ? 'var(--surface)' : 'var(--ink)', 'font-family': 'var(--font-mono)', 'pointer-events': 'none', opacity: dim ? 0.4 : 1 });
-            tx.textContent = v.toFixed(1);
-            g.appendChild(tx);
-          }
-        });
-        const lbl = svgEl('text', { x: mL - 10, y: y + rowH / 2 + 3, class: 'ql-tick-label', 'text-anchor': 'end', opacity: dim ? 0.35 : 1 });
-        lbl.textContent = entLabel(d.taxon);
-        g.appendChild(lbl);
-      });
-
-      colLabels.forEach((cl, ci) => {
-        const x = mL + ci * cellW + (cellW - 2) / 2;
-        const yy = mT - 10;
-        const tx = svgEl('text', { x, y: yy, class: 'ql-tick-label', 'text-anchor': single ? 'middle' : 'end' });
-        if (!single) tx.setAttribute('transform', 'rotate(-40 ' + x + ' ' + yy + ')');
-        tx.textContent = cl.length > 24 ? cl.slice(0, 23) + '…' : cl;
-        g.appendChild(tx);
-      });
-
-      const legG = svgEl('g', { 'data-ce': 'legend' });
-      const defs = svgEl('defs', {});
-      const legendGradId = 'ql-cscale-differentialAbundance-heatmap';
-      const grad = svgEl('linearGradient', { id: legendGradId, x1: '0', y1: '0', x2: '1', y2: '0' });
-      colorScale.legendStops.forEach((st) => {
-        grad.appendChild(svgEl('stop', { offset: st.offset + '%', 'stop-color': st.color }));
-      });
-      defs.appendChild(grad);
-      svg.appendChild(defs);
-      const barW = Math.min(200, Math.max(120, gridW + 30));
-      legG.appendChild(svgEl('rect', { x: 0, y: 0, width: barW, height: 11, rx: 2, fill: 'url(#' + legendGradId + ')', stroke: 'var(--baseline)' }));
-      const midT = colorScale.domain[1] === colorScale.domain[0] ? 0.5
-        : (colorScale.midpoint - colorScale.domain[0]) / (colorScale.domain[1] - colorScale.domain[0]);
-      const fmt = (v) => (Math.round(v * 100) / 100).toString();
-      [[fmt(colorScale.domain[0]), 0, 'start'], [fmt(colorScale.midpoint), Math.max(0, Math.min(barW, midT * barW)), 'middle'], [fmt(colorScale.domain[1]), barW, 'end']]
-        .forEach(([lab, xx, anc]) => {
-          const lt = svgEl('text', { x: xx, y: 25, class: 'ql-tick-label', 'text-anchor': anc });
-          lt.textContent = lab;
-          legG.appendChild(lt);
-        });
-      const lnote = svgEl('text', { x: 0, y: 41, class: 'ql-tick-label', fill: 'var(--ink-muted)' });
-      lnote.textContent = t('differential.heatLegendNote');
-      legG.appendChild(lnote);
-      const xtH = svgEl('text', { x: mL + gridW / 2, y: mT + plotH + 14, class: 'ql-axis-label', 'text-anchor': 'middle', 'data-ce': 'xtitle' });
-      xtH.textContent = t('differential.axisComparison');
-      g.appendChild(xtH);
-      const ytH = svgEl('text', { x: 12, y: mT + plotH / 2, class: 'ql-axis-label', 'text-anchor': 'middle', transform: 'rotate(-90 12 ' + (mT + plotH / 2) + ')', 'data-ce': 'ytitle' });
-      ytH.textContent = cap(entName);
-      g.appendChild(ytH);
-      legG.setAttribute('transform', 'translate(' + mL + ',' + (mT + plotH + 22) + ')');
-      svg.appendChild(legG);
-
-      if (capped) capText(HW / 2, single ? 40 : 20, totalSig);
-      return heatCfg(HW, maxAbs);
-    }
-
-    // ===== Cajas y bigotes =====
-    // Complementa el lollipop/volcano (que resumen el efecto en un número)
-    // con la distribución real de abundancia del taxón elegido, agrupada por
-    // una columna de metadatos — mismo componente (drawGroupBoxplot) que
-    // diversidad alfa/recuentos, mismo Kruskal-Wallis de contraste.
-    function boxplotCfg(titleText) {
-      return {
-        key: 'differentialAbundance-boxplot',
-        filename: t('differential.title') + '-boxplot' + (boxplotTaxon ? '-' + boxplotTaxon : ''),
-        elements: [
-          { id: 'title', create: { text: titleText, x: W / 2, y: 24, anchor: 'middle', cls: 'ce-title' } },
-          { id: 'xtitle', selector: '[data-ce="xtitle"]' },
-          { id: 'ytitle', selector: '[data-ce="ytitle"]' },
-          { id: 'legend', selector: '[data-ce="legend"]', kind: 'group' },
-        ],
-        paletteType: 'categorical',
-      };
-    }
-    function renderBoxplot() {
-      const d = boxplotTaxon ? sigMatched.find((x) => x.taxon === boxplotTaxon) : null;
-      if (!d || !boxplotGroupCol) {
-        noSigText(W, H);
-        return boxplotCfg(t('differential.title'));
-      }
-      const sampleVals = relAbund.bySample[d.matchedKey]; // Map sampleId(taxaBarplot/Counts) -> %
-      const resolveGroup = makeGroupResolver(state.metadata, boxplotGroupCol);
-      const groupData = {};
-      const groupNames = [];
-      sampleVals.forEach((val, sid) => {
-        const g = resolveGroup(sid);
-        if (!g) return;
-        if (!groupData[g]) { groupData[g] = []; groupNames.push(g); }
-        groupData[g].push(val);
-      });
-      groupNames.sort();
-
-      if (groupNames.length === 0) {
-        noSigText(W, H);
-        return boxplotCfg(d.taxon);
-      }
-
-      const result = drawGroupBoxplot({
-        svg, chartWrap, tooltip,
-        groupNames, groupData, key: 'differentialAbundance-boxplot',
-        title: d.taxon, xTitle: boxplotGroupCol, yTitle: t('differential.boxplotYAxis'),
-        valueLabel: t('differential.boxplotYAxis'), valueDecimals: 2,
-      });
-
-      return {
-        ...boxplotCfg(d.taxon), elements: result.ceElements, paletteSeries: result.paletteSeries,
-        statsControls: result.statsControls,
-        figureOptions: result.figureOptions, legendPositions: result.legendPositions,
-      };
-    }
-
     function renderTable() {
       const sorted = data.slice().sort((a, b) => {
         const dir = sort.dir === 'asc' ? 1 : -1;
@@ -1077,11 +754,7 @@ export function render(container) {
       paletteSeries: ceCfg.paletteSeries,
       paletteType: ceCfg.paletteType,
       onChange: ceCfg.onChange,
-      colorScale: ceCfg.colorScale,
-      onColorScaleChange: ceCfg.onColorScaleChange,
-      statsControls: ceCfg.statsControls, onStatsChange: () => paint(),
       figureOptions: ceCfg.figureOptions, onFigureOptionsChange: () => paint(),
-      legendPositions: (ceCfg.legendPositions || []).map((p) => ({ ...p, label: legendPositionLabel(p.id, getLang()) })),
       onReset: () => paint(),
       startEditing: wasEditing,
     });
