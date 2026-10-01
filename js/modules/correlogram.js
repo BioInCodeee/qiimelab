@@ -729,7 +729,7 @@ export function render(container) {
         rx += cMaxLeg * 2 + 16;
       });
       if (showSig) {
-        const sn = svgEl('text', { x: 0, y: cMaxLeg * 2 + 32, class: 'ql-tick-label', fill: 'var(--ink-muted)' });
+        const sn = svgEl('text', { x: 0, y: cMaxLeg * 2 + 26, class: 'ql-tick-label', fill: 'var(--ink-muted)' });
         sn.textContent = t('correlogram.legendStars');
         legG.appendChild(sn);
       }
