@@ -561,6 +561,8 @@ export default {
     bubbleNote: 'Each dot is the correlation of a pair of variables. Size = strength (|r|); colour = sign. Hover for the exact r, p and n.',
     matrixStyleLabel: 'Chart shape', matrixStyleHeatmap: 'Heatmap', matrixStyleBubbles: 'Bubbles',
     matrixStyleHelp: 'Bubbles: dot size is the correlation strength (|r|) and colour only shows the sign — a common alternative in correlation packages such as corrplot (R).',
+    sigLabel: 'Significance', sigOn: 'Show', sigOff: 'Hide',
+    sigHelp: 'Marks significant correlations with asterisks (∗ p<0.05, ∗∗ p<0.01, ∗∗∗ p<0.001) in every chart shape: heatmap, bubbles, pie and circular.',
     layoutLabel: 'Layout', layoutRect: 'Rectangular', layoutCircular: 'Circular',
     layoutCircularHelp: 'The same matrix, wrapped into a circle: each variable is a sector (numbered clockwise from the top) and also a ring (1 is the innermost; the numbers in the top gap tell which ring is which). The cell where ring i meets sector j is the correlation between those two variables — just like row i and column j in the rectangular view.',
     circularCenter: 'ring = row',

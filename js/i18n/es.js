@@ -561,6 +561,8 @@ export default {
     bubbleNote: 'Cada punto es la correlación de una pareja de variables. Tamaño = fuerza (|r|); color = signo. Pasa el cursor para ver r, p y n exactos.',
     matrixStyleLabel: 'Forma del gráfico', matrixStyleHeatmap: 'Mapa de calor', matrixStyleBubbles: 'Burbujas',
     matrixStyleHelp: 'Burbujas: el tamaño del punto es la fuerza de la correlación (|r|) y el color solo indica el signo — alternativa habitual en paquetes de correlación como corrplot (R).',
+    sigLabel: 'Significancia', sigOn: 'Mostrar', sigOff: 'Ocultar',
+    sigHelp: 'Marca las correlaciones significativas con asteriscos (∗ p<0.05, ∗∗ p<0.01, ∗∗∗ p<0.001) en todas las formas del gráfico: mapa de calor, burbujas, sectores y circular.',
     layoutLabel: 'Disposición', layoutRect: 'Rectangular', layoutCircular: 'Circular',
     layoutCircularHelp: 'La misma matriz, enrollada en un círculo: cada variable es un sector (numerado, en sentido horario desde arriba) y también un anillo (el 1 es el más interior; los números del hueco superior dicen qué anillo es cuál). La celda donde se cruzan el anillo i y el sector j es la correlación entre esas dos variables — igual que la fila i y la columna j de la vista rectangular.',
     circularCenter: 'anillo = fila',

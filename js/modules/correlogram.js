@@ -120,11 +120,29 @@ function cellAnnotation(p, statsOpts) {
   return formatPStyled(p, { style: statsOpts.style || 'gp', mode: statsOpts.mode || 'stars' });
 }
 
+/** Marca de significancia de una celda (mismo criterio que la matriz:
+ *  cellAnnotation → umbral y estilo de las opciones de estadística). Se usa
+ *  en burbujas, sectores y circular; el halo del color de fondo la mantiene
+ *  legible encima del glifo o del color de la celda. */
+function sigMark(svg, ann, cx, cy, boxW) {
+  if (!ann) return;
+  const fontSize = Math.min(13, boxW * 0.42, ann.length > 4 ? (boxW * 2.6) / ann.length : Infinity);
+  const tx = svgEl('text', {
+    x: cx, y: cy + fontSize * 0.34, class: 'ql-cell-value ql-corr-sig',
+    'text-anchor': 'middle', 'font-size': fontSize, 'font-weight': 700,
+    fill: 'var(--ink)', stroke: 'var(--surface)', 'stroke-width': 2.5, 'paint-order': 'stroke', 'stroke-linejoin': 'round',
+    'font-family': 'var(--font-mono)', 'pointer-events': 'none',
+  });
+  tx.textContent = ann;
+  svg.appendChild(tx);
+}
+
 export function render(container) {
   let method = 'pearson';        // 'pearson' | 'spearman' — compartido por las dos vistas
   let topN = TOP_N_DEFAULT;
   let selected = null;           // Set de ids de variable; null = aún sin inicializar
   let view = 'matrix';           // 'matrix' | 'network'
+  let showSig = true;            // asteriscos de significancia — UN solo estado para matriz, sectores, burbujas y circular
   let matrixStyle = 'heatmap';   // 'heatmap' | 'bubbles' | 'pie' — solo aplica dentro de view === 'matrix'
   let matrixLayout = 'rect';     // 'rect' | 'circular' — solo para el mapa de calor (reproyección polar de la misma matriz)
   let splitHalves = false;       // matriz partida: ▲ superior = método elegido, ▼ inferior = el otro (Fase 3, C2)
@@ -267,6 +285,16 @@ export function render(container) {
           helpKey: matrixLayout === 'circular' ? 'correlogram.layoutCircularHelp' : undefined,
         }));
       }
+      controls.appendChild(chartTypeField({
+        labelKey: 'correlogram.sigLabel',
+        options: [
+          { value: 'on', labelKey: 'correlogram.sigOn' },
+          { value: 'off', labelKey: 'correlogram.sigOff' },
+        ],
+        active: showSig ? 'on' : 'off',
+        onChange: (v) => { showSig = v === 'on'; paint(); },
+        helpKey: 'correlogram.sigHelp',
+      }));
       const other = method === 'pearson' ? 'spearman' : 'pearson';
       const nameOf = (m) => t(m === 'pearson' ? 'correlogram.pearson' : 'correlogram.spearman');
       controls.appendChild(chartTypeField({
@@ -591,7 +619,10 @@ export function render(container) {
               'data-ce-series-fill': res.r >= 0 ? 'pos' : 'neg', 'data-ce-role': 'marker', 'pointer-events': 'none',
             }));
           }
-        } else if (!isDiag && showValue) {
+        }
+        if (!isDiag && isGlyph && showSig) {
+          sigMark(svg, cellAnnotation(res.p, statsOpts), x + (cell - 1.5) / 2, y + (cell - 1.5) / 2, cell - 1.5);
+        } else if (!isDiag && !isGlyph && showSig && showValue) {
           const ann = cellAnnotation(res.p, statsOpts);
           if (ann) {
             const strong = isFinite(res.r) && Math.abs(res.r) > 0.5;
@@ -697,6 +728,11 @@ export function render(container) {
         legG.appendChild(lt);
         rx += cMaxLeg * 2 + 16;
       });
+      if (showSig) {
+        const sn = svgEl('text', { x: 0, y: cMaxLeg * 2 + 32, class: 'ql-tick-label', fill: 'var(--ink-muted)' });
+        sn.textContent = t('correlogram.legendStars');
+        legG.appendChild(sn);
+      }
     } else {
       const defs = svgEl('defs', {});
       const legendGradId = 'ql-cscale-correlogram';
@@ -719,7 +755,7 @@ export function render(container) {
         });
       const legNote = svgEl('text', { x: 0, y: 42, class: 'ql-tick-label', fill: 'var(--ink-muted)' });
       legNote.textContent = t('correlogram.legendStars');
-      legG.appendChild(legNote);
+      if (showSig) legG.appendChild(legNote);
     }
     legG.setAttribute('transform', 'translate(' + marginL + ',' + (marginT + gridS + marginB - 50) + ')');
     svg.appendChild(legG);
@@ -861,6 +897,17 @@ export function render(container) {
       }
     }
     svg.appendChild(cellsG);
+    // significancia: solo con anillo lo bastante grueso para que quepa el texto
+    if (showSig && th >= 9) {
+      const statsOpts = getStatsOptions('correlogram');
+      for (let i = 0; i < k; i++) {
+        for (let j = 0; j < k; j++) {
+          if (i === j) continue;
+          const p = polarPoint(cx, cy, R0 + (i + 0.5) * th, angle(j) + dA / 2);
+          sigMark(svg, cellAnnotation(resAt(i, j).p, statsOpts), p.x, p.y, Math.min(th * 1.6, R0 * dA));
+        }
+      }
+    }
     delegateHover(svg, 'path[data-i]', {
       onEnter: (el) => {
         const i = +el.dataset.i, j = +el.dataset.j;
@@ -932,7 +979,7 @@ export function render(container) {
         legG.appendChild(lt);
       });
     const legNote = svgEl('text', { x: barW / 2, y: 42, class: 'ql-tick-label', 'text-anchor': 'middle', fill: 'var(--ink-muted)' });
-    legNote.textContent = t('correlogram.circularLegendNote');
+    legNote.textContent = t('correlogram.circularLegendNote') + (showSig ? '   ' + t('correlogram.legendStars') : '');
     legG.appendChild(legNote);
     legG.setAttribute('transform', 'translate(' + (W / 2 - barW / 2) + ',' + legendTop + ')');
     svg.appendChild(legG);
