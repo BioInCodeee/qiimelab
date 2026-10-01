@@ -837,14 +837,17 @@ export function render(container) {
         };
 
         // Enlaces (flujos aluviales Bézier)
-        const linksG = svgEl('g', { class: 'ql-alluvial-links' });
+        // La opacidad va como variable CSS en el grupo y NO como fill-opacity inline
+        // en cada flujo: el editor (chartColors.js applyPalette) reescribe
+        // style.fillOpacity de todo nodo con data-ce-series-fill —los taxones
+        // nombrados— y borraba el valor; «Otros» (sin esa marca) sobrevivía.
+        const linksG = svgEl('g', { class: 'ql-alluvial-links', style: '--ql-alluvial-link-opacity: ' + alluvialLinkOpacity + ';' });
         layout.links.forEach((link) => {
           const fillCol = (link.taxonKey === '__other__') ? OTHER_COLOR : (seriesColorOverrides[link.taxonKey] || (link.colorVar ? 'var(' + link.colorVar + ')' : '#2a78d6'));
           const path = svgEl('path', {
             d: link.d,
             class: 'ql-alluvial-link',
             fill: fillCol,
-            style: 'fill-opacity: ' + alluvialLinkOpacity + ';',
             'data-taxon-key': link.taxonKey,
             ...(link.taxonKey === '__other__' ? {} : { 'data-ce-series-fill': 's' + CAT_VARS.indexOf(link.colorVar) }),
           });
