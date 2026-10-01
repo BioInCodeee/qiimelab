@@ -313,8 +313,8 @@ export function drawGroupBoxplot(o) {
  * banda de Silverman -- js/lib/stats.js:gaussianKDE), forma espejada
  * izquierda-derecha, MISMA escala de ancho máximo entre grupos (no
  * normalizada grupo a grupo, para que la forma sea comparable visualmente
- * entre grupos) con una caja fina de mediana/IQR superpuesta (look habitual
- * de geom_violin + geom_boxplot estrecho). Reutiliza el toggle de puntos
+ * entre grupos), con los puntos individuales de las réplicas superpuestos
+ * (jitter) y SIN caja de bigotes de fondo. Reutiliza el toggle de puntos
  * del boxplot (class="ql-boxplot-point") y toda la infraestructura de
  * computeGroupStats (Kruskal-Wallis, corchetes de significación, auto-
  * selección de test) -- mismos parámetros y misma forma de retorno que
@@ -414,19 +414,9 @@ export function drawGroupViolin(o) {
       }
     }
 
-    // caja fina de mediana/IQR superpuesta (look de geom_violin + geom_boxplot estrecho)
-    const { q1, median, q3 } = quartiles(vals);
-    const thinW = 10;
-    svg.appendChild(svgEl('line', { x1: cx, x2: cx, y1: yScale(q1), y2: yScale(q3), class: 'ql-baseline-line', 'stroke-width': 2 }));
-    svg.appendChild(svgEl('rect', {
-      x: cx - thinW / 2, y: yScale(q3), width: thinW, height: Math.max(1, yScale(q1) - yScale(q3)),
-      fill: 'var(--surface)', stroke: 'var(' + colorVar + ')', 'stroke-width': 1.2, 'data-ce-role': 'bar',
-    }));
-    svg.appendChild(svgEl('line', { x1: cx - thinW / 2, x2: cx + thinW / 2, y1: yScale(median), y2: yScale(median), stroke: 'var(' + colorVar + ')', 'stroke-width': 2 }));
-
     // puntos individuales (mismo toggle --fig-points-opacity que el boxplot)
     vals.forEach((v) => {
-      const jitter = (rnd() - 0.5) * Math.min(thinW * 1.8, violinHalfWidth * 0.5);
+      const jitter = (rnd() - 0.5) * violinHalfWidth * 0.8;
       const c = svgEl('circle', {
         cx: cx + jitter, cy: yScale(v), r: 2.6, fill: 'var(' + colorVar + ')', stroke: 'var(--surface)', 'stroke-width': 0.8,
         'data-ce-series-fill': seriesId, 'data-ce-role': 'marker', class: 'ql-boxplot-point',

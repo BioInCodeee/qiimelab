@@ -67,6 +67,8 @@ try {
     drawn.n > 0 && drawn.pointCounts.every((n) => n > 2), JSON.stringify(drawn));
   check('los puntos individuales (heredados del toggle del punto 1) se dibujan también sobre el violín',
     drawn.hasPoints > 0, JSON.stringify(drawn));
+  const noBox = await c.ev(`(() => document.querySelectorAll('svg.ql-svg rect[data-ce-role="bar"]').length)()`);
+  check('el violín no lleva caja de bigotes de fondo (ningún rect de caja en el SVG)', noBox === 0, 'rects de caja: ' + noBox);
 
   // misma escala de ancho ENTRE grupos (no normalizada grupo a grupo): el
   // ancho máximo teórico de un violín es slotW*0.84 (2*violinHalfWidth);
