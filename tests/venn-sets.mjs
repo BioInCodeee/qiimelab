@@ -2,8 +2,7 @@
 // sintético de 10 grupos, el control "Conjuntos a mostrar" y que CADA región
 // de la tabla sea la intersección exacta de los conjuntos elegidos
 // (comparado con un cálculo independiente sobre el estado), para K = 10, 6,
-// 4 y 3; con 5+ → UpSet (color neutro por encima de 7 conjuntos), con 4 →
-// rectángulos por defecto, con 3 → círculos.
+// 4 y 3; con 5+ → UpSet (color neutro por encima de 7 conjuntos), con 3-4 →// círculos/elipses (sin rectángulos).
 //
 //   node tests/venn-sets.mjs
 
@@ -41,7 +40,7 @@ try {
   check('el estado vacío de #/venn ofrece el ejemplo sintético con 10 grupos', await c.ev(`(() => { const b = document.querySelector('.ql-venn-ten'); if (b) b.click(); return !!b; })()`));
   await sleep(1500);
   check('...que carga 10 conjuntos y el control "Conjuntos a mostrar" (máx. 10)', await c.ev(`(() => { const i = document.querySelector('#vnSets'); return !!i && i.max === '10' && i.value === '10'; })()`));
-  for (const [K, expect] of [[10, 'upset-neutral'], [6, 'upset'], [4, 'rect'], [3, 'round']]) {
+  for (const [K, expect] of [[10, 'upset-neutral'], [6, 'upset'], [4, 'round4'], [3, 'round']]) {
     await c.ev(`(() => { const i = document.querySelector('#vnSets'); i.value = '${K}'; i.dispatchEvent(new Event('change')); })()`); await sleep(1200);
     const app = await c.ev(APP), ind = await c.ev(INDEP(K));
     const keys = new Set([...Object.keys(app), ...Object.keys(ind)]);
@@ -50,7 +49,7 @@ try {
     const kind = await c.ev(KIND);
     const ok = expect === 'upset-neutral' ? kind.upset && kind.fills.length === 1 && kind.fills[0] === 'var(--ink-2)'
       : expect === 'upset' ? kind.upset && kind.fills.length === K
-        : expect === 'rect' ? !kind.upset && kind.rects === 4
+        : expect === 'round4' ? !kind.upset && kind.rects === 0 && kind.rounds === 4
           : !kind.upset && kind.rounds === 3;
     check(`K=${K}: vista ${expect}`, ok, JSON.stringify(kind));
   }

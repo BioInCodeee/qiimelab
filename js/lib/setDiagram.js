@@ -76,69 +76,18 @@ export const VENN_LAYOUTS = {
   },
 };
 
-// ---- alternativa de rectángulos (2-4 conjuntos), geométricamente exacta ----
-// Un Venn de 4 círculos es imposible (un 4º círculo no puede cortar a los
-// otros tres de la forma necesaria) — con rectángulos SÍ hay una
-// construcción exacta: los 2 primeros conjuntos son bandas de COLUMNA
-// (código Gray de 2 bits: 00,01,11,10 → cada bit ocupa 2 columnas contiguas
-// que se solapan en 1), y el 3º/4º son bandas de FILA (partición simple si
-// solo hay un 3er conjunto; el mismo código Gray si hay un 4º). Cada celda
-// de la rejilla resultante es una región distinta — las 15 combinaciones no
-// vacías de 4 conjuntos caben exactas en una rejilla 4×4.
-export function buildRectVennLayout(n) {
-  const CELL = 78;
-  const cols = 4;
-  const rows = n === 4 ? 4 : n === 3 ? 2 : 1;
-  const gridW = cols * CELL, gridH = rows * CELL;
-  const marginL = n >= 3 ? 96 : 20, marginT = 46, marginR = 24, marginB = 24;
-  const gx = marginL, gy = marginT;
-  const vb = [0, 0, gx + gridW + marginR, gy + gridH + marginB];
-
-  const shapes = [
-    { type: 'rect', x: gx + 1 * CELL, y: gy, width: 2 * CELL, height: gridH, ci: 0 },
-    { type: 'rect', x: gx + 2 * CELL, y: gy, width: 2 * CELL, height: gridH, ci: 1 },
-  ];
-  const nameAt = {
-    0: [gx + 1.5 * CELL, gy - 18, 'middle'],
-    1: [gx + 3.5 * CELL, gy - 18, 'middle'],
-  };
-  if (n >= 3) {
-    shapes.push({ type: 'rect', x: gx, y: gy + 1 * CELL, width: gridW, height: (n === 4 ? 2 : 1) * CELL, ci: 2 });
-    nameAt[2] = [gx - 14, gy + (n === 4 ? 2 : 1.5) * CELL, 'end'];
-  }
-  if (n === 4) {
-    shapes.push({ type: 'rect', x: gx, y: gy + 2 * CELL, width: gridW, height: 2 * CELL, ci: 3 });
-    nameAt[3] = [gx - 14, gy + 3 * CELL, 'end'];
-  }
-
-  const colContribution = [0, 1, 3, 2]; // Gray: 00,01,11,10 -> bit0 en cols{1,2}, bit1 en cols{2,3}
-  const rowContribution2 = [0, 4];      // partición simple (3er conjunto, sin código Gray)
-  const rowContribution4 = [0, 4, 12, 8]; // Gray sobre bits 2,3
-  const labels = {};
-  for (let r = 0; r < rows; r++) {
-    const rc = rows === 1 ? 0 : rows === 2 ? rowContribution2[r] : rowContribution4[r];
-    for (let c = 0; c < cols; c++) {
-      const mask = colContribution[c] + rc;
-      if (mask === 0) continue;
-      labels[mask] = [gx + (c + 0.5) * CELL, gy + (r + 0.5) * CELL];
-    }
-  }
-  return { vb, shapes, labels, nameAt };
-}
-
 /**
  * Diagrama de Venn de 2-4 conjuntos.
  * @param {HTMLElement} host  se vacía y recibe el <svg>
  * @param {string[]} groups
  * @param {Map<number,string[]>} byMask
  * @param {(mask:number)=>void} onRegion  clic en una región
- * @param {{ ariaLabel?: string, shape?: 'circles'|'rect' }} [opts]
+ * @param {{ ariaLabel?: string }} [opts]
  */
 export function drawVenn(host, groups, byMask, onRegion, opts = {}) {
-  const shape = opts.shape === 'rect' ? 'rect' : 'circles';
-  const layout = shape === 'rect' ? buildRectVennLayout(groups.length) : VENN_LAYOUTS[groups.length];
+  const layout = VENN_LAYOUTS[groups.length];
   host.innerHTML = '';
-  const vb = shape === 'rect' ? layout.vb : [layout.vb[0], layout.vb[1] - 34, layout.vb[2], layout.vb[3] + 34];
+  const vb = [layout.vb[0], layout.vb[1] - 34, layout.vb[2], layout.vb[3] + 34];
   const svg = svgEl('svg', { class: 'ql-svg', viewBox: vb.join(' '), role: 'img', 'aria-label': opts.ariaLabel || t('a11y.chartVenn') });
 
   const fillAlpha = groups.length >= 4 ? 0.22 : 0.3;
@@ -149,7 +98,6 @@ export function drawVenn(host, groups, byMask, onRegion, opts = {}) {
       'data-ce-series-fill': 's' + sh.ci, 'data-ce-series-stroke': 's' + sh.ci,
     };
     if (sh.type === 'circle') svg.appendChild(svgEl('circle', { cx: sh.cx, cy: sh.cy, r: sh.r, ...common }));
-    else if (sh.type === 'rect') svg.appendChild(svgEl('rect', { x: sh.x, y: sh.y, width: sh.width, height: sh.height, rx: 3, ...common }));
     else svg.appendChild(svgEl('ellipse', { cx: sh.cx, cy: sh.cy, rx: sh.rx, ry: sh.ry, transform: 'rotate(' + sh.rot + ' ' + sh.cx + ' ' + sh.cy + ')', ...common }));
   });
 

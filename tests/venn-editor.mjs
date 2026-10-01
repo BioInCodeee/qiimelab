@@ -2,9 +2,9 @@
 // especificos-por-tipo.md). Hallazgo de esta fase: a diferencia de las
 // otras 5 sub-fases, aquí NO hubo que escribir código nuevo -- venn.js ya
 // llamaba a attachChartEditor con paletteSeries (data-ce-series-fill en
-// cada forma) y ya tenía su propio selector de forma círculos/rectángulo
-// (shapeSeg, línea ~210), así que el control de opacidad de la Fase 2 y
-// el selector de forma ya funcionaban de fábrica -- este test existe para
+// cada forma) -- el selector de forma círculos/rectángulo que tenía entonces se retiró;
+// hoy el Venn son solo círculos/elipses, así que el control de opacidad de la Fase 2 y
+// el resto ya funcionaban de fábrica -- este test existe para
 // VERIFICARLO de forma empírica (no solo por lectura de código) y dejar
 // constancia de que 5.4 no requirió cambios de producción, solo esta
 // prueba. Cubre también UpSet (comparte el mismo attachChartEditor).
@@ -67,47 +67,19 @@ try {
   check('mover el slider a 60% sobreescribe la opacidad fija del módulo (fill-opacity:0.6 inline)',
     opacityApplied.fillOpacity === '0.6', JSON.stringify(opacityApplied));
 
-  console.log('\n-- selector de forma (círculos vs rectángulo Venn) --');
-  const shapeSetup = await c.ev(`(() => {
-    const buttons = [...document.querySelectorAll('.ql-segmented .ql-seg-btn')];
-    const circlesBtn = buttons.find((b) => /círculos|circles/i.test(b.textContent));
-    const rectBtn = buttons.find((b) => /rectángulo|rectangle/i.test(b.textContent));
-    return { hasCircles: !!circlesBtn, hasRect: !!rectBtn, circlesOn: circlesBtn && circlesBtn.classList.contains('is-on') };
-  })()`);
-  check('el selector círculos/rectángulo existe y "círculos" está activo por defecto',
-    shapeSetup.hasCircles && shapeSetup.hasRect && shapeSetup.circlesOn, JSON.stringify(shapeSetup));
-
-  const beforeShapes = await c.ev(`(() => ({ circles: document.querySelectorAll('svg.ql-svg circle[data-ce-series-fill]').length, rects: document.querySelectorAll('svg.ql-svg rect[data-ce-series-fill]').length }))()`);
-  await c.ev(`(() => { [...document.querySelectorAll('.ql-segmented .ql-seg-btn')].find((b) => /rectángulo|rectangle/i.test(b.textContent)).click(); })()`);
-  await sleep(500);
-  const afterShapes = await c.ev(`(() => ({ circles: document.querySelectorAll('svg.ql-svg circle[data-ce-series-fill]').length, rects: document.querySelectorAll('svg.ql-svg rect[data-ce-series-fill]').length }))()`);
-  check('cambiar a "rectángulo" redibuja con <rect> en vez de <circle> (buildRectVennLayout)',
-    beforeShapes.circles > 0 && afterShapes.circles === 0 && afterShapes.rects > 0, JSON.stringify({ beforeShapes, afterShapes }));
-
-  // reabrir editor (el redibujado cerró el anterior) y tocar algo para que
-  // la clave 'venn-rect' se escriba de verdad en localStorage
-  await openEditor();
-  const rectOpacityDefault = await c.ev(`(() => {
-    const region = document.querySelector('svg.ql-svg rect[data-ce-series-fill]');
-    return region ? getComputedStyle(region).fillOpacity : null;
-  })()`);
-  check('la variante rectángulo arranca con su propia opacidad por defecto (0.3), no el 60% aplicado antes en círculos',
-    rectOpacityDefault === '0.3', rectOpacityDefault);
-
-  await c.ev(`(() => {
-    const ctl = document.querySelector('.ce-pal-opacity input[type=range]');
-    ctl.value = '45'; ctl.dispatchEvent(new Event('change', { bubbles: true }));
-  })()`);
-  await sleep(200);
-  const rectKey = await c.ev(`(() => { const raw = localStorage.getItem('smart-175.chartStyle.venn-rect'); return raw ? Object.keys(JSON.parse(raw)) : null; })()`);
-  check('la variante "rectángulo" persiste bajo su propia clave venn-rect, sin pisar los estilos ya guardados del Venn de círculos',
-    Array.isArray(rectKey) && rectKey.includes('__palette'), JSON.stringify(rectKey));
-  const circlesKeyIntact = await c.ev(`(() => { const raw = localStorage.getItem('smart-175.chartStyle.venn'); return raw ? JSON.parse(raw).__palette : null; })()`);
-  check('la clave "venn" (círculos) conserva el 60% aplicado antes, sin que el 45% de rectángulo la haya pisado',
-    !!circlesKeyIntact && JSON.stringify(circlesKeyIntact).includes('0.6'), JSON.stringify(circlesKeyIntact));
+  console.log('\n-- sin rectángulos: el Venn son solo círculos/elipses y etiquetas --');
+  const noRects = await c.ev(`(() => ({
+    shapeSelector: [...document.querySelectorAll('.ql-segmented .ql-seg-btn')].some((b) => /rectángulo|rectangle/i.test(b.textContent)),
+    rects: document.querySelectorAll('svg.ql-svg rect[data-ce-series-fill]').length,
+    circles: document.querySelectorAll('svg.ql-svg circle[data-ce-series-fill]').length,
+  }))()`);
+  check('ya no hay selector de forma con "Rectángulos" y el Venn dibuja círculos, ningún <rect>',
+    !noRects.shapeSelector && noRects.rects === 0 && noRects.circles > 0, JSON.stringify(noRects));
+  const venn2Key = await c.ev(`(() => Object.keys(localStorage).filter((k) => k.startsWith('smart-175.chartStyle.venn')))()`);
+  check('los estilos guardados usan solo la clave "venn" (la clave venn-rect ya no existe)', !venn2Key.includes('smart-175.chartStyle.venn-rect'), JSON.stringify(venn2Key));
 
   // ================= escenario B: recarga -> 4 grupos sintéticos, elipses + UpSet =================
-  console.log('\n-- recarga con datos sintéticos de 4 grupos (rectángulos/elipses + UpSet) --');
+  console.log('\n-- recarga con datos sintéticos de 4 grupos (elipses + UpSet) --');
   await c.goto();
   await sleep(1500);
   await c.ev(`(async () => { const m = await import('/js/lib/exampleData.js'); m.loadExampleCounts(); })()`);
@@ -116,17 +88,13 @@ try {
   await sleep(1500);
 
   const fourGroupDefault = await c.ev(`(() => ({
+    ellipses: document.querySelectorAll('svg.ql-svg ellipse[data-ce-series-fill]').length,
     rects: document.querySelectorAll('svg.ql-svg rect[data-ce-series-fill]').length,
     hasUpsetSelect: [...document.querySelectorAll('select')].some((s) => [...s.options].some((o) => /UpSet/i.test(o.textContent))),
   }))()`);
-  // Fase 3 (C1): con 4 conjuntos, rectángulos por defecto; las 4 elipses
-  // (VENN_LAYOUTS[4], también un Venn correcto) siguen a un clic
-  check('con 4 grupos (columna "grupo" sintética) el Venn por defecto usa 4 rectángulos',
-    fourGroupDefault.rects === 4, JSON.stringify(fourGroupDefault));
-  await c.ev(`(() => { [...document.querySelectorAll('.ql-segmented .ql-seg-btn')].find((b) => /círculos|circles/i.test(b.textContent)).click(); })()`);
-  await sleep(600);
-  const fourEllipses = await c.ev(`document.querySelectorAll('svg.ql-svg ellipse[data-ce-series-fill]').length`);
-  check('...y "Círculos" sigue dibujando las 4 <ellipse> de VENN_LAYOUTS[4]', fourEllipses === 4, String(fourEllipses));
+  // con 4 conjuntos el Venn son las 4 elipses de VENN_LAYOUTS[4]; sin rectángulos
+  check('con 4 grupos (columna "grupo" sintética) el Venn dibuja 4 <ellipse> y ningún <rect>',
+    fourGroupDefault.ellipses === 4 && fourGroupDefault.rects === 0, JSON.stringify(fourGroupDefault));
   check('con 3-4 grupos aparece el desplegable auto/UpSet', fourGroupDefault.hasUpsetSelect, JSON.stringify(fourGroupDefault));
 
   if (fourGroupDefault.hasUpsetSelect) {
