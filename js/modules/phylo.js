@@ -20,6 +20,10 @@ import { needlemanWunsch, buildProgressiveAlignment } from '../lib/phyloAlign.js
 import { pDistance, buildDistanceMatrix } from '../lib/phyloDistance.js';
 import { neighborJoining, toNewick, escapeNewickLabel, collectLeaves, computeDrawDepths, nniRefine, midpointRoot, rerootAtLeaf } from '../lib/neighborJoining.js';
 import { upgma } from '../lib/stats.js';
+import {
+  bootstrapWithWorker, annotateSupport, toNewickWithSupport, supportClass,
+  SUPPORT_WEAK, SUPPORT_STRONG,
+} from '../lib/phyloBootstrap.js';
 import { attachChartEditor } from '../lib/chartEditor.js';
 import { getSlot, subscribe } from '../state.js';
 import { CATEGORICAL } from '../lib/palettes.js';
@@ -41,7 +45,7 @@ const PROGRESS_EVERY = 30;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function defaultState() { return { fastaText: '', correction: 'p', layout: 'rect', nni: false, rooting: 'none', referenceLeaf: '', colorCol: '' }; }
+function defaultState() { return { fastaText: '', correction: 'p', layout: 'rect', nni: false, rooting: 'none', referenceLeaf: '', colorCol: '', bootReplicates: 100, bootSeed: 1 }; }
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_STORE_KEY) || 'null');
@@ -51,6 +55,8 @@ function load() {
         correction: raw.correction === 'jc' ? 'jc' : 'p',
         layout: raw.layout === 'circular' ? 'circular' : 'rect',
         nni: !!raw.nni,
+        bootReplicates: [100, 200, 500, 1000].includes(+raw.bootReplicates) ? +raw.bootReplicates : 100,
+        bootSeed: Number.isFinite(+raw.bootSeed) ? +raw.bootSeed : 1,
         rooting: raw.rooting === 'midpoint' ? 'midpoint' : (raw.rooting === 'reference' ? 'reference' : 'none'),
         referenceLeaf: typeof raw.referenceLeaf === 'string' ? raw.referenceLeaf : '',
         colorCol: typeof raw.colorCol === 'string' ? raw.colorCol : '',
@@ -205,6 +211,19 @@ function drawCladogramRect(svg, tree, { colorForLeaf = () => null, matchedCatego
     if (node.children.length) {
       const childYs = node.children.map((ch) => yOf(ch.node));
       linesG.appendChild(svgEl('line', { x1: px, y1: Math.min(...childYs), x2: px, y2: Math.max(...childYs), class: 'ql-baseline-line', 'data-ce-series-stroke': 'branch' }));
+      // Soporte bootstrap junto a la rama que define la particion. Solo
+      // existe si el usuario lo ha calculado; se omiten los valores por
+      // debajo del umbral de "sostenida" para no llenar el arbol de cifras
+      // que lo unico que dicen es "esta rama no es fiable" -- eso se lee
+      // mejor en su ausencia, y la nota bajo la figura lo explica.
+      if (Number.isFinite(node.support) && node.support >= SUPPORT_WEAK) {
+        const cls = supportClass(node.support);
+        linesG.appendChild(svgEl('text', {
+          x: px + 3, y: Math.min(...childYs) - 3, 'font-size': 9,
+          'data-ce': 'support', 'data-support': cls,
+          fill: cls === 'strong' ? 'var(--good-ink)' : 'var(--ink-2)',
+        }, String(Math.round(node.support))));
+      }
       node.children.forEach((ch) => {
         const cy = yOf(ch.node);
         const isLeaf = !ch.node.children.length;
@@ -519,6 +538,8 @@ function appendBoxLegend(svg, matchedCategories, categoryColorMap, colorCol) {
 export function render(container) {
   const s = load();
   let alignCache = null;   // { key, alignedOrdered }
+  let bootCache = null;    // { key, boot } -- soporte bootstrap ya calculado
+  let bootRunning = null;  // { key, done, total }
   let alignProgress = null; // { key, done, total }
   let editor = null;
   let keepN = null;
@@ -887,6 +908,94 @@ export function render(container) {
     statsBox.innerHTML = '<div class="ql-stat"><div class="ql-stat-label">' + t('phylo.statSeqs') + '</div><div class="ql-stat-value" style="font-size:20px;">' + records.length + '</div></div>';
     ctrl.appendChild(statsBox);
 
+    // ---- soporte bootstrap ----
+    // Solo tiene sentido con el alineamiento ya hecho y al menos 3 secuencias:
+    // con menos no hay ninguna particion informativa que sostener.
+    if (alignCache && alignCache.key === key && records.length >= 3) {
+      const bootKeyNow = key + '|' + s.correction + '|' + s.bootReplicates + '|' + s.bootSeed;
+      const bootField = document.createElement('div');
+      bootField.className = 'ql-field';
+      bootField.innerHTML = '<label>' + t('phylo.bootTitle') + '</label>';
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+
+      const repSel = document.createElement('select');
+      repSel.setAttribute('aria-label', t('phylo.bootReplicates'));
+      [100, 200, 500, 1000].forEach((n) => {
+        const o = document.createElement('option');
+        o.value = String(n);
+        o.textContent = String(n);
+        if (s.bootReplicates === n) o.selected = true;
+        repSel.appendChild(o);
+      });
+      repSel.addEventListener('change', () => { s.bootReplicates = +repSel.value; save(s); paint(); });
+
+      const seedIn = document.createElement('input');
+      seedIn.type = 'text';
+      seedIn.className = 'tabular';
+      seedIn.style.maxWidth = '90px';
+      seedIn.value = String(s.bootSeed);
+      seedIn.setAttribute('aria-label', t('phylo.bootSeed'));
+      seedIn.addEventListener('change', () => {
+        const v = parseInt(seedIn.value, 10);
+        s.bootSeed = Number.isFinite(v) ? v : 1;
+        save(s);
+        paint();
+      });
+
+      const runBtn = document.createElement('button');
+      runBtn.type = 'button';
+      runBtn.className = 'ql-btn';
+      const already = bootCache && bootCache.key === bootKeyNow;
+      runBtn.textContent = already ? t('phylo.bootRedo') : t('phylo.bootRun');
+      runBtn.disabled = !!bootRunning;
+      runBtn.addEventListener('click', () => {
+        bootRunning = { key: bootKeyNow, done: 0, total: s.bootReplicates };
+        paint();
+        bootstrapWithWorker(alignCache.alignedOrdered, {
+          replicates: s.bootReplicates,
+          correction: s.correction,
+          seed: s.bootSeed,
+          onProgress: (done, total) => {
+            if (!bootRunning || bootRunning.key !== bootKeyNow) return;
+            bootRunning.done = done;
+            bootRunning.total = total;
+            const el = container.querySelector('[data-boot-progress]');
+            if (el) el.textContent = t('phylo.bootProgress', { done, total });
+          },
+        }).then((boot) => {
+          bootCache = { key: bootKeyNow, boot };
+          bootRunning = null;
+          paint();
+        }).catch((err) => {
+          bootRunning = null;
+          const el = container.querySelector('[data-boot-progress]');
+          if (el) el.textContent = (err && err.message) || String(err);
+        });
+      });
+
+      row.appendChild(repSel);
+      row.appendChild(seedIn);
+      row.appendChild(runBtn);
+      bootField.appendChild(row);
+
+      const prog = document.createElement('p');
+      prog.className = 'ql-field-help';
+      prog.setAttribute('data-boot-progress', '');
+      prog.textContent = bootRunning
+        ? t('phylo.bootProgress', { done: bootRunning.done, total: bootRunning.total })
+        : (already
+          ? t('phylo.bootDone', {
+            n: bootCache.boot.replicates,
+            failed: bootCache.boot.failed,
+            seed: s.bootSeed,
+          })
+          : t('phylo.bootHelp', { weak: SUPPORT_WEAK, strong: SUPPORT_STRONG }));
+      bootField.appendChild(prog);
+      ctrl.appendChild(bootField);
+    }
+
     const privacy = document.createElement('p');
     privacy.className = 'ql-privacy';
     privacy.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z"/></svg>' + t('phylo.localNote');
@@ -912,8 +1021,23 @@ export function render(container) {
         if (targetLeaf) { const res = rerootAtLeaf(tree, targetLeaf.id); if (res) tree = res.root; }
       }
 
+      // El soporte se anota sobre el arbol FINAL (tras NNI y enraizado), no
+      // sobre el crudo de NJ: se calcula por particiones, asi que una rama que
+      // el NNI haya creado y que las replicas no recuperen sale con soporte
+      // bajo, que es informacion correcta y no un error.
+      const bootKey = key + '|' + s.correction + '|' + s.bootReplicates + '|' + s.bootSeed;
+      let bootInfo = null;
+      if (bootCache && bootCache.key === bootKey) {
+        bootInfo = annotateSupport(tree, bootCache.boot, records.length);
+      }
+
       statsBox.insertAdjacentHTML('beforeend',
         '<div class="ql-stat"><div class="ql-stat-label">' + t('phylo.statWidth') + '</div><div class="ql-stat-value" style="font-size:20px;">' + alignedOrdered[0].length + '</div></div>');
+      if (bootInfo) {
+        statsBox.insertAdjacentHTML('beforeend',
+          '<div class="ql-stat"><div class="ql-stat-label">' + t('phylo.statSupportMedian') + '</div><div class="ql-stat-value" style="font-size:20px;">' +
+          (Number.isFinite(bootInfo.median) ? Math.round(bootInfo.median) + '%' : '—') + '</div></div>');
+      }
       if (s.correction === 'jc' && saturated.length > 0) {
         statsBox.insertAdjacentHTML('beforeend',
           '<div class="ql-stat"><div class="ql-stat-label">' + t('phylo.statSaturated') + '</div><div class="ql-stat-value" style="font-size:20px;color:var(--warning-ink);">' + saturated.length + '</div></div>');
@@ -987,7 +1111,7 @@ export function render(container) {
       newickCard.className = 'ql-card ql-panel';
       newickCard.style.marginTop = '20px';
       newickCard.innerHTML = '<h2>' + t('phylo.newickTitle') + '</h2><p class="ql-panel-note">' + t('phylo.newickNote') + '</p>';
-      const nwk = toNewick(tree);
+      const nwk = bootInfo ? toNewickWithSupport(tree, escapeNewickLabel) : toNewick(tree);
       const code = document.createElement('pre');
       code.className = 'ql-code';
       code.textContent = nwk;

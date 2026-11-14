@@ -103,6 +103,7 @@ const SUITE = [
   { name: 'stats/lefselda', file: 'stats/lefselda.mjs', kind: 'R' },
   { name: 'stats/ancombc', file: 'stats/ancombc.mjs', kind: 'R' },
   { name: 'stats/neighborjoining', file: 'stats/neighborjoining.mjs', kind: 'R' },
+  { name: 'stats/phylobootstrap', file: 'stats/phylobootstrap.mjs', kind: 'estático' },
   { name: 'stats/phylodistance', file: 'stats/phylodistance.mjs', kind: 'R' },
   { name: 'stats/rda', file: 'stats/rda.mjs', kind: 'R' },
   { name: 'stats/cca', file: 'stats/cca.mjs', kind: 'R' },
