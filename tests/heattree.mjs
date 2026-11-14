@@ -10,7 +10,7 @@
 
 import {
   parseTaxonPath, buildReferenceTree, abundanceByNode, compareTwoGroups,
-  leafOrder, layoutDendrogram, layoutRadial, cullLabels,
+  leafOrder, layoutDendrogram, layoutRadial, cullLabels, topContrastRows,
 } from '../js/lib/heatTree.js';
 import { kruskalWallis, benjaminiHochberg } from '../js/lib/stats.js';
 
@@ -268,6 +268,43 @@ check('es determinista con pesos empatados', (() => {
   const a = [...cullLabels(tree.nodes, pos, w, { maxLabels: 3, minSeparation: 0 })].join(',');
   const b = [...cullLabels(tree.nodes, pos, w, { maxLabels: 3, minSeparation: 0 })].join(',');
   return a === b;
+})());
+
+// --- vista en tabla ---------------------------------------------------------
+console.log('\nvista en tabla del contraste');
+
+const rows = topContrastRows(cmp, gtree, { limit: 25, maxQ: 1 });
+check('devuelve una fila por nodo probado', rows.length === cmp.tested,
+  rows.length + ' vs ' + cmp.tested);
+check('ordenadas por q ascendente', (() => {
+  for (let i = 1; i < rows.length; i++) if (rows[i].q < rows[i - 1].q - 1e-12) return false;
+  return true;
+})());
+check('cada fila trae nombre, camino y rango',
+  rows.every((r) => r.name && r.path.includes('›') === (r.depth > 1) && Number.isFinite(r.depth)));
+check('el filtro por q descarta lo no significativo',
+  topContrastRows(cmp, gtree, { maxQ: 0.0001 }).length < rows.length);
+check('respeta el limite de filas', topContrastRows(cmp, gtree, { limit: 2, maxQ: 1 }).length === 2);
+// El genero con senal sale primero por q. Ojo: con n=3 por grupo y 5 nodos
+// probados, BH sube su q de 0,046 a 0,23, asi que con maxQ=0,05 la tabla sale
+// VACIA. Es estadistica correcta y no un fallo: ese es el precio de corregir
+// por comparaciones multiples con pocas muestras, y la tabla debe decirlo en
+// vez de ensenar un hallazgo que no aguanta la correccion.
+// La primera fila es del linaje con senal. Sale el FILO, no el genero,
+// porque ese filo solo tiene ese genero debajo: su abundancia es identica y
+// empata en q. Eso es correcto -- la senal esta en toda la rama -- y es justo
+// lo que un heat-tree deja ver de un vistazo y una tabla de generos esconde.
+check('la primera fila por q pertenece al linaje con senal',
+  rows[0] && rows[0].path.includes('P1'),
+  rows[0] ? rows[0].path + ' q=' + rows[0].q.toFixed(3) : 'sin filas');
+check('el genero con senal tambien esta entre las primeras',
+  rows.slice(0, 2).some((r) => r.name === 'Sube'),
+  rows.slice(0, 2).map((r) => r.name).join(','));
+check('con pocas muestras, el umbral del 5 % deja la tabla vacia',
+  topContrastRows(cmp, gtree, { maxQ: 0.05 }).length === 0);
+check('un nodo sin q no aparece', (() => {
+  const fake = { results: new Map([['X', { q: NaN, p: NaN, log2fc: 0 }]]) };
+  return topContrastRows(fake, gtree, { maxQ: 1 }).length === 0;
 })());
 
 console.log('\nRESULTADO: ' + (failed ? 'FAIL' : 'PASS'));

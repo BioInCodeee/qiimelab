@@ -20,7 +20,7 @@ import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { mountExampleButtons, loadExampleCommunityData, loadRealCommunityData } from '../lib/exampleData.js';
 import {
   parseTaxonPath, buildReferenceTree, abundanceByNode, compareTwoGroups,
-  layoutDendrogram, layoutRadial, cullLabels,
+  layoutDendrogram, layoutRadial, cullLabels, topContrastRows,
 } from '../lib/heatTree.js';
 import { mean } from '../lib/stats.js';
 
@@ -408,22 +408,33 @@ export function render(container) {
 
       const nodesG = svgEl('g', { 'data-ce': 'nodes' });
       g.appendChild(nodesG);
+      // Capa de impacto aparte: en un arbol denso los nodos de poca abundancia
+      // son de 2-3 px y nadie acierta a senalarlos. El circulo visible lleva
+      // el dato y el transparente, mas grande, recoge el puntero.
+      const hitG = svgEl('g', { 'data-hit': 'nodes', fill: 'transparent' });
       visible.forEach((n) => {
         const p = pos.get(n.id);
         if (!p) return;
         const v = panel.valueOf(n.id);
-        const c = svgEl('circle', {
-          cx: X(p), cy: Y(p), r: radiusFor(panel, n),
-          fill: colorFor(v), stroke: 'var(--surface)', 'stroke-width': 0.6,
-          'data-node': n.id,
-        });
-        nodesG.appendChild(c);
+        const r = radiusFor(panel, n);
+        nodesG.appendChild(svgEl('circle', {
+          cx: X(p), cy: Y(p), r,
+          fill: colorFor(v),
+          // anillo del color de la superficie, no un borde de color: es lo que
+          // mantiene legible un nodo que se solapa con otro o con una rama
+          stroke: 'var(--surface)', 'stroke-width': 1.2,
+          'pointer-events': 'none',
+        }));
+        hitG.appendChild(svgEl('circle', {
+          cx: X(p), cy: Y(p), r: Math.max(r + 2, 6), 'data-node': n.id,
+        }));
       });
+      g.appendChild(hitG);
 
       // Delegación de eventos, no un listener por nodo: un heat-tree profundo
       // tiene cientos de nodos por panel (es el caso que el helper
       // delegateHover() de dom.js existe para evitar).
-      delegateHover(nodesG, 'circle[data-node]', {
+      delegateHover(hitG, 'circle[data-node]', {
         onEnter: (el) => {
           const id = el.getAttribute('data-node');
           const n = tree.byId.get(id);
@@ -508,6 +519,62 @@ export function render(container) {
         : { type: 'sequential', domain },
       onColorScaleChange: () => paint(),
     });
+
+    // ---- vista en tabla (contraste) ----
+    // No es un extra: la figura pone el dato en el color, asi que hace falta
+    // una tabla para quien no distingue esos colores, para quien la imprime en
+    // gris, y para quien necesita el numero exacto en vez de estimarlo de una
+    // rampa. Ademas es lo que se pega en el material suplementario.
+    if (mode === 'contrast') {
+      const rows = topContrastRows(contrast, tree, { limit: 25, maxQ: 0.05 });
+      const tableCard = document.createElement('section');
+      tableCard.className = 'ql-card ql-panel';
+      tableCard.innerHTML = '<h2>' + t('heattree.tableTitle') + '</h2>' +
+        '<p class="ql-panel-note">' + t('heattree.tableNote') + '</p>';
+      if (!rows.length) {
+        tableCard.insertAdjacentHTML('beforeend',
+          '<p class="ql-field-help">' + t('heattree.tableEmpty') + '</p>');
+      } else {
+        const tbl = document.createElement('table');
+        tbl.className = 'ql-table';
+        tbl.innerHTML = '<thead><tr>' +
+          '<th>' + t('heattree.colTaxon') + '</th>' +
+          '<th>' + t('heattree.colRank') + '</th>' +
+          '<th>' + t('heattree.colLog2fc') + '</th>' +
+          '<th>p</th><th>q</th></tr></thead>';
+        const tb = document.createElement('tbody');
+        rows.forEach((r) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td><strong>' + escapeHtml(r.name) + '</strong><br>' +
+            '<span class="ql-field-help" style="margin:0;">' + escapeHtml(r.path) + '</span></td>' +
+            '<td class="tabular">' + r.depth + '</td>' +
+            '<td class="tabular">' + r.log2fc.toFixed(2) + '</td>' +
+            '<td class="tabular">' + r.p.toExponential(2) + '</td>' +
+            '<td class="tabular">' + r.q.toExponential(2) + '</td>';
+          tb.appendChild(tr);
+        });
+        tbl.appendChild(tb);
+        tableCard.appendChild(tbl);
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'ql-btn';
+        copyBtn.style.marginTop = '10px';
+        copyBtn.textContent = t('heattree.copyTable');
+        copyBtn.addEventListener('click', () => {
+          const tsv = [[t('heattree.colTaxon'), t('heattree.colRank'), 'log2FC', 'p', 'q'].join('\t')]
+            .concat(rows.map((r) => [r.path, r.depth, r.log2fc.toFixed(4), r.p, r.q].join('\t')))
+            .join('\n');
+          try {
+            navigator.clipboard.writeText(tsv);
+            copyBtn.textContent = t('heattree.copiedTable');
+            setTimeout(() => { copyBtn.textContent = t('heattree.copyTable'); }, 1600);
+          } catch (e) { /* el portapapeles puede fallar sin permiso */ }
+        });
+        tableCard.appendChild(copyBtn);
+      }
+      container.appendChild(tableCard);
+    }
 
     // ---- notas metodológicas ----
     const note = document.createElement('div');

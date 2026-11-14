@@ -312,3 +312,37 @@ export function cullLabels(nodes, pos, weight, opts = {}) {
   }
   return new Set(kept.map((c) => c.id));
 }
+
+/**
+ * Las filas de la tabla de resultados del contraste: los nodos con señal, de
+ * más a menos significativos.
+ *
+ * Existe por una razón de accesibilidad, no de adorno: una figura cuyo dato
+ * vive en el color necesita una vista en tabla para quien no distingue esos
+ * colores, para quien la imprime en gris y para quien quiere el número exacto
+ * en vez de estimarlo de una rampa.
+ *
+ * @param {{results:Map<string,Object>}} cmp Salida de compareTwoGroups.
+ * @param {Object} tree Árbol de referencia (para el nombre y el camino).
+ * @param {Object} [opts] { limit = 25, maxQ = 0.05 }
+ * @returns {Array<{id:string,name:string,path:string,log2fc:number,p:number,q:number,depth:number}>}
+ */
+export function topContrastRows(cmp, tree, opts = {}) {
+  const limit = Number.isFinite(opts.limit) ? opts.limit : 25;
+  const maxQ = Number.isFinite(opts.maxQ) ? opts.maxQ : 0.05;
+  const rows = [];
+  cmp.results.forEach((r, id) => {
+    if (!Number.isFinite(r.q) || r.q > maxQ) return;
+    const n = tree.byId.get(id);
+    if (!n) return;
+    rows.push({
+      id, name: n.name, path: n.path.join(' › '), depth: n.depth,
+      log2fc: r.log2fc, p: r.p, q: r.q,
+    });
+  });
+  // por q, y a igualdad de q por magnitud del cambio: el orden que un lector
+  // espera de una tabla de resultados
+  rows.sort((a, b) => a.q - b.q || Math.abs(b.log2fc) - Math.abs(a.log2fc) ||
+    (a.id < b.id ? -1 : 1));
+  return rows.slice(0, limit);
+}

@@ -217,11 +217,15 @@ function drawCladogramRect(svg, tree, { colorForLeaf = () => null, matchedCatego
       // que lo unico que dicen es "esta rama no es fiable" -- eso se lee
       // mejor en su ausencia, y la nota bajo la figura lo explica.
       if (Number.isFinite(node.support) && node.support >= SUPPORT_WEAK) {
-        const cls = supportClass(node.support);
+        // El numero va en un token de texto, NUNCA en un color de estado. Dos
+        // razones: el texto no debe vestir el color del dato (un verde claro
+        // sobre la superficie se lee mal), y un color de estado comunicaria la
+        // fuerza del soporte SOLO por color, que es inaccesible. La cifra ya
+        // dice por si misma si la rama aguanta: 72 y 99 se distinguen leyendo.
         linesG.appendChild(svgEl('text', {
           x: px + 3, y: Math.min(...childYs) - 3, 'font-size': 9,
-          'data-ce': 'support', 'data-support': cls,
-          fill: cls === 'strong' ? 'var(--good-ink)' : 'var(--ink-2)',
+          'data-ce': 'support', 'data-support': supportClass(node.support),
+          fill: 'var(--ink-2)',
         }, String(Math.round(node.support))));
       }
       node.children.forEach((ch) => {
