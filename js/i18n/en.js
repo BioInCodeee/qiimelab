@@ -112,8 +112,10 @@ export default {
     controls: 'Controls', loadingProcessing: 'Downloading and processing…',
   },
   home: {
+    summaryCount: '{n} of {total} data types loaded',
+    groupReady: '{n}/{total} with data',
     eyebrow: 'Microbiome analysis · no server',
-    subtitle: 'Analyze QIIME2 results (16S microbiome), Sanger chromatograms and phylogenies. Analyses run locally in your browser and files are not sent to our servers. One optional feature (BLAST in the Sanger module) sends the entered sequence to NCBI.',
+    subtitle: 'Analyse 16S microbiome data from QIIME2, Sanger chromatograms, phylogenies with branch support, plate counts from a photo and FASTQ quality. Everything runs in your browser: files are never uploaded to any server.',
     ctaLoadedTitle: 'You already have data loaded in this session',
     ctaLoadedNote: 'Open a module from the menu to see the analysis, or upload more files.',
     ctaEmptyTitle: 'Start by uploading your QIIME2 results',
@@ -127,6 +129,10 @@ export default {
     glosLink: 'what does this mean?',
     moreLinks: 'Also:',
     q: {
+      arbolcalor: 'Where in the taxonomic tree does each change sit?',
+      temporal: 'How does my community change over time?',
+      inferencia: 'What traits or functions can be expected from these microbes?',
+      placa: 'How many colonies are on this plate?',
       barplots: 'Which microbes are there and in what proportion?',
       alfa: 'How varied is each sample inside itself?',
       beta: 'Do my samples resemble each other or differ?',
@@ -142,6 +148,10 @@ export default {
     },
   },
   modules: {
+    arbolcalor: { desc: "Full taxonomic tree with abundance in each node's colour and size, and the same topology across panels so groups can be compared at a glance." },
+    temporal: { desc: 'Diversity and abundance over a time variable, with one line per group.' },
+    inferencia: { desc: 'Expected phenotypic traits (Gram, oxygen, spores...) and functional modules from the identified taxonomy.' },
+    placa: { desc: 'Counts the colonies in a photo of the plate right in the browser, separates touching ones and computes CFU/mL from the dilution and plated volume.' },
     barplots: { desc: 'Relative composition per sample, coloured by taxon, with the least abundant categories grouped into “Other”.' },
     alpha: { desc: 'Boxplot by metadata group + Kruskal-Wallis test (non-parametric) to compare within-sample diversity.' },
     beta: { desc: 'Heatmap of the distance matrix, ordered by a UPGMA dendrogram (hierarchical clustering).' },

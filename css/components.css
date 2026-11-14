@@ -2587,3 +2587,42 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
 .ql-plate-result .ql-stat {
   display: inline-block;
 }
+
+/* Portada: secciones plegables (<details> nativos).
+   Se usa el elemento del navegador y no un plegable propio: trae el estado
+   abierto/cerrado y el manejo por teclado de serie, y funciona sin JS. */
+.ql-home-details > summary,
+.ql-home-group > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ql-home-details > summary::-webkit-details-marker,
+.ql-home-group > summary::-webkit-details-marker { display: none; }
+/* triángulo propio: el nativo no se puede colorear de forma consistente */
+.ql-home-details > summary::before,
+.ql-home-group > summary::before {
+  content: '';
+  width: 0; height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  opacity: 0.6;
+  transition: transform 0.15s ease;
+  flex: none;
+}
+.ql-home-details[open] > summary::before,
+.ql-home-group[open] > summary::before { transform: rotate(90deg); }
+.ql-home-group { margin-top: 10px; }
+.ql-home-group > summary.ql-modgroup-title { margin: 0; }
+/* el foco de teclado tiene que verse: el summary es el control */
+.ql-home-details > summary:focus-visible,
+.ql-home-group > summary:focus-visible {
+  outline: 2px solid var(--focus, currentColor);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

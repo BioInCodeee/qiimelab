@@ -112,8 +112,10 @@ export default {
     controls: 'Controles', loadingProcessing: 'Descargando y procesando…',
   },
   home: {
+    summaryCount: '{n} de {total} tipos de datos cargados',
+    groupReady: '{n}/{total} con datos',
     eyebrow: 'Análisis de microbioma · sin servidor',
-    subtitle: 'Analiza resultados de QIIME2 (microbioma 16S), cromatogramas Sanger y filogenias. Los análisis se ejecutan localmente en tu navegador y los archivos no se envían a nuestros servidores. Una función opcional (BLAST en el módulo Sanger) envía la secuencia introducida a NCBI.',
+    subtitle: 'Analiza microbioma 16S de QIIME2, cromatogramas Sanger, filogenias con soporte, recuentos de placa a partir de una foto y calidad de FASTQ. Todo ocurre en tu navegador: los archivos no se suben a ningun servidor.',
     ctaLoadedTitle: 'Ya tienes datos cargados en esta sesión',
     ctaLoadedNote: 'Entra en un módulo del menú para ver el análisis, o sube más archivos.',
     ctaEmptyTitle: 'Empieza subiendo tus resultados de QIIME2',
@@ -127,6 +129,10 @@ export default {
     glosLink: '¿qué significa esto?',
     moreLinks: 'Además:',
     q: {
+      arbolcalor: 'Donde esta cada cambio dentro del arbol taxonomico?',
+      temporal: 'Como evoluciona mi comunidad en el tiempo?',
+      inferencia: 'Que rasgos o funciones cabe esperar de estos microbios?',
+      placa: 'Cuantas colonias hay en esta placa?',
       barplots: '¿Qué microorganismos hay y en qué proporción?',
       alfa: '¿Cómo de variada es cada muestra por dentro?',
       beta: '¿Mis muestras se parecen o son distintas entre sí?',
@@ -142,6 +148,10 @@ export default {
     },
   },
   modules: {
+    arbolcalor: { desc: 'Arbol taxonomico completo con la abundancia en el color y el tamano de cada nodo, y la misma topologia en todos los paneles para poder comparar grupos de un vistazo.' },
+    temporal: { desc: 'Evolucion de diversidad y abundancia a lo largo de una variable temporal, con lineas por grupo.' },
+    inferencia: { desc: 'Rasgos fenotipicos esperables (Gram, oxigeno, esporas...) y modulos funcionales a partir de la taxonomia identificada.' },
+    placa: { desc: 'Cuenta las colonias de una foto de la placa en el propio navegador, separa las que estan en contacto y calcula UFC/mL con la dilucion y el volumen sembrado.' },
     barplots: { desc: 'Composición relativa por muestra, coloreada por taxón, con las categorías menos abundantes agrupadas en «Otros».' },
     alpha: { desc: 'Boxplot por grupo de metadatos + test de Kruskal-Wallis (no paramétrico) para comparar la diversidad dentro de cada muestra.' },
     beta: { desc: 'Mapa de calor de la matriz de distancias, ordenado por un dendrograma UPGMA (clustering jerárquico).' },

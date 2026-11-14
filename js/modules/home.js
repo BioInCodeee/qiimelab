@@ -5,6 +5,17 @@ import { getProfileName } from '../lib/profile.js';
 import { slotFilled, GROUPS } from './shell.js';
 import { healthBannerEl } from '../lib/healthBanner.js';
 import { escapeHtml } from '../lib/dom.js';
+import { mountExampleButtons, loadExampleCommunityData, loadRealCommunityData } from '../lib/exampleData.js';
+
+// La portada tiene UNA tarea: que quien entra sepa qué hacer a continuación.
+// Antes mostraba de golpe el estado de 8 huecos de datos y 15 módulos en 5
+// grupos abiertos — en un móvil, varias pantallas de scroll antes de poder
+// hacer nada. Ahora todo lo que no es la acción principal está plegado en
+// <details> nativos: se ve el resumen en una línea y se abre lo que interese.
+//
+// Se usan <details>/<summary> del navegador a propósito, y no un plegable
+// propio: traen la accesibilidad por teclado y el estado abierto/cerrado
+// gratis, y funcionan aunque falle el JavaScript.
 
 // route = fragmento de ruta; qKey = pregunta en lenguaje llano (texto principal);
 // nameKey/descKey = rótulo y descripción técnicos (secundarios); glos = id del
@@ -16,11 +27,15 @@ const MODULES_INFO = [
   { route: 'barplots', qKey: 'home.q.barplots', nameKey: 'nav.barplots', descKey: 'modules.barplots.desc', glos: 'relAbund', group: 'composition' },
   { route: 'alfa', qKey: 'home.q.alfa', nameKey: 'nav.alpha', descKey: 'modules.alpha.desc', glos: 'alphaDiv', group: 'composition' },
   { route: 'beta', qKey: 'home.q.beta', nameKey: 'nav.beta', descKey: 'modules.beta.desc', glos: 'betaDiv', group: 'composition' },
+  { route: 'arbolcalor', qKey: 'home.q.arbolcalor', nameKey: 'nav.arbolcalor', descKey: 'modules.arbolcalor.desc', glos: 'relAbund', group: 'composition' },
+  { route: 'temporal', qKey: 'home.q.temporal', nameKey: 'nav.temporal', descKey: 'modules.temporal.desc', glos: 'alphaDiv', group: 'composition' },
   { route: 'venn', qKey: 'home.q.venn', nameKey: 'nav.venn', descKey: 'modules.venn.desc', glos: 'venn', group: 'composition' },
   { route: 'correlograma', qKey: 'home.q.correlograma', nameKey: 'nav.correlograma', descKey: 'modules.correlograma.desc', glos: 'correlation', group: 'composition' },
   { route: 'diferencial', qKey: 'home.q.diferencial', nameKey: 'nav.differential', descKey: 'modules.differential.desc', glos: 'diffAbund', group: 'stats' },
   { route: 'funcional', qKey: 'home.q.funcional', nameKey: 'nav.funcional', descKey: 'modules.funcional.desc', glos: 'kegg', group: 'stats' },
+  { route: 'inferencia', qKey: 'home.q.inferencia', nameKey: 'nav.inference', descKey: 'modules.inferencia.desc', glos: 'kegg', group: 'stats' },
   { route: 'recuentos', qKey: 'home.q.recuentos', nameKey: 'nav.recuentos', descKey: 'modules.recuentos.desc', glos: 'sdvsse', group: 'counts' },
+  { route: 'recuentos?tab=foto', qKey: 'home.q.placa', nameKey: 'recuentos.sectionPhoto', descKey: 'modules.placa.desc', glos: 'sdvsse', group: 'counts' },
   { route: 'primers', qKey: 'home.q.primers', nameKey: 'nav.primers', descKey: 'modules.primers.desc', glos: 'primerTm', group: 'primers' },
   { route: 'arbol', qKey: 'home.q.arbol', nameKey: 'nav.arbol', descKey: 'modules.arbol.desc', glos: 'neighborJoiningTerm', group: 'primers' },
   { route: 'sanger', qKey: 'home.q.sanger', nameKey: 'nav.sanger', descKey: 'modules.sanger.desc', glos: 'sangerConsensusTerm', group: 'primers' },
@@ -32,6 +47,17 @@ const MORE_LINKS = [
   { route: 'recursos', navKey: 'nav.recursos' },
   { route: 'glosario', navKey: 'nav.glosario' },
   { route: 'validacion', navKey: 'nav.validacion' },
+];
+
+const SLOT_ROWS = [
+  ['slots.metadata', () => !!state.metadata],
+  ['slots.taxonomy', () => !!state.taxonomy],
+  ['slots.taxaBarplot', () => !!state.taxaBarplot],
+  ['slots.taxaCounts', () => !!state.taxaCounts],
+  ['slots.alpha', () => !!state.alphaDiversity],
+  ['slots.beta', () => !!state.betaDiversity],
+  ['slots.differential', () => !!state.differentialAbundance],
+  ['slots.fastq', () => Array.isArray(state.sequenceQC) && state.sequenceQC.length > 0],
 ];
 
 export function render(container) {
@@ -47,71 +73,100 @@ export function render(container) {
     const stack = document.createElement('div');
     stack.className = 'ql-stack';
 
-    // CTA / estado de carga
-    const cta = document.createElement('section');
-    cta.className = 'ql-card ql-panel';
     const anyData = state.metadata || state.taxonomy || state.taxaBarplot || state.alphaDiversity ||
       state.betaDiversity || state.differentialAbundance || state.taxaCounts ||
       (Array.isArray(state.sequenceQC) && state.sequenceQC.length > 0) ||
       (Array.isArray(state.microbialCounts) && state.microbialCounts.length > 0);
+
+    // ---- 1. la acción principal, sola y arriba ----
+    const cta = document.createElement('section');
+    cta.className = 'ql-card ql-panel';
     cta.innerHTML = anyData
       ? '<h2>' + t('home.ctaLoadedTitle') + '</h2><p class="ql-panel-note">' + t('home.ctaLoadedNote') + '</p>'
       : '<h2>' + t('home.ctaEmptyTitle') + '</h2><p class="ql-panel-note">' + t('home.ctaEmptyNote') + '</p>';
+
+    const ctaRow = document.createElement('div');
+    ctaRow.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
     const ctaBtn = document.createElement('a');
     ctaBtn.href = '#/cargar';
     ctaBtn.className = 'ql-btn ql-btn-primary';
     ctaBtn.textContent = anyData ? t('home.ctaBtnMore') : t('home.ctaBtnLoad');
-    cta.appendChild(ctaBtn);
+    ctaRow.appendChild(ctaBtn);
+    cta.appendChild(ctaRow);
+
+    // Datos de ejemplo EN LA PORTADA, no escondidos dentro de cada módulo:
+    // quien llega sin archivos a mano puede ver la aplicación funcionando sin
+    // tener que conseguir primero un dataset. Es la diferencia entre probarla
+    // y cerrarla.
+    if (!anyData) {
+      mountExampleButtons(cta, {
+        real: loadRealCommunityData,
+        synthetic: loadExampleCommunityData,
+        download: ['barplot', 'metadata', 'shannon'],
+      });
+    }
     stack.appendChild(cta);
 
     // panel de estado (semáforo) — solo si ya hay algo cargado
     const banner = healthBannerEl({ compact: true, link: true, hideWhenEmpty: true });
     if (banner) stack.appendChild(banner);
 
-    // resumen de slots
-    const summary = document.createElement('section');
-    summary.className = 'ql-card ql-panel';
-    summary.innerHTML = '<h2>' + t('home.summaryTitle') + '</h2><p class="ql-panel-note">' + t('home.summaryNote') + '</p>';
+    // ---- 2. qué hay cargado: una línea, y el detalle si se pide ----
+    const loaded = SLOT_ROWS.filter(([, has]) => has()).length;
+    const summary = document.createElement('details');
+    summary.className = 'ql-card ql-panel ql-home-details';
+    // se abre solo si no hay nada cargado y por tanto el resumen es la propia
+    // explicación de qué falta
+    summary.open = false;
+    const sumHead = document.createElement('summary');
+    sumHead.innerHTML = '<strong>' + t('home.summaryTitle') + '</strong> · ' +
+      '<span class="ql-field-help" style="margin:0;">' +
+      t('home.summaryCount', { n: loaded, total: SLOT_ROWS.length }) + '</span>';
+    summary.appendChild(sumHead);
+    summary.insertAdjacentHTML('beforeend', '<p class="ql-panel-note">' + t('home.summaryNote') + '</p>');
     const stats = document.createElement('div');
     stats.className = 'ql-stats';
-    const rows = [
-      [t('slots.metadata'), !!state.metadata],
-      [t('slots.taxonomy'), !!state.taxonomy],
-      [t('slots.taxaBarplot'), !!state.taxaBarplot],
-      [t('slots.taxaCounts'), !!state.taxaCounts],
-      [t('slots.alpha'), !!state.alphaDiversity],
-      [t('slots.beta'), !!state.betaDiversity],
-      [t('slots.differential'), !!state.differentialAbundance],
-      [t('slots.fastq'), Array.isArray(state.sequenceQC) && state.sequenceQC.length > 0],
-    ];
-    rows.forEach(([lbl, done]) => {
+    SLOT_ROWS.forEach(([lbl, has]) => {
+      const done = has();
       const tile = document.createElement('div');
       // estado como clase (no color en línea): el verde es el indicador, el
       // texto va en un color con contraste ≥ 4,5:1 (ver [data-ds="v2"] .ql-stat)
       tile.className = 'ql-stat ql-stat-status' + (done ? ' is-on' : '');
-      tile.innerHTML = '<div class="ql-stat-label">' + lbl + '</div><div class="ql-stat-value">' +
+      tile.innerHTML = '<div class="ql-stat-label">' + t(lbl) + '</div><div class="ql-stat-value">' +
         (done ? t('common.available') : t('common.noData')) + '</div>';
       stats.appendChild(tile);
     });
     summary.appendChild(stats);
     stack.appendChild(summary);
 
-    // módulos — como asistente de "qué quiero saber", agrupados en las
-    // mismas secciones que la navegación principal (shell.js GROUPS)
+    // ---- 3. módulos, plegados por sección ----
+    // Se abre SOLO la primera sección que tenga datos listos: es la que la
+    // persona puede usar ahora mismo. Si no hay datos, se abre la primera, que
+    // es por donde se empieza.
     const modsSection = document.createElement('section');
     modsSection.className = 'ql-card ql-panel';
     modsSection.innerHTML = '<h2>' + t('home.modulesTitle') + '</h2><p class="ql-panel-note">' + t('home.modulesNote') + '</p>';
-    GROUPS.forEach((g) => {
+
+    let openedOne = false;
+    GROUPS.forEach((g, gi) => {
       const inGroup = MODULES_INFO.filter((m) => m.group === g.id);
       if (!inGroup.length) return;
-      const h3 = document.createElement('h3');
-      h3.className = 'ql-modgroup-title';
-      h3.textContent = t(g.titleKey);
-      modsSection.appendChild(h3);
+      const ready = inGroup.filter((m) => slotFilled(m.route.split('?')[0])).length;
+
+      const det = document.createElement('details');
+      det.className = 'ql-home-group';
+      if (!openedOne && (anyData ? ready > 0 : gi === 0)) { det.open = true; openedOne = true; }
+      const head = document.createElement('summary');
+      head.className = 'ql-modgroup-title';
+      head.innerHTML = '<strong>' + t(g.titleKey) + '</strong> ' +
+        '<span class="ql-badge ' + (ready ? 'ql-badge-good' : 'ql-badge-muted') + '">' +
+        t('home.groupReady', { n: ready, total: inGroup.length }) + '</span>';
+      det.appendChild(head);
+
       const grid = document.createElement('div');
       grid.className = 'ql-modgrid';
       inGroup.forEach((m) => {
-        const has = slotFilled(m.route);
+        const has = slotFilled(m.route.split('?')[0]);
         const cell = document.createElement('div');
         cell.className = 'ql-modcell';
         const card = document.createElement('a');
@@ -132,7 +187,8 @@ export function render(container) {
         cell.appendChild(glosA);
         grid.appendChild(cell);
       });
-      modsSection.appendChild(grid);
+      det.appendChild(grid);
+      modsSection.appendChild(det);
     });
 
     const more = document.createElement('p');
