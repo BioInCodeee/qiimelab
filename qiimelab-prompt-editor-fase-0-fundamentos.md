@@ -34,8 +34,9 @@ resolver duplica trabajo en cada fase siguiente.
 
 Como con cualquier prompt heredado de otra sesión: los números de línea de
 abajo son de la auditoría del 21-22 sep 2026, puede haber cambiado algo desde
-entonces (sobre todo si `qiimelab-prompt-boton-modo-oscuro.md`,
-`-resolver-conflictos-md2.md` o `-ampliar-fenotipos.md` ya se ejecutaron).
+entonces (sobre todo si `qiimelab-prompt-resolver-conflictos-md2.md` ya se
+ejecutó; los prompts de modo oscuro y de fenotipos ya se enviaron y sus
+documentos se retiraron del repo el 14 nov 2026).
 Confirmar con grep antes de asumir que una línea sigue en el mismo sitio.
 
 ## Paso 1 — decidir el destino de `openChartEditor`
