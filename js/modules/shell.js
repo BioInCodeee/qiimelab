@@ -5,6 +5,7 @@ import { state, subscribe } from '../state.js';
 import { t, getLang, setLang, LANGS } from '../lib/i18n.js';
 import { getProfileName, setProfileName } from '../lib/profile.js';
 import { getTheme, setTheme } from '../lib/theme.js';
+import { getDensity, setDensity } from '../lib/density.js';
 import { wordmarkHtml } from '../lib/brand.js';
 
 // Sistema de iconos propio: 24×24, trazo 1.7, extremos redondeados, sin
@@ -246,6 +247,37 @@ export function renderShell(container, currentRoute) {
   });
   langSel.addEventListener('change', () => setLang(langSel.value));
   setWrap.appendChild(langSel);
+
+  // Densidad: dos vistas sobre la misma funcionalidad (guiado / compacto).
+  // Va junto al tema porque es la misma clase de ajuste — cómo se ve la app,
+  // no qué hace — y porque es donde la gente ya mira cuando algo le molesta
+  // visualmente.
+  const densSeg = document.createElement('div');
+  densSeg.className = 'ql-segmented ql-segmented-block';
+  densSeg.setAttribute('role', 'group');
+  densSeg.setAttribute('aria-label', t('shell.density'));
+  const densNow = getDensity();
+  [['guided', t('shell.densityGuided')], ['compact', t('shell.densityCompact')]].forEach(([v, lbl]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ql-seg-btn' + (densNow === v ? ' is-on' : '');
+    if (densNow === v) b.setAttribute('aria-pressed', 'true');
+    b.textContent = lbl;
+    b.addEventListener('click', () => {
+      if (getDensity() === v) return;
+      setDensity(v);
+      densSeg.querySelectorAll('.ql-seg-btn').forEach((btn) => {
+        const isOn = btn === b;
+        btn.classList.toggle('is-on', isOn);
+        if (isOn) btn.setAttribute('aria-pressed', 'true');
+        else btn.removeAttribute('aria-pressed');
+      });
+    });
+    densSeg.appendChild(b);
+  });
+  setWrap.appendChild(densSeg);
+  setWrap.insertAdjacentHTML('beforeend',
+    '<p class="ql-sidebar-note" style="margin:4px 0 10px;">' + t('shell.densityHelp') + '</p>');
 
   const themeSeg = document.createElement('div');
   themeSeg.className = 'ql-segmented ql-segmented-block';

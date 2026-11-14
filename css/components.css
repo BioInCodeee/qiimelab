@@ -2626,3 +2626,37 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* --- Densidad de la interfaz: guiado (todo visible) vs compacto --- */
+/* El botón «?» solo existe en modo compacto; en guiado la ayuda ya se ve. */
+.ql-help-toggle { display: none; }
+:root[data-density="compact"] .ql-help-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+}
+:root[data-density="compact"] .ql-help-toggle:hover { color: var(--ink); border-color: var(--ink-2); }
+:root[data-density="compact"] .ql-help-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+/* La ayuda gestionada se pliega en compacto y se abre con el botón.
+   Solo se oculta la que TIENE botón: una ayuda sin control delante
+   (nota suelta de una tarjeta) se queda visible, porque plegarla la
+   escondería sin que nada invite a abrirla. */
+:root[data-density="compact"] p.ql-field-help[data-help-managed="1"] { display: none; }
+:root[data-density="compact"] p.ql-field-help[data-help-managed="1"][data-help-open="1"] { display: block; }
+
+/* En compacto también se aprieta el ritmo vertical: con las ayudas plegadas,
+   los huecos pensados para separarlas dejan la pantalla llena de aire. */
+:root[data-density="compact"] .ql-field { margin-bottom: 12px; }
+:root[data-density="compact"] .ql-card.ql-panel { padding-top: 14px; padding-bottom: 14px; }
+:root[data-density="compact"] .ql-stack > * + * { margin-top: 12px; }

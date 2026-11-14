@@ -10,6 +10,11 @@ export default {
     venn: 'Venn / UpSet', correlograma: 'Correlogram', funcional: 'Functional indices', inference: 'Functional inference', qc: 'Quality control (FASTQ)', informe: 'Combined report', recursos: 'Resources', glosario: 'Glossary', validacion: 'Statistical validation',
   },
   shell: {
+    density: 'Interface density',
+    densityGuided: 'Guided',
+    densityCompact: 'Compact',
+    densityHelp: "In compact mode each field's explanation folds behind a ? button. Nothing is deleted: it is one tap away.",
+    showHelp: 'Show the help for this field',
     privacy: 'Privacy policy',
     sessionData: 'Data in this session',
     groupData: 'Data and quality', groupComposition: 'Composition and diversity', groupStats: 'Advanced statistics',

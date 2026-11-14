@@ -10,6 +10,7 @@ import { onLangChange, t } from './lib/i18n.js';
 import { onProfileChange } from './lib/profile.js';
 import { watchFieldLabels, linkFieldLabels } from './lib/a11yFields.js';
 import { initPWA, onPWAChange } from './lib/pwa.js';
+import { applyDataDensity, getDensity, prepareHelpToggles } from './lib/density.js';
 import { initTheme } from './lib/theme.js';
 import { initNavDrawer } from './lib/navDrawer.js';
 import { captureRoute } from './lib/reportLog.js';
@@ -98,6 +99,10 @@ async function renderRoute() {
     if (routeId !== currentRouteId()) return; // el usuario ya navegó a otro sitio mientras cargaba
     view.innerHTML = '';
     cleanupCurrentModule = mod.render(view) || null;
+    // Un unico punto para toda la app: tras pintar un modulo, se preparan
+    // los botones de ayuda. Quien se ve lo decide el CSS segun
+    // data-density, asi que cambiar de modo no obliga a repintar nada.
+    try { prepareHelpToggles(view, t); } catch (e) { /* no romper el modulo por esto */ }
     linkFieldLabels(view); // etiqueta↔control tras el render inicial (el observer cubre los re-render)
   } catch (err) {
     console.error(err);
@@ -114,6 +119,7 @@ onLangChange(() => { syncSkipLink(); renderRoute(); });
 onProfileChange(renderRoute);
 // PWA: al aparecer/desaparecer la posibilidad de instalar, repinta el footer
 onPWAChange(() => renderFooter(footer));
+applyDataDensity(getDensity());
 initPWA();
 initTheme();
 renderRoute();
