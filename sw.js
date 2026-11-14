@@ -22,7 +22,8 @@
 
 // Súbelo a mano cuando quieras forzar un vaciado de caché (normalmente no hace
 // falta: el propio cambio de bytes de este archivo ya instala un SW nuevo).
-const VERSION = 'v4'; // v4 (Fase 4a): shell con la identidad Smart-175 (textos sin "QiimeLab")
+const VERSION = 'v5'; // v5: el shell solo se cachea con el shell (desde que existe privacidad.html
+// hay mas de una pagina HTML); v4 (Fase 4a): identidad Smart-175
 const CACHE = 'smart-175-' + VERSION;
 
 // El shell mínimo que garantiza que la app arranca sin red la primera vez que
@@ -73,6 +74,15 @@ function isHTMLRequest(req) {
     (req.method === 'GET' && (req.headers.get('accept') || '').includes('text/html'));
 }
 
+// ¿Esta navegación es el shell de la app, o alguna OTRA página del sitio?
+// Desde que existe privacidad.html hay más de una página HTML, y la diferencia
+// importa: cachear cualquier navegación bajo './index.html' haría que, después
+// de visitar la política de privacidad, la app sin conexión sirviera esa página
+// en lugar de la aplicación.
+function isAppShell(url) {
+  return url.pathname.endsWith('/') || /\/index\.html$/.test(url.pathname);
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -87,13 +97,19 @@ self.addEventListener('fetch', (event) => {
         const fresh = await fetch(req);
         if (fresh && fresh.ok) {
           const cache = await caches.open(CACHE);
-          cache.put('./index.html', fresh.clone());
+          cache.put(isAppShell(url) ? './index.html' : req, fresh.clone());
         }
         return fresh;
       } catch (e) {
         const cache = await caches.open(CACHE);
-        return (await cache.match(req)) ||
-          (await cache.match('./index.html')) ||
+        const exact = await cache.match(req);
+        if (exact) return exact;
+        // Para una página que no es el shell (la política de privacidad) y que
+        // nunca se visitó con red, caer al shell daría la app donde se pidió
+        // otra cosa: mejor fallar y que el navegador muestre su aviso de sin
+        // conexión, que es la verdad.
+        if (!isAppShell(url)) return Response.error();
+        return (await cache.match('./index.html')) ||
           (await cache.match('./')) ||
           Response.error();
       }

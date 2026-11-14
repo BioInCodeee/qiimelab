@@ -299,7 +299,16 @@ export function renderShell(container, currentRoute) {
   const footer = document.createElement('p');
   footer.className = 'ql-sidebar-note';
   footer.textContent = t('shell.footer');
+  // La politica de privacidad es una pagina estatica aparte (privacidad.html),
+  // no una ruta del router: las tiendas de aplicaciones piden una URL estable y
+  // que funcione sin JavaScript, y un hash de SPA no sirve para eso.
+  const priv = document.createElement('a');
+  priv.className = 'ql-sidebar-note';
+  priv.href = 'privacidad.html';
+  priv.textContent = t('shell.privacy');
+  priv.style.display = 'block';
   container.appendChild(footer);
+  container.appendChild(priv);
 }
 
 /** Se suscribe UNA vez (llamar solo al arrancar la app) para repintar la barra lateral cuando cambie el estado. */

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+<meta name="referrer" content="no-referrer" />
+<title>Política de privacidad — Smart-175</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png" />
+<style>
+  :root { color-scheme: light dark; --ink: #16181d; --ink-2: #4a5160; --bg: #ffffff; --card: #f6f8fb; --line: #dfe4ec; --brand: #00107c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e8ebf2; --ink-2: #a7b0c0; --bg: #0c1018; --card: #151b26; --line: #28303d; --brand: #93c5fd; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px 20px 64px; background: var(--bg); color: var(--ink);
+         font-family: 'Fira Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height: 1.6; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 28px; line-height: 1.25; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 32px 0 8px; }
+  h3 { font-size: 16px; margin: 22px 0 6px; }
+  p, li { color: var(--ink); }
+  .sub { color: var(--ink-2); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 20px 0; }
+  ul { padding-left: 20px; }
+  a { color: var(--brand); }
+  code { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 0.92em; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0 32px; }
+  footer { color: var(--ink-2); font-size: 14px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Política de privacidad de Smart-175</h1>
+<p class="sub">Última actualización: 14 de noviembre de 2026 · <a href="./">Volver a la aplicación</a></p>
+
+<div class="card">
+  <strong>En una frase:</strong> Smart-175 no recoge, no almacena y no transmite tus datos.
+  Todo el análisis ocurre dentro de tu navegador y los archivos que abres nunca salen de tu
+  equipo. No hay cuentas, no hay analítica y no hay cookies de seguimiento.
+</div>
+
+<h2>Quién es el responsable</h2>
+<p>
+  Smart-175 lo desarrolla y publica <strong>BioInCode</strong>. Para cualquier cuestión sobre
+  esta política puedes escribir a <a href="mailto:bioincode.info@gmail.com">bioincode.info@gmail.com</a>.
+</p>
+
+<h2>Qué datos tratamos</h2>
+<p>
+  <strong>Ninguno de los datos que analizas.</strong> Las tablas de abundancia, los archivos
+  FASTQ, los cromatogramas <code>.ab1</code>, las secuencias, las fotos de placas y los
+  metadatos que cargas se procesan íntegramente en tu navegador. No se suben a ningún
+  servidor, ni nuestro ni de terceros, y nosotros no tenemos forma de verlos.
+</p>
+<p>
+  Esto no es solo una promesa: la aplicación se sirve con una política de seguridad de
+  contenido (CSP) que declara <code>connect-src 'self'</code>, es decir, que el propio
+  navegador bloquea cualquier conexión de la aplicación a destinos externos. Las tipografías
+  están alojadas en el mismo sitio que la aplicación, así que tampoco se piden a Google Fonts
+  ni a ninguna otra red de distribución.
+</p>
+
+<h2>Qué se guarda en tu dispositivo</h2>
+<p>
+  Para que no tengas que reconfigurar la aplicación cada vez, se usa el almacenamiento local
+  del navegador (<code>localStorage</code>) con claves que empiezan por <code>smart-175.</code>.
+  Ahí se guardan:
+</p>
+<ul>
+  <li>tus preferencias (idioma, tema claro u oscuro, opciones de cada módulo);</li>
+  <li>el último lote de resultados ya calculados de algunos módulos, para que no se pierdan al recargar.</li>
+</ul>
+<p>
+  Esa información <strong>no sale de tu dispositivo</strong> y no es accesible para nosotros.
+  Puedes borrarla en cualquier momento desde los ajustes de tu navegador (borrar datos del
+  sitio) y la aplicación volverá a su estado inicial. Además, la caché del service worker
+  guarda los archivos de la propia aplicación para que funcione sin conexión; son archivos
+  nuestros, no datos tuyos.
+</p>
+
+<h2>Cookies y analítica</h2>
+<p>
+  No se usan cookies. No hay analítica, ni píxeles de seguimiento, ni publicidad, ni
+  identificadores de usuario. No creamos perfiles ni compartimos ni vendemos información a
+  terceros, porque no la tenemos.
+</p>
+
+<h2>Las dos únicas salidas de datos, y las decides tú</h2>
+<h3>1. BLAST en NCBI (módulo Sanger, opcional)</h3>
+<p>
+  El módulo de secuenciación Sanger ofrece un botón para identificar una secuencia en
+  <a href="https://blast.ncbi.nlm.nih.gov/" rel="noreferrer noopener">NCBI BLAST</a>. Si lo
+  pulsas, se abre el sitio de NCBI en una pestaña nueva con <em>esa</em> secuencia, que por
+  tanto sí viaja a los servidores del NCBI. No ocurre nada hasta que tú pulsas, nunca se
+  envía nada automáticamente, y el tratamiento que NCBI haga de esa consulta se rige por su
+  propia política de privacidad. Si la secuencia es confidencial o está sin publicar, no uses
+  ese botón.
+</p>
+<h3>2. Enlaces externos</h3>
+<p>
+  Algunas pantallas enlazan a recursos externos (NCBI, DOI de artículos, KEGG, el repositorio
+  en GitHub). Al seguirlos sales de la aplicación y pasas a estar bajo la política del sitio
+  de destino. Los enlaces se envían con <code>no-referrer</code>, de modo que el sitio de
+  destino no recibe desde qué página de la aplicación venías.
+</p>
+
+<h2>Alojamiento</h2>
+<p>
+  La aplicación se publica en GitHub Pages. Como ocurre con cualquier sitio web, para
+  entregarte los archivos el servidor de GitHub recibe datos técnicos de la conexión —dirección
+  IP y datos del navegador— y puede registrarlos en sus registros de servicio. Eso es
+  tratamiento de GitHub, no nuestro: nosotros no tenemos acceso a esos registros ni recibimos
+  ninguna copia. Ese tratamiento se rige por la política de privacidad de GitHub.
+</p>
+
+<h2>Menores</h2>
+<p>
+  Smart-175 es una herramienta de investigación y docencia dirigida a estudiantes
+  universitarios y personal investigador. No está dirigida a menores de 13 años y no recoge
+  datos de nadie, sea cual sea su edad.
+</p>
+
+<h2>Tus derechos</h2>
+<p>
+  El Reglamento General de Protección de Datos reconoce derechos de acceso, rectificación,
+  supresión, limitación, portabilidad y oposición sobre los datos personales de una persona.
+  En el caso de Smart-175 no tratamos datos personales tuyos, así que no hay nada a lo que
+  acceder ni que suprimir en nuestro lado; los datos que la aplicación guarda están en tu
+  propio navegador y los controlas tú por completo. Aun así, si crees que algo de esta
+  política no se corresponde con lo que la aplicación hace, escríbenos y lo corregimos.
+</p>
+
+<h2>Finalidad científica</h2>
+<p>
+  Smart-175 es una herramienta de análisis y visualización para investigación y docencia.
+  <strong>No es un producto sanitario</strong> y no debe usarse para diagnóstico, tratamiento
+  ni prevención de enfermedades, ni para ninguna decisión clínica.
+</p>
+
+<h2>Cambios en esta política</h2>
+<p>
+  Si la aplicación empieza a tratar datos de otra forma, esta página se actualizará y cambiará
+  la fecha del encabezado. El historial completo de cambios es público en el repositorio del
+  proyecto.
+</p>
+
+<hr />
+
+<h1 lang="en">Privacy policy for Smart-175</h1>
+<p class="sub" lang="en">Last updated: 14 November 2026 · <a href="./">Back to the app</a></p>
+
+<div class="card" lang="en">
+  <strong>In one sentence:</strong> Smart-175 does not collect, store or transmit your data.
+  All analysis happens inside your browser and the files you open never leave your machine.
+  There are no accounts, no analytics and no tracking cookies.
+</div>
+
+<div lang="en">
+<h2>Who is responsible</h2>
+<p>
+  Smart-175 is developed and published by <strong>BioInCode</strong>. For any question about
+  this policy, write to <a href="mailto:bioincode.info@gmail.com">bioincode.info@gmail.com</a>.
+</p>
+
+<h2>What data we process</h2>
+<p>
+  <strong>None of the data you analyse.</strong> Abundance tables, FASTQ files,
+  <code>.ab1</code> chromatograms, sequences, plate photos and metadata are processed entirely
+  in your browser. They are not uploaded to any server, ours or anyone else's, and we have no
+  way of seeing them.
+</p>
+<p>
+  This is not only a promise: the app is served with a Content Security Policy declaring
+  <code>connect-src 'self'</code>, so the browser itself blocks any connection from the app to
+  an external destination. Typefaces are self-hosted, so nothing is requested from Google
+  Fonts or any other content delivery network either.
+</p>
+
+<h2>What is stored on your device</h2>
+<p>
+  So you do not have to reconfigure the app every time, it uses browser local storage
+  (<code>localStorage</code>) under keys beginning with <code>smart-175.</code>, holding your
+  preferences (language, light or dark theme, per-module options) and the last batch of
+  already-computed results in some modules. That information <strong>never leaves your
+  device</strong> and is not accessible to us. You can erase it at any time from your
+  browser's settings (clear site data). The service worker cache additionally stores the app's
+  own files so it works offline; those are our files, not your data.
+</p>
+
+<h2>Cookies and analytics</h2>
+<p>
+  No cookies are used. There is no analytics, no tracking pixel, no advertising and no user
+  identifier. We do not profile, share or sell information, because we do not have it.
+</p>
+
+<h2>The only two data exits, and you decide both</h2>
+<p>
+  <strong>1. NCBI BLAST (Sanger module, optional).</strong> The Sanger module offers a button
+  to identify a sequence at NCBI BLAST. If you press it, NCBI opens in a new tab carrying
+  <em>that</em> sequence, which therefore does travel to NCBI's servers. Nothing happens until
+  you press it, nothing is ever sent automatically, and NCBI's handling of that query is
+  governed by its own privacy policy. If the sequence is confidential or unpublished, do not
+  use that button.
+</p>
+<p>
+  <strong>2. External links.</strong> Some screens link out to NCBI, article DOIs, KEGG and
+  the project's GitHub repository. Following them takes you out of the app and under the
+  destination site's policy. Links are sent with <code>no-referrer</code>, so the destination
+  does not learn which page of the app you came from.
+</p>
+
+<h2>Hosting</h2>
+<p>
+  The app is published on GitHub Pages. As with any website, to deliver the files GitHub's
+  server receives technical connection data — IP address and browser details — and may record
+  it in its service logs. That processing is GitHub's, not ours: we have no access to those
+  logs and receive no copy. It is governed by GitHub's privacy policy.
+</p>
+
+<h2>Children</h2>
+<p>
+  Smart-175 is a research and teaching tool aimed at university students and researchers. It
+  is not directed at children under 13, and it collects data from no one, at any age.
+</p>
+
+<h2>Your rights</h2>
+<p>
+  The GDPR grants rights of access, rectification, erasure, restriction, portability and
+  objection over a person's personal data. In the case of Smart-175 we process none of your
+  personal data, so there is nothing on our side to access or erase; what the app stores sits
+  in your own browser and is entirely under your control. Even so, if you believe anything in
+  this policy does not match what the app does, write to us and we will correct it.
+</p>
+
+<h2>Scientific purpose</h2>
+<p>
+  Smart-175 is an analysis and visualisation tool for research and teaching. <strong>It is not
+  a medical device</strong> and must not be used for diagnosis, treatment or prevention of
+  disease, nor for any clinical decision.
+</p>
+
+<h2>Changes to this policy</h2>
+<p>
+  If the app ever starts handling data differently, this page will be updated and the date at
+  the top will change. The full change history is public in the project's repository.
+</p>
+</div>
+
+<footer>
+  BioInCode · <a href="mailto:bioincode.info@gmail.com">bioincode.info@gmail.com</a> ·
+  <a href="./">Smart-175</a>
+</footer>
+
+</main>
+</body>
+</html>

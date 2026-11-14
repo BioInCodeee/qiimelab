@@ -10,6 +10,7 @@ export default {
     venn: 'Venn / UpSet', correlograma: 'Correlograma', funcional: 'Índices funcionales', inference: 'Inferencia funcional', qc: 'Control de calidad (FASTQ)', informe: 'Informe combinado', recursos: 'Recursos', glosario: 'Glosario', validacion: 'Validación estadística',
   },
   shell: {
+    privacy: 'Politica de privacidad',
     sessionData: 'Datos en esta sesión',
     groupData: 'Datos y calidad', groupComposition: 'Composición y diversidad', groupStats: 'Estadística avanzada',
     groupCounts: 'Recuentos de laboratorio', groupPrimers: 'Primers y Sanger', groupResources: 'Recursos y referencia',
