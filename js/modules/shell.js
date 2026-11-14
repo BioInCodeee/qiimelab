@@ -58,6 +58,7 @@ export const ROUTES = [
   { id: 'temporal', navKey: 'nav.temporal', icon: 'temporal', group: 'composition' },
   { id: 'venn', navKey: 'nav.venn', icon: 'venn', group: 'composition' },
   { id: 'correlograma', navKey: 'nav.correlograma', icon: 'correlogram', group: 'composition' },
+  { id: 'arbolcalor', navKey: 'nav.arbolcalor', icon: 'arbol', group: 'composition' },
   { id: 'diferencial', navKey: 'nav.differential', icon: 'volcano', group: 'stats' },
   { id: 'funcional', navKey: 'nav.funcional', icon: 'functional', group: 'stats' },
   { id: 'inferencia', navKey: 'nav.inference', icon: 'inferencia', group: 'stats' },
@@ -113,6 +114,7 @@ function sangerHasData() {
 export function slotFilled(routeId) {
   switch (routeId) {
     case 'barplots': return !!state.taxaBarplot;
+    case 'arbolcalor': return !!state.taxaBarplot;
     case 'primers': return primersHaveData();
     case 'arbol': return phyloHasData();
     case 'sanger': return sangerHasData();

@@ -50,6 +50,7 @@ const moduleLoaders = {
   calculadora: () => import('./modules/labcalc.js'),
   primers: () => import('./modules/primers.js'),
   arbol: () => import('./modules/phylo.js'),
+  arbolcalor: () => import('./modules/heatTree.js'),
   sanger: () => import('./modules/sanger.js'),
   venn: () => import('./modules/venn.js'),
   correlograma: () => import('./modules/correlogram.js'),
