@@ -85,7 +85,12 @@ export function exportSession() {
     state: {},
   };
 
-  out.state.files = (state.files || []).map((f) => ({ id: f.id, name: f.name, size: f.size, note: f.note || '' }));
+  // la huella SHA-256 sí viaja en la sesión: sirve para comprobar meses después
+  // que el archivo de la carpeta es el mismo con el que se hizo el análisis
+  out.state.files = (state.files || []).map((f) => ({
+    id: f.id, name: f.name, size: f.size, note: f.note || '',
+    ...(f.sha256 ? { sha256: f.sha256 } : {}),
+  }));
   SLOT_KEYS.forEach((k) => { out.state[k] = jclone(state[k]); });
 
   // sequenceQC: report ya es plano; se quita el File

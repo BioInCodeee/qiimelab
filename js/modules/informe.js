@@ -212,6 +212,28 @@ async function buildReport(snaps, includeMethods) {
     }
   }
 
+  // ---- archivos de entrada con su huella ----
+  // Va justo detrás de los métodos porque es la otra mitad de lo mismo: los
+  // métodos dicen QUÉ se hizo, esto dice SOBRE QUÉ exactamente. Solo aparece
+  // si hay alguna huella calculada (ver js/lib/fileHash.js: sin https no la hay).
+  if (includeMethods) {
+    const hashed = (state.files || []).filter((f) => f.sha256);
+    if (hashed.length) {
+      const sec = el('section', 'ql-report-section');
+      sec.appendChild(el('h2', null, t('informe.inputsHeading')));
+      sec.appendChild(el('p', 'ql-report-para', t('informe.inputsNote')));
+      const tbl = document.createElement('table');
+      tbl.className = 'ql-table';
+      tbl.innerHTML = '<thead><tr><th>' + escapeHtml(t('informe.inputsFile')) + '</th>'
+        + '<th>' + escapeHtml(t('informe.inputsSha')) + '</th></tr></thead><tbody>'
+        + hashed.map((f) => '<tr><td>' + escapeHtml(f.name) + '</td>'
+          + '<td class="mono" style="word-break:break-all;">' + escapeHtml(f.sha256) + '</td></tr>').join('')
+        + '</tbody>';
+      sec.appendChild(tbl);
+      report.appendChild(sec);
+    }
+  }
+
   // ---- resultados, módulo a módulo ----
   const host = document.createElement('div'); // nodo temporal para serializar figuras
   host.setAttribute('aria-hidden', 'true');

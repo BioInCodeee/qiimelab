@@ -2726,3 +2726,11 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
   margin-top: 2px;
   word-break: break-word;
 }
+/* Huella SHA-256 del archivo cargado: discreta, a la derecha de la fila. El
+   hash completo va en el title; aquí solo caben 12 caracteres. */
+.ql-file-row .ql-file-hash {
+  color: var(--ink-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}

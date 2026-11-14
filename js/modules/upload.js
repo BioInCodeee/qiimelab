@@ -2,6 +2,7 @@ import { state, subscribe, registerFile, removeFile } from '../state.js';
 import { t } from '../lib/i18n.js';
 import { ingestFile } from '../lib/ingest.js';
 import { provenanceChain } from '../lib/provenance.js';
+import { sha256Hex, shortHash } from '../lib/fileHash.js';
 import { routeResultToState } from '../lib/route.js';
 import { exportSession, importSession, describeSession, sessionFilename, SCHEMA_VERSION } from '../lib/session.js';
 import { openConfirm } from '../lib/modal.js';
@@ -301,7 +302,8 @@ export function render(container) {
         const row = document.createElement('div');
         row.className = 'ql-file-row';
         row.innerHTML = '<span class="ql-file-name">' + escapeHtml(f.name) + '</span>' +
-          '<span class="ql-file-meta">' + (f.note ? escapeHtml(f.note) : '') + '</span>';
+          '<span class="ql-file-meta">' + (f.note ? escapeHtml(f.note) : '') + '</span>' +
+          hashSpanHtml(f);
         const rm = document.createElement('button');
         rm.type = 'button';
         rm.title = t('ui.remove');
@@ -538,6 +540,14 @@ export function render(container) {
       if (fileEntry && outcome.provenance && outcome.provenance.hasProvenance) {
         fileEntry.provenance = outcome.provenance;
       }
+      // Huella del archivo tal y como entró. Se calcula DESPUÉS de la ingesta
+      // para no retrasar la aparición del dato en pantalla, y su fallo nunca
+      // afecta al análisis (sha256Hex no lanza: devuelve el motivo).
+      if (fileEntry) {
+        const h = await sha256Hex(file);
+        if (h.hex) fileEntry.sha256 = h.hex;
+        else fileEntry.hashSkipped = h.skipped;
+      }
       if (outcome.results.length === 0) {
         if (fileEntry) fileEntry.note = t('upload.unclassified');
       } else {
@@ -547,6 +557,21 @@ export function render(container) {
     }
     lastWarnings = warnings;
     paint();
+  }
+
+  /** Huella del archivo en la fila: los 12 primeros caracteres, con el hash
+   *  completo en el title. Cuando no se pudo calcular, se dice por qué en vez
+   *  de dejar el hueco en blanco. */
+  function hashSpanHtml(f) {
+    if (f.sha256) {
+      return '<span class="ql-file-hash mono" title="SHA-256: ' + escapeHtml(f.sha256) + '">'
+        + escapeHtml(shortHash(f.sha256)) + '</span>';
+    }
+    if (f.hashSkipped) {
+      const key = ({ 'too-large': 'hashTooLarge', unavailable: 'hashUnavailable' })[f.hashSkipped] || 'hashError';
+      return '<span class="ql-file-hash">' + escapeHtml(t('upload.' + key)) + '</span>';
+    }
+    return '';
   }
 
   // -------------------------------------------------------------------------
