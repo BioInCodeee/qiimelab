@@ -2,7 +2,7 @@ import { state, subscribe } from '../state.js';
 import { t } from '../lib/i18n.js';
 import { brandHero } from '../lib/brand.js';
 import { getProfileName } from '../lib/profile.js';
-import { slotFilled, GROUPS } from './shell.js';
+import { slotFilled, GROUPS, ROUTES } from './shell.js';
 import { healthBannerEl } from '../lib/healthBanner.js';
 import { escapeHtml } from '../lib/dom.js';
 import { mountExampleButtons, loadExampleCommunityData, loadRealCommunityData } from '../lib/exampleData.js';
@@ -23,22 +23,22 @@ import { mountExampleButtons, loadExampleCommunityData, loadRealCommunityData } 
 // sección que en la navegación principal (shell.js GROUPS) — la rejilla usa
 // las mismas cabeceras/orden, así que no se repite ni se puede desincronizar.
 const MODULES_INFO = [
-  { route: 'qc', qKey: 'home.q.qc', nameKey: 'nav.qc', descKey: 'modules.qc.desc', glos: 'qc', group: 'data' },
-  { route: 'barplots', qKey: 'home.q.barplots', nameKey: 'nav.barplots', descKey: 'modules.barplots.desc', glos: 'relAbund', group: 'composition' },
-  { route: 'alfa', qKey: 'home.q.alfa', nameKey: 'nav.alpha', descKey: 'modules.alpha.desc', glos: 'alphaDiv', group: 'composition' },
-  { route: 'beta', qKey: 'home.q.beta', nameKey: 'nav.beta', descKey: 'modules.beta.desc', glos: 'betaDiv', group: 'composition' },
-  { route: 'arbolcalor', qKey: 'home.q.arbolcalor', nameKey: 'nav.arbolcalor', descKey: 'modules.arbolcalor.desc', glos: 'relAbund', group: 'composition' },
-  { route: 'temporal', qKey: 'home.q.temporal', nameKey: 'nav.temporal', descKey: 'modules.temporal.desc', glos: 'alphaDiv', group: 'composition' },
-  { route: 'venn', qKey: 'home.q.venn', nameKey: 'nav.venn', descKey: 'modules.venn.desc', glos: 'venn', group: 'composition' },
-  { route: 'correlograma', qKey: 'home.q.correlograma', nameKey: 'nav.correlograma', descKey: 'modules.correlograma.desc', glos: 'correlation', group: 'composition' },
-  { route: 'diferencial', qKey: 'home.q.diferencial', nameKey: 'nav.differential', descKey: 'modules.differential.desc', glos: 'diffAbund', group: 'stats' },
-  { route: 'funcional', qKey: 'home.q.funcional', nameKey: 'nav.funcional', descKey: 'modules.funcional.desc', glos: 'kegg', group: 'stats' },
-  { route: 'inferencia', qKey: 'home.q.inferencia', nameKey: 'nav.inference', descKey: 'modules.inferencia.desc', glos: 'kegg', group: 'stats' },
-  { route: 'recuentos', qKey: 'home.q.recuentos', nameKey: 'nav.recuentos', descKey: 'modules.recuentos.desc', glos: 'sdvsse', group: 'counts' },
-  { route: 'recuentos?tab=foto', qKey: 'home.q.placa', nameKey: 'recuentos.sectionPhoto', descKey: 'modules.placa.desc', glos: 'sdvsse', group: 'counts' },
-  { route: 'primers', qKey: 'home.q.primers', nameKey: 'nav.primers', descKey: 'modules.primers.desc', glos: 'primerTm', group: 'primers' },
-  { route: 'arbol', qKey: 'home.q.arbol', nameKey: 'nav.arbol', descKey: 'modules.arbol.desc', glos: 'neighborJoiningTerm', group: 'primers' },
-  { route: 'sanger', qKey: 'home.q.sanger', nameKey: 'nav.sanger', descKey: 'modules.sanger.desc', glos: 'sangerConsensusTerm', group: 'primers' },
+  { route: 'qc', qKey: 'home.q.qc', nameKey: 'nav.qc', descKey: 'modules.qc.desc', glos: 'qc' },
+  { route: 'barplots', qKey: 'home.q.barplots', nameKey: 'nav.barplots', descKey: 'modules.barplots.desc', glos: 'relAbund' },
+  { route: 'alfa', qKey: 'home.q.alfa', nameKey: 'nav.alpha', descKey: 'modules.alpha.desc', glos: 'alphaDiv' },
+  { route: 'beta', qKey: 'home.q.beta', nameKey: 'nav.beta', descKey: 'modules.beta.desc', glos: 'betaDiv' },
+  { route: 'arbolcalor', qKey: 'home.q.arbolcalor', nameKey: 'nav.arbolcalor', descKey: 'modules.arbolcalor.desc', glos: 'relAbund' },
+  { route: 'temporal', qKey: 'home.q.temporal', nameKey: 'nav.temporal', descKey: 'modules.temporal.desc', glos: 'alphaDiv' },
+  { route: 'venn', qKey: 'home.q.venn', nameKey: 'nav.venn', descKey: 'modules.venn.desc', glos: 'venn' },
+  { route: 'correlograma', qKey: 'home.q.correlograma', nameKey: 'nav.correlograma', descKey: 'modules.correlograma.desc', glos: 'correlation' },
+  { route: 'diferencial', qKey: 'home.q.diferencial', nameKey: 'nav.differential', descKey: 'modules.differential.desc', glos: 'diffAbund' },
+  { route: 'funcional', qKey: 'home.q.funcional', nameKey: 'nav.funcional', descKey: 'modules.funcional.desc', glos: 'kegg' },
+  { route: 'inferencia', qKey: 'home.q.inferencia', nameKey: 'nav.inference', descKey: 'modules.inferencia.desc', glos: 'kegg' },
+  { route: 'recuentos', qKey: 'home.q.recuentos', nameKey: 'nav.recuentos', descKey: 'modules.recuentos.desc', glos: 'sdvsse' },
+  { route: 'recuentos?tab=foto', qKey: 'home.q.placa', nameKey: 'recuentos.sectionPhoto', descKey: 'modules.placa.desc', glos: 'sdvsse' },
+  { route: 'primers', qKey: 'home.q.primers', nameKey: 'nav.primers', descKey: 'modules.primers.desc', glos: 'primerTm' },
+  { route: 'arbol', qKey: 'home.q.arbol', nameKey: 'nav.arbol', descKey: 'modules.arbol.desc', glos: 'neighborJoiningTerm' },
+  { route: 'sanger', qKey: 'home.q.sanger', nameKey: 'nav.sanger', descKey: 'modules.sanger.desc', glos: 'sangerConsensusTerm' },
 ];
 
 const MORE_LINKS = [
@@ -59,6 +59,15 @@ const SLOT_ROWS = [
   ['slots.differential', () => !!state.differentialAbundance],
   ['slots.fastq', () => Array.isArray(state.sequenceQC) && state.sequenceQC.length > 0],
 ];
+
+/** Sección de una ruta según shell.js ROUTES — única fuente de verdad. Antes
+ *  cada entrada de MODULES_INFO repetía su `group`, y eran dos listas que
+ *  había que mantener a mano en paralelo. */
+function groupOfRoute(route) {
+  const id = String(route).split('?')[0];
+  const r = ROUTES.find((x) => x.id === id);
+  return r ? r.group : null;
+}
 
 export function render(container) {
   function paint() {
@@ -149,7 +158,7 @@ export function render(container) {
 
     let openedOne = false;
     GROUPS.forEach((g, gi) => {
-      const inGroup = MODULES_INFO.filter((m) => m.group === g.id);
+      const inGroup = MODULES_INFO.filter((m) => groupOfRoute(m.route) === g.id);
       if (!inGroup.length) return;
       const ready = inGroup.filter((m) => slotFilled(m.route.split('?')[0])).length;
 

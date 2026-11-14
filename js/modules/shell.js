@@ -53,23 +53,23 @@ export const ROUTES = [
   { id: '', navKey: 'nav.home', icon: 'home', group: 'home' },
   { id: 'cargar', navKey: 'nav.upload', icon: 'upload', group: 'data' },
   { id: 'qc', navKey: 'nav.qc', icon: 'qc', group: 'data' },
-  { id: 'barplots', navKey: 'nav.barplots', icon: 'bars', group: 'composition' },
-  { id: 'alfa', navKey: 'nav.alpha', icon: 'alpha', group: 'composition' },
-  { id: 'beta', navKey: 'nav.beta', icon: 'beta', group: 'composition' },
-  { id: 'temporal', navKey: 'nav.temporal', icon: 'temporal', group: 'composition' },
-  { id: 'venn', navKey: 'nav.venn', icon: 'venn', group: 'composition' },
-  { id: 'correlograma', navKey: 'nav.correlograma', icon: 'correlogram', group: 'composition' },
-  { id: 'arbolcalor', navKey: 'nav.arbolcalor', icon: 'arbol', group: 'composition' },
-  { id: 'diferencial', navKey: 'nav.differential', icon: 'volcano', group: 'stats' },
-  { id: 'funcional', navKey: 'nav.funcional', icon: 'functional', group: 'stats' },
-  { id: 'inferencia', navKey: 'nav.inference', icon: 'inferencia', group: 'stats' },
-  { id: 'validacion', navKey: 'nav.validacion', icon: 'validacion', group: 'stats' },
-  { id: 'recuentos', navKey: 'nav.recuentos', icon: 'recuentos', group: 'counts' },
-  { id: 'calculadora', navKey: 'nav.calculadora', icon: 'calculator', group: 'counts' },
-  { id: 'primers', navKey: 'nav.primers', icon: 'primers', group: 'primers' },
-  { id: 'arbol', navKey: 'nav.arbol', icon: 'arbol', group: 'primers' },
-  { id: 'sanger', navKey: 'nav.sanger', icon: 'sanger', group: 'primers' },
-  { id: 'informe', navKey: 'nav.informe', icon: 'informe', group: 'resources' },
+  { id: 'validacion', navKey: 'nav.validacion', icon: 'validacion', group: 'data' },
+  { id: 'barplots', navKey: 'nav.barplots', icon: 'bars', group: 'community' },
+  { id: 'alfa', navKey: 'nav.alpha', icon: 'alpha', group: 'community' },
+  { id: 'beta', navKey: 'nav.beta', icon: 'beta', group: 'community' },
+  { id: 'temporal', navKey: 'nav.temporal', icon: 'temporal', group: 'community' },
+  { id: 'venn', navKey: 'nav.venn', icon: 'venn', group: 'community' },
+  { id: 'correlograma', navKey: 'nav.correlograma', icon: 'correlogram', group: 'community' },
+  { id: 'arbolcalor', navKey: 'nav.arbolcalor', icon: 'arbol', group: 'community' },
+  { id: 'funcional', navKey: 'nav.funcional', icon: 'functional', group: 'molecular' },
+  { id: 'arbol', navKey: 'nav.arbol', icon: 'arbol', group: 'molecular' },
+  { id: 'primers', navKey: 'nav.primers', icon: 'primers', group: 'molecular' },
+  { id: 'sanger', navKey: 'nav.sanger', icon: 'sanger', group: 'molecular' },
+  { id: 'recuentos', navKey: 'nav.recuentos', icon: 'recuentos', group: 'experimental' },
+  { id: 'calculadora', navKey: 'nav.calculadora', icon: 'calculator', group: 'experimental' },
+  { id: 'diferencial', navKey: 'nav.differential', icon: 'volcano', group: 'results' },
+  { id: 'inferencia', navKey: 'nav.inference', icon: 'inferencia', group: 'results' },
+  { id: 'informe', navKey: 'nav.informe', icon: 'informe', group: 'results' },
   { id: 'recursos', navKey: 'nav.recursos', icon: 'recursos', group: 'resources' },
   { id: 'glosario', navKey: 'nav.glosario', icon: 'glosario', group: 'resources' },
 ];
@@ -77,11 +77,13 @@ export const ROUTES = [
 // título de cada sección de la navegación, en el mismo orden en que aparecen
 // (home no lleva cabecera propia — ver renderShell).
 export const GROUPS = [
-  { id: 'data', titleKey: 'shell.groupData' },
-  { id: 'composition', titleKey: 'shell.groupComposition' },
-  { id: 'stats', titleKey: 'shell.groupStats' },
-  { id: 'counts', titleKey: 'shell.groupCounts' },
-  { id: 'primers', titleKey: 'shell.groupPrimers' },
+  { id: 'data', titleKey: 'shell.groupData', step: 1 },
+  { id: 'community', titleKey: 'shell.groupCommunity', step: 2 },
+  { id: 'molecular', titleKey: 'shell.groupMolecular', step: 3 },
+  { id: 'experimental', titleKey: 'shell.groupExperimental', step: 4 },
+  { id: 'results', titleKey: 'shell.groupResults', step: 5 },
+  // Sin número: no es un paso del análisis, es material de consulta. Meterlo
+  // dentro del recorrido numerado diluiría justo lo que el recorrido aporta.
   { id: 'resources', titleKey: 'shell.groupResources' },
 ];
 
@@ -190,7 +192,14 @@ export function renderShell(container, currentRoute) {
     nav.className = 'ql-nav';
     const label = document.createElement('div');
     label.className = 'ql-nav-group-label';
-    label.textContent = t(g.titleKey);
+    if (g.step) {
+      const step = document.createElement('span');
+      step.className = 'ql-nav-step';
+      step.setAttribute('aria-hidden', 'true'); // decorativo: el título ya nombra la sección
+      step.textContent = String(g.step);
+      label.appendChild(step);
+    }
+    label.appendChild(document.createTextNode(t(g.titleKey)));
     nav.appendChild(label);
     routesInGroup.forEach((r) => nav.appendChild(navItem(r)));
     container.appendChild(nav);

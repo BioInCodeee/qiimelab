@@ -194,7 +194,8 @@ console.log('\n--- 7. Integración con el Enrutador y Shell de la aplicación --
 check('shell.js ROUTES contiene inferencia', shell.ROUTES.some(r => r.id === 'inferencia'));
 const inferRoute = shell.ROUTES.find(r => r.id === 'inferencia');
 check('Ruta inferencia tiene icono inferencia', inferRoute && inferRoute.icon === 'inferencia');
-check('Ruta inferencia pertenece al grupo stats', inferRoute && inferRoute.group === 'stats');
+check('Ruta inferencia pertenece al grupo results (recorrido: 5 · Inferencia y resultados)',
+  inferRoute && inferRoute.group === 'results' && shell.GROUPS.some((g) => g.id === 'results'));
 
 const esNav = i18n.t('nav.inference');
 check('Traducción de nav.inference existe en ES', typeof esNav === 'string' && esNav.length > 0, esNav);

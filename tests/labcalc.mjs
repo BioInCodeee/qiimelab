@@ -25,7 +25,7 @@ const {
   render,
 } = await import(APP_ROOT + '/js/modules/labcalc.js');
 
-const { ROUTES } = await import(APP_ROOT + '/js/modules/shell.js');
+const { ROUTES, GROUPS } = await import(APP_ROOT + '/js/modules/shell.js');
 const { t, setLang } = await import(APP_ROOT + '/js/lib/i18n.js');
 
 let failed = false;
@@ -200,7 +200,8 @@ console.log('\n--- 10. Integración en el Enrutador y Shell de Smart-175 ---');
 {
   const calcRoute = ROUTES.find(r => r.id === 'calculadora');
   check('Ruta "calculadora" registrada en ROUTES de shell.js', !!calcRoute);
-  check('Ruta calculadora asignada al grupo "counts"', calcRoute && calcRoute.group === 'counts');
+  check('Ruta calculadora asignada al grupo "experimental" (recorrido: 4 · Datos de laboratorio)',
+    calcRoute && calcRoute.group === 'experimental' && GROUPS.some((g) => g.id === 'experimental'));
   check('Ruta calculadora usa icono "calculator"', calcRoute && calcRoute.icon === 'calculator');
 
   check('Traducción de nav.calculadora existe en ES', t('nav.calculadora') === 'Calculadora');

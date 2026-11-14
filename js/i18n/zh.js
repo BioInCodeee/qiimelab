@@ -10,8 +10,10 @@ export default {
   },
   shell: {
     sessionData: '本次会话的数据',
-    groupData: '数据与质量', groupComposition: '组成与多样性', groupStats: '高级统计',
-    groupCounts: '实验室计数', groupPrimers: '引物与 Sanger', groupResources: '资源与参考',
+    groupData: '数据管理', groupCommunity: '群落分析',
+    groupMolecular: '功能与分子分析', groupExperimental: '实验室数据',
+    groupResults: '推断与结果',
+    groupResources: '资源与参考',
     footer: '分析在你的浏览器中运行；你的文件不会上传到我们的任何服务器。只有可选的 BLAST（Sanger）会把一条序列发送到 NCBI。',
     noData: '无数据', language: '语言',
     menu: '菜单',

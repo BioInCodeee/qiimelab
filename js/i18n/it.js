@@ -10,8 +10,10 @@ export default {
   },
   shell: {
     sessionData: 'Dati in questa sessione',
-    groupData: 'Dati e qualità', groupComposition: 'Composizione e diversità', groupStats: 'Statistica avanzata',
-    groupCounts: 'Conteggi di laboratorio', groupPrimers: 'Primers e Sanger', groupResources: 'Risorse e riferimento',
+    groupData: 'Gestione dei dati', groupCommunity: 'Analisi della comunità',
+    groupMolecular: 'Analisi funzionale e molecolare', groupExperimental: 'Dati di laboratorio',
+    groupResults: 'Inferenza e risultati',
+    groupResources: 'Risorse e riferimento',
     footer: 'Le analisi si eseguono nel tuo browser; i tuoi file non vengono caricati su nessun nostro server. Solo il BLAST opzionale (Sanger) invia una sequenza a NCBI.',
     noData: 'nessun dato', language: 'Lingua',
     menu: 'Menu',

@@ -2734,3 +2734,21 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
   white-space: nowrap;
   flex: 0 0 auto;
 }
+/* Número del paso en los rótulos de sección de la navegación. El recorrido
+   (1 datos → 2 comunidad → 3 molecular → 4 laboratorio → 5 resultados) es el
+   punto de agrupar así: que se vea el orden sin tener que conocer de antemano
+   el nombre de cada módulo. «Recursos» no lleva número: no es un paso. */
+.ql-nav-group-label .ql-nav-step {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  vertical-align: baseline;
+}

@@ -93,6 +93,7 @@ const SUITE = [
   { name: 'provenance', file: 'provenance.mjs', kind: 'estático' },
   { name: 'provenance-ui', file: 'provenance-ui.mjs', kind: 'navegador' },
   { name: 'filehash', file: 'filehash.mjs', kind: 'navegador' },
+  { name: 'nav-groups', file: 'nav-groups.mjs', kind: 'navegador' },
   { name: 'stats/diversity', file: 'stats/diversity.mjs', kind: 'R' },
   { name: 'stats/rarefaction', file: 'stats/rarefaction.mjs', kind: 'R' },
   { name: 'stats/richness', file: 'stats/richness.mjs', kind: 'R' },
