@@ -82,6 +82,7 @@ const SUITE = [
   { name: 'sangerinspector', file: 'sangerinspector.mjs', kind: 'estático' },
   { name: 'sanger-reads', file: 'sanger-reads.mjs', kind: 'estático' },
   { name: 'colony-count', file: 'colony-count.mjs', kind: 'estático' },
+  { name: 'heattree', file: 'heattree.mjs', kind: 'estático' },
   { name: 'taxagrouping', file: 'taxagrouping.mjs', kind: 'estático' },
   { name: 'dom_tooltip', file: 'dom_tooltip.mjs', kind: 'estático' },
   { name: 'glosario-links', file: 'glosario-links.mjs', kind: 'estático' },
