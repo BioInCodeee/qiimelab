@@ -40,12 +40,14 @@ Este proyecto lo desarrollan EN PARALELO varias herramientas de IA (Claude, Gemi
 
 El roadmap priorizado (P0/P1/P2) y las decisiones de qué NO construir viven en los documentos de trabajo del proyecto, no aquí — este archivo es solo el contexto estable que no cambia sesión a sesión. Si un prompt da una lista de tareas concretas, esa lista manda sobre cualquier prioridad que se pueda inferir de otro sitio.
 
-## Estado conocido (última auditoría cruzada: 15 sep 2026)
+## Estado conocido (auditoría cruzada: 15 sep 2026 · revisado 14 nov 2026)
 
 Antigravity generó `audit_report.md` → `_v2.md` → `_v3.md` documentando un refactor grande (DRY en dom.js/tooltip.js, blindaje de `ab1Parser.js`, suite de tests de 52 suites). V3 se autodeclara "Zero Critical Debt", pero al verificarlo de forma independiente (Claude, 15 sep):
 
-- **Pendiente real, no mencionado en V3:** el "Grupo B" que SÍ señalaba V2 (listeners individuales por celda en vez de delegación de eventos) sigue sin implementarse. Confirmado con grep — cero usos de `pointerover`/`pointerout` en `js/modules/betaDiversity.js` (heatmap y scatter PCoA), `differentialAbundance.js` (heatmap y volcano plot), `correlogram.js` (matriz de correlación) e `inference.js` (diagrama alluvial). No rompe nada con datasets normales, pero con datasets grandes (cientos de muestras / miles de OTUs) genera decenas de miles de listeners — sigue siendo el próximo candidato de limpieza si se prioriza.
+- **Cerrado (revisión 14 nov 2026):** el "Grupo B" que señalaba V2 (listeners individuales por celda en vez de delegación de eventos) ya está implementado. El helper `delegateHover()` vive en `js/lib/dom.js` y se consume desde `betaDiversity.js`, `differentialAbundance.js`, `correlogram.js`, `inference.js`, `taxaBarplot.js` y `temporal.js`. No reabrir este punto: antes de darlo por pendiente otra vez, comprobar con `grep -rl delegateHover js/`.
 - **Pendiente (28 sep 2026) — Métodos del informe en it/de/zh:** `methodsText()` (`js/lib/methodsText.js`) solo redacta en español e inglés; en italiano, alemán y chino la sección «Métodos» del informe exportable (`#/informe`) sale en español mientras el resto del informe sí se traduce. Sin arreglar a propósito; al abordarlo, pasar sus frases a claves i18n con marcadores `{n}` (no concatenaciones).
-- Los "7 imports sin usar" que sí reporta V3 son reales pero cosméticos.
+- Los "7 imports sin usar" que reportaba V3 se limpiaron junto con el Grupo B.
 - `js/modules/taxa.js` (103 bytes) es un alias intencional de `taxaBarplot.js` (`export * from './taxaBarplot.js'`), no un archivo roto.
-- Las cifras de paridad i18n (1.668-1.669 claves ES=EN) y de la suite de tests (41/52 pasando, 11 saltadas por falta de Chrome) no se han vuelto a verificar de forma independiente en esta pasada — tomarlas como plausibles, no como confirmadas.
+- La paridad i18n ya no se vigila a mano: `tests/i18n-parity.mjs` la comprueba en cada pasada (convención real del repo: ES=EN al 100%, it/de/zh solo parcial y con fallback a español — es intencional, no un fallo). La suite está en 85 suites (`tests/*.mjs`); las E2E que necesitan Chrome local se siguen saltando donde no esté.
+- Último estado publicado verificado el 14 nov 2026: `main` en `6f9fffa` (1 oct 2026), `verify` en verde y despliegue de GitHub Pages correcto sobre ese mismo commit — lo que está en vivo es lo que está en `main`.
+- Queda en el remoto una rama heredada `master` (`841e4e5`, los 3 commits iniciales, ~344 archivos por detrás de `main`). No se usa para nada; pendiente de borrar desde la UI de GitHub.
