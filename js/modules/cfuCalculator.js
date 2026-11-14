@@ -10,30 +10,14 @@
 import { t } from '../lib/i18n.js';
 import { mean, stdDev, standardError } from '../lib/stats.js';
 import { registerFile, addMicrobialCountSeries } from '../state.js';
+import { DIL_MODES, num, dilutionFactor } from '../lib/cfu.js';
 
 const STORE_KEY = 'smart-175.ufcCalc';
 const LEGACY_STORE_KEY = 'qiimelab.ufcCalc';
 
-// modo de dilución: cómo interpreta el usuario el número de cada fila
-//   exp    -> 10^(-n)            (n = 3  →  10⁻³)
-//   factor -> el número tal cual (0.001)
-//   ratio  -> 1 : X             (X = 1000  →  1/1000)
-const DIL_MODES = ['exp', 'factor', 'ratio'];
-
-function num(v) {
-  const s = String(v == null ? '' : v).trim().replace(',', '.');
-  if (s === '') return NaN;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function dilutionFactor(mode, raw) {
-  const v = num(raw);
-  if (!Number.isFinite(v)) return NaN;
-  if (mode === 'exp') return Math.pow(10, -Math.abs(v));
-  if (mode === 'ratio') return v > 0 ? 1 / v : NaN;
-  return v > 0 ? v : NaN; // factor directo
-}
+// El modo de dilución, la conversión de volumen y la propia fórmula viven en
+// js/lib/cfu.js, compartidos con el contador de colonias sobre foto
+// (#/recuentos?tab=foto) para que la aritmética exista una sola vez.
 
 function defaultState() {
   return {

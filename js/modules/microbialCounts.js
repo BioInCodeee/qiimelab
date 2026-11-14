@@ -30,6 +30,7 @@ import { svgEl, escapeHtml, moreDetailsHtml, plotClip } from '../lib/dom.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { createTooltip, hideTooltip, showTooltip } from '../lib/tooltip.js';
 import { render as renderCfuCalculator } from './cfuCalculator.js';
+import { render as renderPlateImage } from './plateImage.js';
 function fmt(v, d) {
   return (typeof v === 'number' && isFinite(v)) ? v.toFixed(d) : '—';
 }
@@ -45,7 +46,8 @@ export function render(container) {
   // Recuentos y la calculadora de UFC/mL son un mismo módulo con dos
   // pestañas (Fase 2, B4). La pestaña va en el hash (#/recuentos?tab=calc)
   // para que sea enlazable; #/ufc es un alias que redirige ahí (app.js).
-  const section = new URLSearchParams(location.hash.split('?')[1] || '').get('tab') === 'calc' ? 'calc' : 'data';
+  const tabParam = new URLSearchParams(location.hash.split('?')[1] || '').get('tab');
+  const section = (tabParam === 'calc' || tabParam === 'foto') ? tabParam : 'data';
   let calcCleanup = null;
   let activeId = null;
   let errBar = 'sd';               // 'sd' | 'se'
@@ -107,14 +109,15 @@ export function render(container) {
     header.innerHTML =
       '<p class="ql-eyebrow">' + t('recuentos.eyebrow') + '</p>' +
       '<h1 class="ql-page-title">' + t('recuentos.title') + '</h1>' +
-      '<p class="ql-page-sub">' + t(section === 'calc' ? 'ufc.subtitle' : 'recuentos.subtitle') + '</p>';
+      '<p class="ql-page-sub">' + t(section === 'calc' ? 'ufc.subtitle' : (section === 'foto' ? 'placa.subtitle' : 'recuentos.subtitle')) + '</p>';
     container.appendChild(header);
 
     // ---- pestañas de primer nivel: análisis | calculadora UFC/mL ----
     const secTabs = document.createElement('div');
     secTabs.className = 'ql-tabs ql-mc-sections';
     secTabs.setAttribute('role', 'tablist');
-    [['data', t('recuentos.sectionData'), '#/recuentos'], ['calc', t('recuentos.sectionCalc'), '#/recuentos?tab=calc']].forEach(([id, label, href]) => {
+    [['data', t('recuentos.sectionData'), '#/recuentos'], ['calc', t('recuentos.sectionCalc'), '#/recuentos?tab=calc'],
+     ['foto', t('recuentos.sectionPhoto'), '#/recuentos?tab=foto']].forEach(([id, label, href]) => {
       const a = document.createElement('a');
       a.className = 'ql-tab' + (section === id ? ' is-active' : '');
       a.href = href;
@@ -129,6 +132,13 @@ export function render(container) {
       const host = document.createElement('div');
       container.appendChild(host);
       calcCleanup = renderCfuCalculator(host, { embedded: true });
+      return;
+    }
+
+    if (section === 'foto') {
+      const host = document.createElement('div');
+      container.appendChild(host);
+      calcCleanup = renderPlateImage(host, { embedded: true });
       return;
     }
 

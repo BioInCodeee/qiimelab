@@ -2570,3 +2570,20 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
   font-variant-ligatures: none;
   tab-size: 4;
 }
+
+/* Contador de colonias sobre foto (#/recuentos?tab=foto) */
+.ql-plate-controls {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  margin-top: 14px;
+}
+.ql-plate-controls .ql-field {
+  margin: 0;
+}
+.ql-plate-stack {
+  margin-top: 12px;
+}
+.ql-plate-result .ql-stat {
+  display: inline-block;
+}
