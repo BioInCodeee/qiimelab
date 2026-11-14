@@ -199,6 +199,20 @@ export function render(container, opts = {}) {
         ctx.lineWidth = 2;
       }
       ctx.stroke();
+      // Si el watershed separó el agregado, se dibuja CADA colonia en su sitio:
+      // es lo que el usuario necesita ver para dar el recuento por bueno o
+      // corregirlo. El contorno ámbar del conjunto se mantiene para que se
+      // sepa que esas vienen de una masa dividida, no de objetos aislados.
+      if (it.merged && !removed.has(i) && it.parts && it.parts.length) {
+        it.parts.forEach((part) => {
+          const pr = Math.max(3, Math.sqrt(part.area / Math.PI));
+          ctx.beginPath();
+          ctx.arc(part.x, part.y, pr, 0, Math.PI * 2);
+          ctx.strokeStyle = '#FBBF24';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        });
+      }
       if (it.merged && !removed.has(i)) {
         ctx.fillStyle = '#D97706';
         ctx.font = 'bold 13px sans-serif';
@@ -440,7 +454,7 @@ export function render(container, opts = {}) {
     stats.className = 'ql-stats';
     [
       [t('placa.statCounted'), tt.counted],
-      [t('placa.statEstimated'), tt.estimated],
+      [t('placa.statEstimated'), tt.estimated + (tt.estimatedArea > 0 ? ' (' + tt.estimatedArea + ' ' + t('placa.statByArea') + ')' : '')],
       [t('placa.statManual'), tt.manual],
       [t('placa.statTotal'), tt.total],
     ].forEach(([lbl, val]) => {
@@ -454,7 +468,8 @@ export function render(container, opts = {}) {
     const warn = [];
     if (result && result.lowContrast) warn.push(t('placa.warnLowContrast'));
     if (result && result.confluent) warn.push(t('placa.warnConfluent'));
-    if (tt.estimated > 0) warn.push(t('placa.warnEstimated', { n: tt.estimated }));
+    if (tt.estimatedWatershed > 0) warn.push(t('placa.warnSplit', { n: tt.estimatedWatershed }));
+    if (tt.estimatedArea > 0) warn.push(t('placa.warnAreaEstimate', { n: tt.estimatedArea }));
     const rel = plateReliability(tt.total);
     if (rel === 'low') warn.push(t('placa.warnFewColonies'));
     if (rel === 'high') warn.push(t('placa.warnManyColonies'));

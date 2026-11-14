@@ -18,6 +18,7 @@
 import {
   toGrayscale, boxBlur, otsuFromHistogram, histogramInMask, circleMask,
   suggestRoi, labelComponents, circularity, countColonies, applyManualEdits,
+  distanceTransform, findSeeds, watershedSplit,
 } from '../js/lib/colonyCount.js';
 import { dilutionFactor, volumeInMl, cfuPerMl, plateReliability } from '../js/lib/cfu.js';
 import { scaledSize, nearestMark } from '../js/modules/plateImage.js';
@@ -243,12 +244,27 @@ check('subir el umbral reduce o mantiene el recuento', low.total <= countColonie
 // --- correcciones manuales ---------------------------------------------------
 console.log('\ncorrecciones manuales');
 
-const fake = { items: [{ merged: false, count: 1 }, { merged: false, count: 1 }, { merged: true, count: 3 }] };
-check('sin ediciones: 2 contadas + 3 estimadas', applyManualEdits(fake).total === 5);
-check('quitar una marca automática', applyManualEdits(fake, { removed: [0] }).total === 4);
-check('quitar un agregado quita sus colonias estimadas', applyManualEdits(fake, { removed: [2] }).total === 2);
-check('añadir marcas a mano suma', applyManualEdits(fake, { added: [{ x: 1, y: 1 }, { x: 2, y: 2 }] }).total === 7);
+const fake = {
+  items: [
+    { merged: false, count: 1 },
+    { merged: false, count: 1 },
+    { merged: true, count: 3, split: 'watershed' },
+    { merged: true, count: 2, split: 'area' },
+  ],
+};
+check('sin ediciones: 2 contadas + 5 estimadas', applyManualEdits(fake).total === 7);
+check('quitar una marca automática', applyManualEdits(fake, { removed: [0] }).total === 6);
+check('quitar un agregado quita sus colonias estimadas', applyManualEdits(fake, { removed: [2] }).total === 4);
+check('añadir marcas a mano suma', applyManualEdits(fake, { added: [{ x: 1, y: 1 }, { x: 2, y: 2 }] }).total === 9);
 check('las añadidas se informan por separado', applyManualEdits(fake, { added: [{ x: 1, y: 1 }] }).manual === 1);
+check('se distingue lo separado por watershed de lo estimado por área', (() => {
+  const r = applyManualEdits(fake);
+  return r.estimatedWatershed === 3 && r.estimatedArea === 2 && r.estimated === 5;
+})(), JSON.stringify(applyManualEdits(fake)));
+check('quitar el agregado por área no toca el del watershed', (() => {
+  const r = applyManualEdits(fake, { removed: [3] });
+  return r.estimatedWatershed === 3 && r.estimatedArea === 0;
+})());
 
 // --- UFC/mL ------------------------------------------------------------------
 console.log('\nUFC/mL');
@@ -275,6 +291,120 @@ check('25-250 colonias es el rango fiable', plateReliability(68) === 'ok');
 check('por debajo de 25 avisa de recuento bajo', plateReliability(12) === 'low');
 check('por encima de 250 avisa de placa saturada', plateReliability(400) === 'high');
 check('sin dato → none', plateReliability('') === 'none');
+
+// --- transformada de distancia y watershed ----------------------------------
+console.log('\ntransformada de distancia y watershed');
+
+// disco de radio 12: la distancia en el centro debe valer ~12
+const W = 61;
+const disc = new Uint8Array(W * W);
+for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if ((x - 30) ** 2 + (y - 30) ** 2 <= 144) disc[y * W + x] = 1;
+const dtDisc = distanceTransform(disc, W, W);
+check('la distancia en el centro de un disco ≈ su radio', Math.abs(dtDisc[30 * W + 30] - 12) <= 1,
+  dtDisc[30 * W + 30].toFixed(2));
+check('la distancia en el fondo es 0', dtDisc[0] === 0);
+check('el máximo está en el centro', (() => {
+  let best = -1; let bi = -1;
+  for (let i = 0; i < dtDisc.length; i++) if (dtDisc[i] > best) { best = dtDisc[i]; bi = i; }
+  return Math.abs((bi % W) - 30) <= 1 && Math.abs(Math.floor(bi / W) - 30) <= 1;
+})());
+
+// exactitud contra fuerza bruta en una máscara pequeña arbitraria
+check('coincide con la fuerza bruta (euclídea exacta)', (() => {
+  const w = 17; const h = 13;
+  const bin = new Uint8Array(w * h);
+  let seed = 12345;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  for (let i = 0; i < bin.length; i++) bin[i] = rnd() < 0.65 ? 1 : 0;
+  const fast = distanceTransform(bin, w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!bin[y * w + x]) continue;
+      let best = Infinity;
+      for (let j = 0; j < h; j++) {
+        for (let i = 0; i < w; i++) {
+          if (bin[j * w + i]) continue;
+          best = Math.min(best, Math.sqrt((x - i) ** 2 + (y - j) ** 2));
+        }
+      }
+      if (Number.isFinite(best) && Math.abs(fast[y * w + x] - best) > 1e-6) return false;
+    }
+  }
+  return true;
+})());
+
+// helper: máscara con discos dados, y cuántas partes saca el watershed
+function splitCount(circles, size = 121, minSeedDist = null) {
+  const bin = new Uint8Array(size * size);
+  circles.forEach(([cx, cy, r]) => {
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) bin[y * size + x] = 1;
+      }
+    }
+  });
+  const dist = distanceTransform(bin, size, size);
+  const pixels = [];
+  for (let i = 0; i < bin.length; i++) if (bin[i]) pixels.push(i);
+  const rMed = circles[0][2];
+  const seeds = findSeeds(dist, pixels, size, minSeedDist != null ? minSeedDist : Math.max(2, rMed * 0.55));
+  const ws = watershedSplit(dist, pixels, size, size, seeds);
+  return { seeds: seeds.length, ...ws, pixels: pixels.length };
+}
+
+const one = splitCount([[60, 60, 12]]);
+check('una colonia sola no se parte en dos', one.seeds === 1, 'semillas=' + one.seeds);
+
+const two = splitCount([[50, 60, 12], [72, 60, 12]]);
+check('dos colonias en contacto → 2 partes', two.count === 2, 'partes=' + two.count + ' semillas=' + two.seeds);
+check('las dos partes reparten el área del agregado',
+  two.parts.length === 2 && Math.abs(two.parts[0].area - two.parts[1].area) / two.pixels < 0.15,
+  two.parts.map((p) => p.area).join('/') + ' de ' + two.pixels);
+check('los centros de las partes caen cerca de los centros reales',
+  two.parts.every((p) => Math.min(Math.abs(p.x - 50), Math.abs(p.x - 72)) < 4),
+  two.parts.map((p) => p.x.toFixed(1)).join(','));
+
+const three = splitCount([[52, 55, 11], [70, 55, 11], [61, 70, 11]]);
+check('tres colonias en racimo → 3 partes', three.count === 3, 'partes=' + three.count);
+
+const four = splitCount([[35, 60, 10], [53, 60, 10], [71, 60, 10], [89, 60, 10]]);
+check('cadena de cuatro → 4 partes', four.count === 4, 'partes=' + four.count);
+
+// tamaños distintos: es el caso en el que el estimador por área falla
+const uneven = splitCount([[50, 60, 16], [78, 60, 9]], 141, Math.max(2, 9 * 0.55));
+check('dos colonias de tamaño muy distinto → 2 partes, no 3', uneven.count === 2, 'partes=' + uneven.count);
+
+// solapamiento severo: el watershed ya no debería inventarse crestas
+const fused = splitCount([[58, 60, 12], [64, 60, 12]]);
+check('solapamiento casi total → no se fuerza la división', fused.count <= 2, 'partes=' + fused.count);
+
+check('sin semillas o con una sola → no hay división', (() => {
+  const r1 = watershedSplit(new Float32Array(10), [0, 1], 5, 2, []);
+  const r2 = watershedSplit(new Float32Array(10), [0, 1], 5, 2, [{ idx: 0, x: 0, y: 0, d: 1 }]);
+  return r1.count === 0 && r1.parts.length === 0 && r2.count === 1 && r2.parts.length === 0;
+})());
+
+// --- integración: el recuento usa el watershed ------------------------------
+console.log('\nel recuento completo usa el watershed');
+
+const p10 = makePlate(300, 300, { agar: 80 });
+const singles10 = scatterColonies(p10, 9, 5, 200, R);
+// un par en contacto, del mismo tamaño que las demás, lejos de la rejilla
+// (la rejilla cae en cx-63/cx/cx+63, así que a cx+100 no choca con ninguna)
+paintDisc(p10, p10.cx + 96, p10.cy, 5, 200);
+paintDisc(p10, p10.cx + 105, p10.cy, 5, 200);
+const r10 = countColonies(p10, { roi: mkRoi(p10) });
+const agg10 = r10.items.filter((i) => i.merged);
+check('el agregado se parte por watershed, no por área',
+  agg10.length === 1 && agg10[0].split === 'watershed', JSON.stringify(agg10.map((a) => a.split)));
+check('el par en contacto se cuenta como 2', agg10.length === 1 && agg10[0].count === 2,
+  'count=' + (agg10[0] ? agg10[0].count : '—'));
+check('el total es exacto', r10.total === singles10.length + 2, r10.total + ' vs ' + (singles10.length + 2));
+check('se informa de cuántos agregados se dividieron por watershed',
+  r10.watershedSplits === 1 && r10.aggregates === 1,
+  'ws=' + r10.watershedSplits + ' agg=' + r10.aggregates);
+check('cada parte trae su centro para poder dibujarla',
+  agg10[0].parts.length === 2 && agg10[0].parts.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)));
 
 // --- ayudantes de la interfaz -----------------------------------------------
 console.log('\nayudantes de la interfaz');

@@ -260,6 +260,214 @@ export function circularity(area, perimeter) {
   return Math.min(1, (4 * Math.PI * area) / (perimeter * perimeter));
 }
 
+/**
+ * Transformada de distancia euclídea EXACTA (Felzenszwalb & Huttenlocher
+ * 2012): para cada píxel de objeto, la distancia al píxel de fondo más
+ * cercano. Separable y O(n) — nada de aproximaciones chamfer, que sesgan las
+ * diagonales y desplazarían los máximos locales, que es justo lo que aquí se
+ * usa como centro de colonia.
+ *
+ * @param {Uint8Array} bin 1 = objeto.
+ * @returns {Float32Array} Distancia en píxeles (0 en el fondo).
+ */
+export function distanceTransform(bin, width, height) {
+  const INF = 1e20;
+  const d = new Float64Array(bin.length);
+  for (let i = 0; i < bin.length; i++) d[i] = bin[i] ? INF : 0;
+
+  const n = Math.max(width, height);
+  const f = new Float64Array(n);
+  const dOut = new Float64Array(n);
+  const v = new Int32Array(n);
+  const z = new Float64Array(n + 1);
+
+  // Envolvente inferior de parábolas en 1D: el núcleo del algoritmo.
+  const dt1d = (len) => {
+    let k = 0;
+    v[0] = 0; z[0] = -INF; z[1] = INF;
+    for (let q = 1; q < len; q++) {
+      let s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      while (k > 0 && s <= z[k]) {
+        k--;
+        s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      }
+      k++; v[k] = q; z[k] = s; z[k + 1] = INF;
+    }
+    k = 0;
+    for (let q = 0; q < len; q++) {
+      while (z[k + 1] < q) k++;
+      dOut[q] = (q - v[k]) * (q - v[k]) + f[v[k]];
+    }
+  };
+
+  // pasada por filas
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) f[x] = d[row + x];
+    dt1d(width);
+    for (let x = 0; x < width; x++) d[row + x] = dOut[x];
+  }
+  // pasada por columnas
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) f[y] = d[y * width + x];
+    dt1d(height);
+    for (let y = 0; y < height; y++) d[y * width + x] = dOut[y];
+  }
+
+  const out = new Float32Array(bin.length);
+  for (let i = 0; i < out.length; i++) out[i] = Math.sqrt(d[i]);
+  return out;
+}
+
+/**
+ * Semillas de colonia: máximos locales de la transformada de distancia, con
+ * supresión de no-máximos. El radio de supresión se escala con la propia
+ * distancia del candidato, porque el máximo del centro de una colonia vale
+ * aproximadamente su radio: así una colonia grande no genera varias semillas y
+ * dos pequeñas en contacto siguen generando dos.
+ *
+ * @param {Float32Array} dist
+ * @param {Int32Array|number[]} pixels Píxeles del objeto a dividir.
+ * @param {number} width
+ * @param {number} minSeedDist Distancia mínima para que un píxel sea semilla.
+ * @returns {Array<{idx:number,x:number,y:number,d:number}>} De mayor a menor distancia.
+ */
+export function findSeeds(dist, pixels, width, minSeedDist) {
+  const cand = [];
+  for (let i = 0; i < pixels.length; i++) {
+    const idx = pixels[i];
+    const dv = dist[idx];
+    if (dv < minSeedDist) continue;
+    cand.push({ idx, x: idx % width, y: (idx - (idx % width)) / width, d: dv });
+  }
+  cand.sort((a, b) => b.d - a.d);
+
+  const provisional = [];
+  for (let i = 0; i < cand.length; i++) {
+    const c = cand[i];
+    // un candidato solo es máximo nuevo si no cae dentro del "dominio" de uno
+    // ya aceptado; el dominio es del tamaño de esa colonia
+    let ok = true;
+    for (let j = 0; j < provisional.length; j++) {
+      const s = provisional[j];
+      const sep = Math.max(minSeedDist, s.d * 0.9);
+      if ((c.x - s.x) ** 2 + (c.y - s.y) ** 2 < sep * sep) { ok = false; break; }
+    }
+    if (ok) provisional.push(c);
+  }
+
+  // Segunda pasada: quitar los máximos de CONFLUENCIA.
+  //
+  // En un racimo de colonias muy solapadas, el punto más grueso de la masa
+  // común no está en ninguna colonia, sino entre todas: ahí cabe un círculo
+  // inscrito mayor que en cada colonia por separado, así que la transformada
+  // de distancia tiene allí su máximo absoluto. Tomarlo como semilla añade una
+  // colonia que no existe — es la sobre-segmentación clásica del watershed
+  // sobre la transformada de distancia.
+  //
+  // Un máximo que se apoya sobre dos o más máximos de altura comparable,
+  // todos dentro de su propio radio, es un punto de confluencia y no un centro
+  // de colonia. Una colonia grande de verdad no tiene otros máximos
+  // comparables dentro de sí, así que no se ve afectada.
+  const seeds = provisional.filter((s) => {
+    let comparable = 0;
+    for (let j = 0; j < provisional.length; j++) {
+      const o = provisional[j];
+      if (o === s) continue;
+      if (o.d < s.d * 0.8) continue;
+      if ((o.x - s.x) ** 2 + (o.y - s.y) ** 2 <= s.d * s.d) comparable++;
+    }
+    return comparable < 2;
+  });
+  return seeds.length ? seeds : provisional.slice(0, 1);
+}
+
+// Montículo binario de máximos por distancia: la cola de prioridad de la
+// inundación. Se inunda de la cresta hacia abajo, que es lo que hace que la
+// frontera entre dos colonias caiga en el estrechamiento entre ambas.
+function makeMaxHeap() {
+  const items = [];
+  const up = (i) => {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (items[p].d >= items[i].d) break;
+      const tmp = items[p]; items[p] = items[i]; items[i] = tmp;
+      i = p;
+    }
+  };
+  const down = (i) => {
+    for (;;) {
+      const l = 2 * i + 1;
+      const r = l + 1;
+      let m = i;
+      if (l < items.length && items[l].d > items[m].d) m = l;
+      if (r < items.length && items[r].d > items[m].d) m = r;
+      if (m === i) break;
+      const tmp = items[m]; items[m] = items[i]; items[i] = tmp;
+      i = m;
+    }
+  };
+  return {
+    size: () => items.length,
+    push(it) { items.push(it); up(items.length - 1); },
+    pop() {
+      const top = items[0];
+      const last = items.pop();
+      if (items.length) { items[0] = last; down(0); }
+      return top;
+    },
+  };
+}
+
+/**
+ * Watershed con marcadores sobre la transformada de distancia, restringido a
+ * los píxeles de un objeto. Cada semilla crece hacia abajo por la distancia;
+ * donde dos cuencas se encuentran queda la frontera.
+ *
+ * @returns {{count:number, parts:Array<{x:number,y:number,area:number}>}}
+ */
+export function watershedSplit(dist, pixels, width, height, seeds) {
+  if (seeds.length <= 1) {
+    return { count: seeds.length, parts: [] };
+  }
+  const inObject = new Set(pixels);
+  const label = new Map(); // idx -> nº de semilla
+  const heap = makeMaxHeap();
+  seeds.forEach((s, k) => {
+    label.set(s.idx, k);
+    heap.push({ idx: s.idx, d: s.d, k });
+  });
+
+  while (heap.size() > 0) {
+    const cur = heap.pop();
+    const x = cur.idx % width;
+    const y = (cur.idx - x) / width;
+    for (let dy = -1; dy <= 1; dy++) {
+      const ny = y + dy;
+      if (ny < 0 || ny >= height) continue;
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        if ((dx === 0 && dy === 0) || nx < 0 || nx >= width) continue;
+        const nIdx = ny * width + nx;
+        if (!inObject.has(nIdx) || label.has(nIdx)) continue;
+        label.set(nIdx, cur.k);
+        heap.push({ idx: nIdx, d: dist[nIdx], k: cur.k });
+      }
+    }
+  }
+
+  const acc = seeds.map(() => ({ sx: 0, sy: 0, area: 0 }));
+  label.forEach((k, idx) => {
+    const x = idx % width;
+    const y = (idx - x) / width;
+    acc[k].sx += x; acc[k].sy += y; acc[k].area++;
+  });
+  const parts = acc
+    .filter((a) => a.area > 0)
+    .map((a) => ({ x: a.sx / a.area, y: a.sy / a.area, area: a.area }));
+  return { count: parts.length, parts };
+}
+
 function median(arr) {
   if (!arr.length) return NaN;
   const s = Float64Array.from(arr).sort();
@@ -388,11 +596,40 @@ export function countColonies(imageData, opts = {}) {
     ? opts.maxArea
     : (Number.isFinite(medianArea) && medianArea > 0 ? medianArea * aggFactor : roiArea * 0.01);
 
+  // Puerta de división: a partir de qué tamaño MERECE LA PENA intentar dividir
+  // un objeto. Deliberadamente baja (1,35 x la mediana) y distinta del umbral
+  // de agregado: dos colonias que apenas se tocan suman menos del doble de una
+  // sola (el solapamiento descuenta área), así que un umbral de 2x las dejaría
+  // pasar como una. Quien decide si hay dos colonias es el watershed —- el
+  // area solo decide a quien se le pregunta.
+  const splitGate = Number.isFinite(opts.splitGate) ? opts.splitGate : 1.35;
+  const gateArea = (Number.isFinite(medianArea) && medianArea > 0)
+    ? medianArea * splitGate
+    : maxArea;
+  const medianRadius = (Number.isFinite(medianArea) && medianArea > 0)
+    ? Math.sqrt(medianArea / Math.PI)
+    : 0;
+  const minSeedDist = Number.isFinite(opts.minSeedDist)
+    ? opts.minSeedDist
+    : Math.max(2, medianRadius * 0.55);
+
+  // La transformada de distancia se calcula UNA vez para toda la mascara (el
+  // fondo separa los objetos, asi que vale para todos), y solo si hay algun
+  // objeto lo bastante grande como para preguntarse si son varios.
+  const dist = candidates.some((b) => b.area > gateArea)
+    ? distanceTransform(chosen.bin, width, height)
+    : null;
+
   const single = [];
   const aggregates = [];
   candidates.forEach((b) => {
-    if (b.area > maxArea) { aggregates.push(b); return; }
-    // la circularidad solo discrimina cuando hay perímetro suficiente
+    if (dist && b.area > gateArea) {
+      const seeds = findSeeds(dist, b.pixels, width, minSeedDist);
+      const ws = watershedSplit(dist, b.pixels, width, height, seeds);
+      if (ws.count >= 2) { aggregates.push({ ...b, ws }); return; }
+    }
+    if (b.area > maxArea) { aggregates.push({ ...b, ws: null }); return; }
+    // la circularidad solo discrimina cuando hay perimetro suficiente
     if (b.area >= 30 && b.circ < minCirc) return;
     single.push(b);
   });
@@ -402,12 +639,30 @@ export function countColonies(imageData, opts = {}) {
     x: b.cx, y: b.cy, area: b.area, circularity: b.circ, merged: false, count: 1,
   }));
   let estimated = 0;
+  let watershedUsed = 0;
   aggregates.forEach((b) => {
-    const n = Number.isFinite(medianArea) && medianArea > 0
+    if (b.ws && b.ws.count >= 2) {
+      watershedUsed++;
+      estimated += b.ws.count;
+      items.push({
+        x: b.cx, y: b.cy, area: b.area, circularity: b.circ,
+        merged: true, count: b.ws.count, parts: b.ws.parts, split: 'watershed',
+      });
+      return;
+    }
+    // Objeto por encima del umbral de agregado al que el watershed no le
+    // encontro mas de una cresta: o es una colonia grande de verdad, o es una
+    // masa tan fusionada que ya no tiene estrechamientos. Se cae al estimador
+    // por area, dejando constancia (split: 'area') de que esa cifra es mas
+    // debil que un recuento.
+    const n = (Number.isFinite(medianArea) && medianArea > 0)
       ? Math.max(2, Math.round(b.area / medianArea))
       : 1;
     estimated += n;
-    items.push({ x: b.cx, y: b.cy, area: b.area, circularity: b.circ, merged: true, count: n });
+    items.push({
+      x: b.cx, y: b.cy, area: b.area, circularity: b.circ,
+      merged: true, count: n, parts: [], split: 'area',
+    });
   });
 
   return {
@@ -423,6 +678,8 @@ export function countColonies(imageData, opts = {}) {
     roi,
     largestFraction,
     lowContrast: false,
+    aggregates: aggregates.length,
+    watershedSplits: watershedUsed,
     // Un único objeto que ocupa más de la décima parte de la placa: eso es
     // crecimiento confluente (o un umbral mal puesto), y una placa confluente
     // no es contable por ningún método — se avisa en vez de dar una cifra.
@@ -441,11 +698,21 @@ export function applyManualEdits(result, edits = {}) {
   const removed = new Set(edits.removed || []);
   let counted = 0;
   let estimated = 0;
+  let estimatedWatershed = 0;
+  let estimatedArea = 0;
   (result.items || []).forEach((it, i) => {
     if (removed.has(i)) return;
-    if (it.merged) estimated += it.count;
-    else counted += 1;
+    if (!it.merged) { counted += 1; return; }
+    estimated += it.count;
+    // Separar las dos clases de agregado importa: las colonias que el
+    // watershed ha separado por su forma son un recuento, y las que solo se
+    // han estimado por área son una conjetura. No deben presentarse igual.
+    if (it.split === 'watershed') estimatedWatershed += it.count;
+    else estimatedArea += it.count;
   });
   const manual = (edits.added || []).length;
-  return { counted, estimated, manual, total: counted + estimated + manual };
+  return {
+    counted, estimated, estimatedWatershed, estimatedArea, manual,
+    total: counted + estimated + manual,
+  };
 }

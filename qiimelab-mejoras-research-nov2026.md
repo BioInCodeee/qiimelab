@@ -19,9 +19,19 @@ puntos donde se queda corto.
 
 ### A1. Separar colonias en contacto con transformada de distancia + watershed
 
-**Prioridad: alta.** Es la parte más débil de lo actual: un agregado se estima
-como `área / área mediana`, que asume colonias del mismo tamaño y falla en
-cuanto hay variación real.
+**HECHO (14 nov 2026).** Implementado en `js/lib/colonyCount.js`:
+transformada de distancia euclídea exacta (Felzenszwalb, separable y O(n)),
+semillas por máximos locales con supresión de no-máximos, filtro de máximos de
+confluencia, e inundación con cola de prioridad. La decisión de dividir la toma
+la forma (dos crestas), no el área: el área solo decide a qué objeto se le
+pregunta. Cada parte devuelve su centro, y el recuento distingue lo separado
+por watershed de lo que sigue estimado por área (`split: 'watershed' | 'area'`).
+Queda A2, A3 y A4. El texto original se mantiene abajo porque explica el por
+qué y los límites.
+
+Era la parte más débil de lo anterior: un agregado se estimaba como
+`área / área mediana`, que asume colonias del mismo tamaño y falla en cuanto
+hay variación real.
 
 El método estándar del campo es watershed sobre la transformada de distancia.
 La app APD Colony Counter (A*STAR) lo incorporó con OpenCV justamente para
