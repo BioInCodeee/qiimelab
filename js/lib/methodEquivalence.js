@@ -31,6 +31,7 @@ export const METHODS = Object.freeze({
   'permanova-f': { level: 'A', tool: 'vegan::adonis2 (pseudo-F)' },
   // Nivel B
   permanova: { level: 'B', tool: 'vegan::adonis2', where: 'R' },
+  permdisp: { level: 'B', tool: 'vegan::betadisper(type = "centroid") + permutest', where: 'R' },
   rda: { level: 'B', tool: 'vegan::rda', where: 'R' },
   cca: { level: 'B', tool: 'vegan::cca', where: 'R' },
   upgma: { level: 'B', tool: 'stats::hclust(method = "average")', where: 'R' },

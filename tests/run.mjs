@@ -100,6 +100,7 @@ const SUITE = [
   { name: 'stats/cliffsdelta', file: 'stats/cliffsdelta.mjs', kind: 'R' },
   { name: 'stats/countsummary', file: 'stats/countsummary.mjs', kind: 'R' },
   { name: 'stats/permanova', file: 'stats/permanova.mjs', kind: 'R' },
+  { name: 'stats/permdisp', file: 'stats/permdisp.mjs', kind: 'R' },
   { name: 'stats/fisherlsd', file: 'stats/fisherlsd.mjs', kind: 'R' },
   { name: 'stats/lefselda', file: 'stats/lefselda.mjs', kind: 'R' },
   { name: 'stats/ancombc', file: 'stats/ancombc.mjs', kind: 'R' },

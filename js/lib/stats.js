@@ -655,8 +655,10 @@ export function formatP(p) {
 
 // ---------- PERMANOVA de un factor (Anderson 2001) ----------
 // PRNG local para que las permutaciones sean deterministas con la misma semilla
-// (no arrastra dependencias: stats.js es puro).
-function mulberry32s(a) {
+// (no arrastra dependencias: stats.js es puro). Se exporta para que las otras
+// pruebas por permutación del proyecto (p. ej. `permdisp.js`) usen exactamente
+// la misma secuencia y no cada una la suya.
+export function mulberry32s(a) {
   return function () {
     a |= 0; a = (a + 0x6d2b79f5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);

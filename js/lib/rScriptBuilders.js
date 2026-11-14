@@ -306,10 +306,20 @@ export function permanovaScript(o) {
     'print(resultado)\n\n' +
     'cat(sprintf("\\nR² = %.4f: la agrupación explica el %.1f%% de la variación entre muestras (p = %.4g, %d permutaciones)\\n",\n' +
     '            resultado$R2[1], 100 * resultado$R2[1], resultado$`Pr(>F)`[1], ' + o.permutations + '))');
-  parts.push(rSection('Recordatorio'));
-  parts.push(rComment('PERMANOVA es sensible a la dispersión: si los grupos difieren mucho en su variabilidad ' +
-    'interna, un p significativo puede deberse a eso y no a un cambio de "centro". Para comprobarlo:') +
-    '\n# anova(betadisper(as.dist(D), metadatos$grupo))');
+  parts.push(rSection('3. PERMDISP (homogeneidad de dispersiones)'));
+  parts.push(rComment('PERMANOVA es sensible a la dispersión: si los grupos difieren mucho en su ' +
+    'variabilidad interna, un p significativo puede deberse a eso y no a un cambio de "centro". ' +
+    'Smart-175 calcula esto mismo en el navegador; type = "centroid" es lo que usa la app (el valor ' +
+    'por defecto de vegan es la mediana espacial y da números algo distintos).') + '\n' +
+    'set.seed(' + (o.dispSeed != null ? o.dispSeed : o.seed) + ')\n' +
+    'disp <- betadisper(as.dist(D), metadatos$grupo, type = "centroid")\n' +
+    'print(anova(disp))                      # p de la F teórica\n' +
+    'print(permutest(disp, permutations = ' + o.permutations + '))   # p por permutación\n' +
+    'print(tapply(disp$distances, metadatos$grupo, mean))  # distancia media al centroide por grupo');
+  parts.push(rSection('Lectura conjunta'));
+  parts.push(rComment('PERMANOVA significativo + PERMDISP no significativo → diferencia de composición ' +
+    '(el caso limpio). Los dos significativos → no se puede atribuir solo a un cambio de centro. ' +
+    'Solo PERMDISP significativo → mismo centro, distinta variabilidad interna: es un resultado en sí mismo.'));
   return assembleScript('smart175_permanova_' + safeName(o.metricName) + '.R', parts);
 }
 

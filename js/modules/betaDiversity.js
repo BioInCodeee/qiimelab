@@ -1,6 +1,7 @@
 import { state, subscribe } from '../state.js';
 import { t, getLang } from '../lib/i18n.js';
 import { upgma, leafOrder, permanova, formatP, confidenceEllipsePoints } from '../lib/stats.js';
+import { permdisp, jointVerdict, PERMDISP_SEED } from '../lib/permdisp.js';
 import { upgmaOrderAsync } from '../lib/heavyStats.js';
 import { makeGroupResolver } from '../lib/sampleMatch.js';
 import { rda, cca } from '../lib/constrainedOrdination.js';
@@ -93,6 +94,7 @@ export function render(container) {
   let permGroupCol = null;
   let permN = 999;
   let permResult = null;   // cache del último cálculo {key, res}
+  let dispResult = null;   // cache del PERMDISP, con la MISMA key que permResult
   let rdaMethod = 'rda';     // 'rda' | 'cca'
   let rdaHellinger = true;   // transformación de Hellinger (solo aplica a 'rda')
   let rdaTopN = RDA_TOPN_DEFAULT; // nº de taxones incluidos como matriz respuesta
@@ -191,7 +193,7 @@ export function render(container) {
       if (h === permGroupCol) o.selected = true;
       gsel.appendChild(o);
     });
-    gsel.addEventListener('change', () => { permGroupCol = gsel.value; permResult = null; paint(); });
+    gsel.addEventListener('change', () => { permGroupCol = gsel.value; permResult = null; dispResult = null; paint(); });
     gf.appendChild(gsel);
     controls.appendChild(gf);
 
@@ -206,7 +208,7 @@ export function render(container) {
       if (v === permN) o.selected = true;
       psel.appendChild(o);
     });
-    psel.addEventListener('change', () => { permN = parseInt(psel.value, 10); permResult = null; paint(); });
+    psel.addEventListener('change', () => { permN = parseInt(psel.value, 10); permResult = null; dispResult = null; paint(); });
     pf.appendChild(psel);
     controls.appendChild(pf);
     card.appendChild(controls);
@@ -288,13 +290,135 @@ export function render(container) {
     rRow.appendChild(rScriptControls({
       build: () => permanovaScript({
         metricName: m, groupCol: permGroupCol, sampleIds: pr.subIds, groups: pr.subGroups,
-        matrix: pr.sub, permutations: permN, seed: PERM_SEED, nDropped,
+        matrix: pr.sub, permutations: permN, seed: PERM_SEED, dispSeed: PERMDISP_SEED, nDropped,
       }),
       hasDataFiles: pr.subIds.length > R_EMBED_MAX_ROWS,
     }));
     card.appendChild(rRow);
 
+    renderPermdisp(card, pr, r);
+
     container.appendChild(card);
+  }
+
+  // -------------------------------------------------------------------------
+  //  PERMDISP — va dentro de la misma tarjeta que el PERMANOVA porque comparte
+  //  matriz, columna de agrupación y número de permutaciones: son dos lecturas
+  //  del mismo contraste, no dos análisis independientes.
+  // -------------------------------------------------------------------------
+  function renderPermdisp(card, pr, permRes) {
+    if (!pr.sub || !pr.subGroups) return;
+    if (!dispResult || dispResult.key !== pr.key) {
+      dispResult = {
+        key: pr.key,
+        res: permdisp(pr.sub, pr.subGroups, { permutations: permN, seed: PERMDISP_SEED }),
+      };
+    }
+    const d = dispResult.res;
+
+    const sep = document.createElement('div');
+    sep.style.cssText = 'border-top:1px solid var(--line);margin:22px 0 0;padding-top:18px;';
+    sep.innerHTML = '<h3 style="margin:0 0 4px;">' + t('beta.pdTitle') + '</h3>' +
+      '<p class="ql-panel-note" style="margin-top:0;">' + t('beta.pdNote') + '</p>';
+    card.appendChild(sep);
+
+    if (d.error) {
+      sep.insertAdjacentHTML('beforeend', '<p class="ql-field-help">' + escapeHtml(d.error) + '</p>');
+      return;
+    }
+
+    const dispSig = isFinite(d.p) && d.p < 0.05;
+
+    // dispersión media por grupo
+    sep.insertAdjacentHTML('beforeend',
+      '<h4 style="margin:16px 0 6px;font-size:13px;">' + t('beta.pdTableTitle') + '</h4>');
+    const scroll = document.createElement('div');
+    scroll.className = 'ql-table-scroll scroll-x';
+    const tbl = document.createElement('table');
+    tbl.className = 'ql-table';
+    tbl.innerHTML = '<thead><tr><th>' + t('beta.pdGroup') + '</th><th>' + t('beta.pdN') + '</th>' +
+      '<th>' + t('beta.pdMeanDist') + '</th><th>' + t('beta.pdSE') + '</th></tr></thead><tbody>' +
+      d.groups.map((g, i) => '<tr><td>' + escapeHtml(g) + '</td>' +
+        '<td class="ql-num tabular">' + d.groupSizes[i] + '</td>' +
+        '<td class="ql-num tabular">' + d.groupMeans[i].toFixed(4) + '</td>' +
+        '<td class="ql-num tabular">' + (isFinite(d.groupSEs[i]) ? d.groupSEs[i].toFixed(4) : '—') + '</td></tr>').join('') +
+      '</tbody>';
+    scroll.appendChild(tbl);
+    sep.appendChild(scroll);
+
+    // contraste global
+    const fRow = document.createElement('div');
+    fRow.className = 'ql-table-scroll scroll-x';
+    fRow.style.marginTop = '12px';
+    const fTbl = document.createElement('table');
+    fTbl.className = 'ql-table';
+    fTbl.innerHTML = '<thead><tr><th>' + t('beta.permDf') + '</th><th>' + t('beta.pdF') + '</th>' +
+      '<th>' + t('beta.pdP') + '</th><th>' + t('beta.pdPParam') + '</th></tr></thead><tbody><tr>' +
+      '<td class="ql-num tabular">' + d.df1 + ', ' + d.df2 + '</td>' +
+      '<td class="ql-num tabular">' + (isFinite(d.F) ? d.F.toFixed(3) : '—') + '</td>' +
+      '<td class="ql-num tabular">' + formatP(d.p) + (dispSig ? ' <span class="mono">∗</span>' : '') + '</td>' +
+      '<td class="ql-num tabular">' + formatP(d.pParametric) + '</td>' +
+      '</tr></tbody>';
+    fRow.appendChild(fTbl);
+    sep.appendChild(fRow);
+
+    const dVerdict = document.createElement('p');
+    dVerdict.style.cssText = 'margin:12px 0 0;font-size:13px;';
+    dVerdict.innerHTML = '<strong style="color:' + (dispSig ? 'var(--warning-ink)' : 'var(--ink-muted)') + ';">' +
+      (dispSig ? t('beta.pdHeterogeneous') : t('beta.pdHomogeneous')) + '</strong> ' +
+      t('beta.pdInterpret', { f: isFinite(d.F) ? d.F.toFixed(2) : '—', n: d.permutations });
+    sep.appendChild(dVerdict);
+
+    // comparaciones por pares, solo si hay más de dos grupos
+    if (d.pairwise.length > 1) {
+      sep.insertAdjacentHTML('beforeend',
+        '<h4 style="margin:18px 0 6px;font-size:13px;">' + t('beta.pdPairwiseTitle') + '</h4>');
+      const pwScroll = document.createElement('div');
+      pwScroll.className = 'ql-table-scroll scroll-x';
+      pwScroll.style.marginTop = '0';
+      const pwTbl = document.createElement('table');
+      pwTbl.className = 'ql-table';
+      pwTbl.innerHTML = '<thead><tr><th>' + t('beta.pdPairwisePair') + '</th><th>' + t('beta.pdPairwiseDiff') + '</th>' +
+        '<th>' + t('beta.pdP') + '</th><th>' + t('beta.pdPairwiseQ') + '</th></tr></thead><tbody>' +
+        d.pairwise.map((row) => '<tr><td>' + escapeHtml(row.a) + ' vs ' + escapeHtml(row.b) + '</td>' +
+          '<td class="ql-num tabular">' + row.diff.toFixed(4) + '</td>' +
+          '<td class="ql-num tabular">' + formatP(row.p) + '</td>' +
+          '<td class="ql-num tabular">' + formatP(row.pAdj) +
+          (isFinite(row.pAdj) && row.pAdj < 0.05 ? ' <span class="mono">∗</span>' : '') + '</td></tr>').join('') +
+        '</tbody>';
+      pwScroll.appendChild(pwTbl);
+      sep.appendChild(pwScroll);
+    }
+
+    // lectura conjunta PERMANOVA + PERMDISP: el motivo de tener las dos
+    const joint = jointVerdict(permRes, d);
+    const jBox = document.createElement('div');
+    jBox.className = 'ql-note';
+    jBox.style.marginTop = '16px';
+    jBox.innerHTML = '<strong>' + t('beta.pdVerdictTitle') + '</strong><br>' +
+      t('beta.pdVerdict' + joint.key);
+    sep.appendChild(jBox);
+
+    if (d.singletons.length) {
+      const s = document.createElement('p');
+      s.className = 'ql-field-help';
+      s.textContent = t('beta.pdSingletons', { list: d.singletons.join(', ') });
+      sep.appendChild(s);
+    }
+    if (d.nNegativeAxes) {
+      const nx = document.createElement('p');
+      nx.className = 'ql-field-help';
+      nx.textContent = t('beta.pdNegAxes', { n: d.nNegativeAxes });
+      sep.appendChild(nx);
+    }
+    const ty = document.createElement('p');
+    ty.className = 'ql-field-help';
+    ty.style.fontStyle = 'italic';
+    ty.textContent = t('beta.pdType');
+    sep.appendChild(ty);
+
+    sep.insertAdjacentHTML('beforeend', methodNoticeHtml('permdisp'));
+    noteMethods('beta', ['permdisp']);
   }
 
   // =========================================================================
