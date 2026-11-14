@@ -2,6 +2,7 @@ import { state, subscribe } from '../state.js';
 import { t, getLang } from '../lib/i18n.js';
 import { upgma, leafOrder, permanova, formatP, confidenceEllipsePoints } from '../lib/stats.js';
 import { permdisp, jointVerdict, PERMDISP_SEED } from '../lib/permdisp.js';
+import { drawGroupBoxplot, legendPositionLabel } from '../lib/groupBoxplot.js';
 import { upgmaOrderAsync } from '../lib/heavyStats.js';
 import { makeGroupResolver } from '../lib/sampleMatch.js';
 import { rda, cca } from '../lib/constrainedOrdination.js';
@@ -95,6 +96,12 @@ export function render(container) {
   let permN = 999;
   let permResult = null;   // cache del último cálculo {key, res}
   let dispResult = null;   // cache del PERMDISP, con la MISMA key que permResult
+  // El boxplot de dispersión del PERMDISP vive en la MISMA pasada de paint()
+  // que el gráfico de la vista (mapa de calor / PCoA / RDA), así que no puede
+  // compartir la variable `editor`: la sobrescribiría y el editor de la vista
+  // se quedaría sin destruir.
+  let dispEditor = null;
+  let wasDispEditing = false;
   let rdaMethod = 'rda';     // 'rda' | 'cca'
   let rdaHellinger = true;   // transformación de Hellinger (solo aplica a 'rda')
   let rdaTopN = RDA_TOPN_DEFAULT; // nº de taxones incluidos como matriz respuesta
@@ -112,6 +119,8 @@ export function render(container) {
     // "Restablecer"…) cerraría el panel "Personalizar" de golpe.
     wasEditing = editor && editor.isEditing ? editor.isEditing() : false;
     if (editor) { editor.destroy(); editor = null; }
+    wasDispEditing = dispEditor && dispEditor.isEditing ? dispEditor.isEditing() : false;
+    if (dispEditor) { dispEditor.destroy(); dispEditor = null; }
     container.innerHTML = '';
     const header = document.createElement('header');
     header.className = 'ql-page-header';
@@ -417,8 +426,61 @@ export function render(container) {
     ty.textContent = t('beta.pdType');
     sep.appendChild(ty);
 
+    renderDispersionChart(sep, pr, d);
+
     sep.insertAdjacentHTML('beforeend', methodNoticeHtml('permdisp'));
     noteMethods('beta', ['permdisp']);
+  }
+
+  // -------------------------------------------------------------------------
+  //  Boxplot de las distancias al centroide: es el "por qué" de la tabla de
+  //  arriba. Sin llaves de significación (noStats) — el contraste válido es
+  //  el permutacional del PERMDISP, no un Kruskal-Wallis sobre unos valores
+  //  que dependen de centroides estimados con los mismos datos.
+  // -------------------------------------------------------------------------
+  function renderDispersionChart(mount, pr, d) {
+    const groupData = {};
+    const groupNames = [];
+    d.distances.forEach((v, i) => {
+      const g = String(pr.subGroups[i]);
+      if (!groupData[g]) { groupData[g] = []; groupNames.push(g); }
+      groupData[g].push(v);
+    });
+    groupNames.sort();
+    if (!groupNames.length) return;
+
+    const chartPanel = document.createElement('section');
+    chartPanel.className = 'ql-card ql-panel';
+    chartPanel.style.marginTop = '16px';
+    chartPanel.innerHTML = '<p class="ql-panel-note" style="margin-bottom:4px;">' + t('beta.pdChartNote') + '</p>';
+    const chartWrap = document.createElement('div');
+    chartWrap.className = 'ql-chartwrap scroll-x';
+    const svg = svgEl('svg', { class: 'ql-svg', role: 'img', 'aria-label': t('beta.pdChartTitle') });
+    const tooltip = document.createElement('div');
+    tooltip.className = 'ql-tooltip';
+    chartWrap.appendChild(svg); chartWrap.appendChild(tooltip);
+    chartPanel.appendChild(chartWrap);
+    mount.appendChild(chartPanel);
+
+    const { ceElements, paletteSeries, statsControls, figureOptions, legendPositions } = drawGroupBoxplot({
+      svg, chartWrap, tooltip, groupNames, groupData, key: 'betaPermdisp',
+      title: t('beta.pdChartTitle'), xTitle: permGroupCol,
+      yTitle: t('beta.pdChartY'), valueLabel: t('beta.pdChartY'),
+      valueDecimals: 4,
+      noStats: true,
+    });
+
+    dispEditor = attachChartEditor({
+      key: 'betaPermdisp', svg, mount: chartPanel,
+      filename: 'permdisp-' + permGroupCol, lang: getLang(),
+      elements: ceElements,
+      paletteSeries, paletteType: 'categorical',
+      statsControls, onStatsChange: () => paint(),
+      figureOptions, onFigureOptionsChange: () => paint(),
+      legendPositions: (legendPositions || []).map((p) => ({ ...p, label: legendPositionLabel(p.id, getLang()) })),
+      onReset: () => paint(),
+      startEditing: wasDispEditing,
+    });
   }
 
   // =========================================================================
@@ -1611,5 +1673,9 @@ export function render(container) {
 
   paint();
   const stop = subscribe(paint);
-  return () => { stop(); clusterGen++; if (editor) { editor.destroy(); editor = null; } };
+  return () => {
+    stop(); clusterGen++;
+    if (editor) { editor.destroy(); editor = null; }
+    if (dispEditor) { dispEditor.destroy(); dispEditor = null; }
+  };
 }

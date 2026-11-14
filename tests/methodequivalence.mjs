@@ -18,7 +18,7 @@ console.log('--- 1. registro (sin navegador) ---');
   const { METHODS, methodLevel, methodNoticeHtml } = await import(APP_ROOT + '/js/lib/methodEquivalence.js');
   const expect = {
     A: ['shannon', 'simpson', 'pearson', 'spearman', 'bh', 'permanova-f'],
-    B: ['rda', 'cca', 'upgma', 'permanova'],
+    B: ['rda', 'cca', 'upgma', 'permanova', 'permdisp'],
     C: ['lefse-like', 'ancombc-like', 'rf-biomarkers'],
   };
   for (const [lvl, ids] of Object.entries(expect)) {

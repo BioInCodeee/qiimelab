@@ -43,6 +43,7 @@ const SUITE = [
   { name: 'chartpresets', file: 'chartpresets.mjs', kind: 'navegador' },
   { name: 'globalfont', file: 'globalfont.mjs', kind: 'navegador' },
   { name: 'methodequivalence', file: 'methodequivalence.mjs', kind: 'navegador' },
+  { name: 'permdisp-ui', file: 'permdisp-ui.mjs', kind: 'navegador' },
   { name: 'informe-completo', file: 'informe-completo.mjs', kind: 'navegador' },
   { name: 'design-v2', file: 'design-v2.mjs', kind: 'navegador' },
   { name: 'design-v2-modules', file: 'design-v2-modules.mjs', kind: 'navegador' },

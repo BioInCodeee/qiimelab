@@ -104,7 +104,22 @@ function applyCategoryOrder(groupNames, groupData, orderMode) {
  *  Devuelve también las `xPositions`/`marginT`/`marginL`/`slotW` ya
  *  reservando sitio para las filas de corchetes que hagan falta — antes de
  *  saber cuántas hay no se puede fijar el margen superior del gráfico. */
-function computeGroupStats(groupNames, groupData, key) {
+function computeGroupStats(groupNames, groupData, key, noStats) {
+  // `noStats`: el gráfico es un diagnóstico de otra prueba que ya aporta su
+  // propio contraste (p. ej. el boxplot de dispersión del PERMDISP, cuyos
+  // valores NO son independientes: salen de centroides estimados con los
+  // mismos datos, que es justo por lo que Anderson usa permutaciones). Pintar
+  // encima llaves de Kruskal-Wallis/Dunn sería un contraste distinto del que
+  // dice la tabla, así que ni se calculan.
+  if (noStats) {
+    const marginL0 = 52, slotW0 = 140;
+    return {
+      kw: null, sigPairs: [], diagnostic: null, testChoice: null,
+      mode: 'stars+exact', style: 'gp', threshold: 0.05, rowHeight: 26,
+      marginT: 44, marginL: marginL0, slotW: slotW0,
+      xPositions: groupNames.map((_, gi) => marginL0 + slotW0 * gi + slotW0 / 2),
+    };
+  }
   const kw = groupNames.length >= 2 ? kruskalWallis(groupNames.map((g) => groupData[g])) : null;
 
   const statsOpts = getStatsOptions(key);
@@ -140,6 +155,9 @@ function computeGroupStats(groupNames, groupData, key) {
  * @param {number}          [o.valueDecimals=3]
  * @param {boolean}         [o.showPoints=true]  false = solo cajas y bigotes,
  *        sin los puntos de cada muestra encima
+ * @param {boolean}         [o.noStats=false]  true = no se calculan ni se
+ *        pintan Kruskal-Wallis ni las llaves de significación por pares
+ *        (para gráficos que ilustran el resultado de OTRA prueba)
  * @param {string}          o.key  clave de persistencia del editor de gráficos
  *        (misma que se pasará a `attachChartEditor` — de aquí lee las
  *        opciones de anotación estadística del Paso 3, ANTES de calcular
@@ -160,7 +178,7 @@ export function drawGroupBoxplot(o) {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
   const { kw, sigPairs, diagnostic, testChoice, mode, style, threshold, rowHeight, marginT, marginL, slotW, xPositions } =
-    computeGroupStats(groupNames, groupData, o.key);
+    computeGroupStats(groupNames, groupData, o.key, o.noStats);
 
   const legCols = groupNames.length > 5 ? 2 : 1;
   const legRows = Math.ceil(groupNames.length / legCols);
@@ -337,7 +355,7 @@ export function drawGroupViolin(o) {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
   const { kw, sigPairs, diagnostic, testChoice, mode, style, threshold, rowHeight, marginT, marginL, slotW, xPositions } =
-    computeGroupStats(groupNames, groupData, o.key);
+    computeGroupStats(groupNames, groupData, o.key, o.noStats);
 
   const legCols = groupNames.length > 5 ? 2 : 1;
   const legRows = Math.ceil(groupNames.length / legCols);
@@ -528,7 +546,7 @@ export function drawGroupStripPlot(o) {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
   const { kw, sigPairs, diagnostic, testChoice, mode, style, threshold, rowHeight, marginT, marginL, slotW, xPositions } =
-    computeGroupStats(groupNames, groupData, o.key);
+    computeGroupStats(groupNames, groupData, o.key, o.noStats);
 
   const legCols = groupNames.length > 5 ? 2 : 1;
   const legRows = Math.ceil(groupNames.length / legCols);
