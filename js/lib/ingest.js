@@ -7,6 +7,7 @@
 
 import { parseTable, normalizeHeader } from './csv.js';
 import { listZipEntries, readZipText, gunzipText } from './minizip.js';
+import { readProvenance } from './provenance.js';
 import { parseOrdination, looksLikeOrdination } from './ordination.js';
 
 const TAXON_KEYS = ['taxon', 'taxa', 'species', 'genus', 'feature', 'featureid', 'otu', 'asv', 'name', 'organism', 'id'];
@@ -444,6 +445,16 @@ export async function ingestFile(file) {
       warnings.push('"' + name + '": ' + e.message);
       return { results, warnings };
     }
+    // La procedencia vive en el MISMO ZIP que ya está abierto: leerla aquí no
+    // cuesta una lectura extra del archivo. Nunca debe impedir que el dato
+    // entre, así que cualquier fallo se ignora y se sigue sin procedencia.
+    let provenance = null;
+    try {
+      provenance = await readProvenance(buffer, entries);
+    } catch (e) {
+      provenance = null;
+    }
+
     const dataEntries = entries.filter((e) => /\/data\//.test(e.name) && !e.name.endsWith('/'));
     if (dataEntries.length === 0) {
       warnings.push('"' + name + '": no se encontró contenido reconocible dentro del artefacto QIIME2.');
@@ -487,7 +498,7 @@ export async function ingestFile(file) {
         warnings.push('"' + shortName + '" (dentro de ' + name + '): no se reconoce el formato.' + (hint2 ? ' ' + hint2 : ' Puedes mapearlo a mano si es necesario.'));
       }
     }
-    return { results, warnings };
+    return { results, warnings, provenance };
   }
 
   // --- .gz suelto (gzip plano, NO un zip): los TSV de PICRUSt2 vienen así ---

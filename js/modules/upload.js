@@ -1,6 +1,7 @@
 import { state, subscribe, registerFile, removeFile } from '../state.js';
 import { t } from '../lib/i18n.js';
 import { ingestFile } from '../lib/ingest.js';
+import { provenanceChain } from '../lib/provenance.js';
 import { routeResultToState } from '../lib/route.js';
 import { exportSession, importSession, describeSession, sessionFilename, SCHEMA_VERSION } from '../lib/session.js';
 import { openConfirm } from '../lib/modal.js';
@@ -308,6 +309,8 @@ export function render(container) {
         rm.addEventListener('click', () => removeFile(f.id));
         row.appendChild(rm);
         list.appendChild(row);
+        const prov = provenanceBlock(f);
+        if (prov) list.appendChild(prov);
       });
       listCard.appendChild(list);
     }
@@ -529,6 +532,12 @@ export function render(container) {
       }
       warnings.push(...outcome.warnings);
       const fileEntry = state.files.find((f) => f.id === fileId);
+      // La procedencia NO entra en la sesión exportable (session.js filtra las
+      // entradas de archivo a id/name/size/note): vive solo mientras el .qza
+      // esté cargado en esta pestaña, igual que el propio archivo.
+      if (fileEntry && outcome.provenance && outcome.provenance.hasProvenance) {
+        fileEntry.provenance = outcome.provenance;
+      }
       if (outcome.results.length === 0) {
         if (fileEntry) fileEntry.note = t('upload.unclassified');
       } else {
@@ -538,6 +547,75 @@ export function render(container) {
     }
     lastWarnings = warnings;
     paint();
+  }
+
+  // -------------------------------------------------------------------------
+  //  Procedencia del artefacto: la cadena de acciones de QIIME 2 que produjo
+  //  el .qza, leída del propio archivo (js/lib/provenance.js). Va plegada
+  //  porque la mayoría de las veces el usuario solo quiere cargar el dato;
+  //  cuando la necesita —redactar los métodos, comprobar a qué profundidad se
+  //  rarefactó— es justo lo que tendría que ir a buscar a otro sitio.
+  // -------------------------------------------------------------------------
+  function provenanceBlock(fileEntry) {
+    const prov = fileEntry && fileEntry.provenance;
+    if (!prov || !prov.hasProvenance) return null;
+    const chain = provenanceChain(prov);
+    if (!chain.length) return null;
+
+    const det = document.createElement('details');
+    det.className = 'ql-prov';
+    const sum = document.createElement('summary');
+    sum.textContent = t('upload.provTitle', { n: chain.length });
+    det.appendChild(sum);
+
+    const ol = document.createElement('ol');
+    ol.className = 'ql-prov-chain';
+    chain.forEach((node) => {
+      const a = node.action;
+      const li = document.createElement('li');
+      if (node.isFinal) li.className = 'is-final';
+
+      const what = !a ? t('upload.provUnknownStep')
+        : (a.type === 'import' ? t('upload.provImport')
+          : [a.plugin, a.action].filter(Boolean).join(' ') || t('upload.provUnknownStep'));
+
+      let html = '<span class="ql-prov-step">' + escapeHtml(what) + '</span>';
+      if (a && a.type === 'pipeline') {
+        html += ' <span class="ql-prov-kind">' + escapeHtml(t('upload.provPipeline')) + '</span>';
+      }
+      if (node.type) html += ' <span class="ql-prov-type mono">' + escapeHtml(node.type) + '</span>';
+
+      // los parámetros son lo que de verdad se va a querer citar
+      if (a && a.parameters && a.parameters.length) {
+        const shown = a.parameters.filter((pp) => pp.kind !== 'empty').slice(0, 6);
+        if (shown.length) {
+          const txt = shown.map((pp) => pp.name + ' = ' + (pp.kind === 'metadata' ? pp.file : pp.value)).join(' · ');
+          const more = a.parameters.filter((pp) => pp.kind !== 'empty').length - shown.length;
+          html += '<span class="ql-prov-params">' + escapeHtml(txt)
+            + (more > 0 ? ' ' + escapeHtml(t('upload.provMoreParams', { n: more })) : '') + '</span>';
+        }
+      }
+      li.innerHTML = html;
+      ol.appendChild(li);
+    });
+    det.appendChild(ol);
+
+    const foot = [];
+    if (prov.frameworkVersion) foot.push('QIIME 2 ' + prov.frameworkVersion);
+    if (prov.archiveVersion) foot.push(t('upload.provArchive', { n: prov.archiveVersion }));
+    if (prov.upstreamTruncated) foot.push(t('upload.provTruncated', { n: prov.upstream.length }));
+    if (foot.length) {
+      const p = document.createElement('p');
+      p.className = 'ql-field-help';
+      p.textContent = foot.join(' · ');
+      det.appendChild(p);
+    }
+    const note = document.createElement('p');
+    note.className = 'ql-field-help';
+    note.style.fontStyle = 'italic';
+    note.textContent = t('upload.provNote');
+    det.appendChild(note);
+    return det;
   }
 
   // nombre de slot del estado → clave i18n slots.*
