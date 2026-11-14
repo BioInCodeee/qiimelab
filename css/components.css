@@ -2660,3 +2660,36 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
 :root[data-density="compact"] .ql-field { margin-bottom: 12px; }
 :root[data-density="compact"] .ql-card.ql-panel { padding-top: 14px; padding-bottom: 14px; }
 :root[data-density="compact"] .ql-stack > * + * { margin-top: 12px; }
+
+/* Lote de placas (#/recuentos?tab=foto): una fila por foto, con su recuento */
+.ql-plate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+.ql-plate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ql-plate-row:hover { border-color: var(--ink-2); }
+.ql-plate-row.is-on { border-color: var(--brand, currentColor); background: var(--surface-2); }
+.ql-plate-row:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.ql-plate-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

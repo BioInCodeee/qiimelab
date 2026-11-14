@@ -1657,6 +1657,13 @@ export default {
     close: 'Cerrar',
   },
   placa: {
+    dropzone: 'Arrastra aqui las fotos de las placas o toca para elegirlas',
+    dropSub: 'JPG, PNG o HEIC. Puedes soltar varias a la vez: se anaden al lote y las recorres una a una.',
+    errorSome: '{n} archivos no se pudieron leer como imagen y se han omitido.',
+    rowCount: '{n} colonias',
+    rowPending: 'sin contar',
+    clearBatch: 'Vaciar el lote',
+    sendBatch: 'Enviar {n} placas a Analisis de recuentos',
     title: 'Recuento de colonias desde una foto',
     subtitle: 'Haz una foto a la placa y cuenta las colonias en el navegador; con la dilución y el volumen sembrado sale el resultado en UFC/mL.',
     note: 'El recuento es asistido: el análisis propone las colonias y tú corriges a clics. Una placa real tiene colonias pegadas al borde, restos de medio y colonias puntiformes, así que la cifra final la decides tú.',

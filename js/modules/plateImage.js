@@ -93,7 +93,16 @@ export function nearestMark(marks, x, y, radius) {
 
 export function render(container, opts = {}) {
   const s = loadSettings();
-  let imageData = null;     // ImageData ya reescalado
+  // Un lote de placas, no una sola: lo normal en un recuento es sembrar una
+  // serie de diluciones y fotografiarlas todas seguidas. Cada placa guarda su
+  // propia imagen, su ROI, su recuento, sus correcciones a mano y SU DILUCION
+  // —que es justo lo que cambia entre placas de la misma serie—, mientras que
+  // el volumen sembrado y el modo de dilucion se comparten porque suelen ser
+  // los mismos en todo el lote.
+  const plates = [];        // { name, imageData, bitmapCanvas, roi, result, edits, dil }
+  let active = -1;
+
+  let imageData = null;     // ImageData ya reescalado (placa activa)
   let bitmapCanvas = null;  // canvas con la foto reescalada
   let result = null;        // salida de countColonies
   let roi = null;
@@ -101,19 +110,34 @@ export function render(container, opts = {}) {
   let fileName = '';
   let busy = false;
 
+  /** Vuelca lo que se este editando a su sitio en la lista. */
+  function stash() {
+    if (active < 0 || !plates[active]) return;
+    Object.assign(plates[active], { imageData, bitmapCanvas, roi, result, edits, name: fileName });
+  }
+
+  /** Pone una placa de la lista en edicion. */
+  function activate(i) {
+    if (i < 0 || i >= plates.length) return;
+    stash();
+    active = i;
+    const pl = plates[i];
+    imageData = pl.imageData; bitmapCanvas = pl.bitmapCanvas; roi = pl.roi;
+    result = pl.result; edits = pl.edits; fileName = pl.name;
+    if (!result) analyse(); else paint();
+  }
+
   const root = document.createElement('div');
   container.appendChild(root);
 
   // ---------- carga de la imagen ----------
-  async function useFile(file) {
-    if (!file) return;
-    fileName = file.name || 'placa';
+  /** Decodifica una imagen y la deja lista como placa, sin analizarla aun. */
+  async function decodePlate(file) {
     let bitmap;
     try {
       bitmap = await createImageBitmap(file);
     } catch (e) {
-      paint({ error: t('placa.errorImage') });
-      return;
+      return null;
     }
     const { width, height } = scaledSize(bitmap.width, bitmap.height);
     const cv = document.createElement('canvas');
@@ -121,17 +145,48 @@ export function render(container, opts = {}) {
     const ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close && bitmap.close();
-    bitmapCanvas = cv;
-    imageData = ctx.getImageData(0, 0, width, height);
-    roi = suggestRoi(toGrayscale(imageData));
-    edits = { removed: [], added: [] };
-    analyse();
+    const data = ctx.getImageData(0, 0, width, height);
+    return {
+      name: file.name || 'placa',
+      imageData: data,
+      bitmapCanvas: cv,
+      roi: suggestRoi(toGrayscale(data)),
+      result: null,
+      edits: { removed: [], added: [] },
+      dil: s.dil,
+    };
   }
 
-  function analyse() {
+  /**
+   * Anade al lote todas las imagenes que se suelten o se elijan.
+   * Solo se ANALIZA la primera que entra: con veinte fotos de placa, analizar
+   * las veinte de golpe bloquearia la pestana varios segundos sin que nadie lo
+   * haya pedido. Las demas se analizan al seleccionarlas.
+   */
+  async function useFiles(files) {
+    const list = [...files].filter((f) => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name || ''));
+    if (!list.length) { paint({ error: t('placa.errorImage') }); return; }
+    stash();
+    let firstNew = -1;
+    let failed = 0;
+    for (const f of list) {
+      const pl = await decodePlate(f);
+      if (!pl) { failed++; continue; }
+      plates.push(pl);
+      if (firstNew < 0) firstNew = plates.length - 1;
+    }
+    if (firstNew < 0) { paint({ error: t('placa.errorImage') }); return; }
+    active = firstNew;
+    const pl = plates[active];
+    imageData = pl.imageData; bitmapCanvas = pl.bitmapCanvas; roi = pl.roi;
+    result = null; edits = pl.edits; fileName = pl.name;
+    analyse(failed ? { error: t('placa.errorSome', { n: failed }) } : {});
+  }
+
+  function analyse(extra = {}) {
     if (!imageData) return;
     busy = true;
-    paint();
+    paint(extra);
     // Un tick para que el "analizando…" llegue a pintarse antes de bloquear
     // el hilo con el etiquetado de componentes.
     setTimeout(() => {
@@ -151,7 +206,8 @@ export function render(container, opts = {}) {
         return;
       }
       busy = false;
-      paint();
+      stash();
+      paint(extra);
     }, 20);
   }
 
@@ -161,9 +217,14 @@ export function render(container, opts = {}) {
     return applyManualEdits(result, edits);
   }
 
+  /** La dilucion es de la placa, no del lote: en una serie cambia entre placas. */
+  function plateDil() {
+    return (active >= 0 && plates[active] && plates[active].dil != null) ? plates[active].dil : s.dil;
+  }
+
   function cfu() {
     const n = totals().total;
-    const factor = dilutionFactor(s.dilMode, s.dil);
+    const factor = dilutionFactor(s.dilMode, plateDil());
     const vol = volumeInMl(s.volume, s.volumeUnit);
     const value = cfuPerMl(n, vol, factor);
     return { n, factor, vol, value, log10: Number.isFinite(value) && value > 0 ? Math.log10(value) : NaN };
@@ -259,12 +320,40 @@ export function render(container, opts = {}) {
     inCard.className = 'ql-card ql-panel';
     inCard.innerHTML = '<h2>' + t('placa.uploadTitle') + '</h2>';
 
+    // Zona de arrastre igual que en el resto de la app (#/sanger, #/cargar):
+    // un <input type=file> pelado no se lee como "aqui se suben archivos", y
+    // encima impedia soltar una carpeta de fotos de golpe.
+    const dz = document.createElement('div');
+    dz.className = 'ql-dz';
+    dz.tabIndex = 0;
+    dz.setAttribute('role', 'button');
+    dz.setAttribute('aria-label', t('placa.dropzone'));
+    dz.innerHTML =
+      '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>' +
+      '<div><div class="ql-dz-text">' + t('placa.dropzone') + '</div>' +
+      '<div class="ql-dz-sub">' + t('placa.dropSub') + '</div></div>';
     const fileIn = document.createElement('input');
     fileIn.type = 'file';
     fileIn.accept = 'image/*';
-    fileIn.setAttribute('aria-label', t('placa.uploadTitle'));
-    fileIn.addEventListener('change', () => { if (fileIn.files && fileIn.files[0]) useFile(fileIn.files[0]); });
-    inCard.appendChild(fileIn);
+    fileIn.multiple = true;
+    fileIn.setAttribute('aria-label', t('placa.dropzone'));
+    dz.appendChild(fileIn);
+    fileIn.addEventListener('change', () => {
+      if (fileIn.files && fileIn.files.length) useFiles(fileIn.files);
+      fileIn.value = '';
+    });
+    dz.addEventListener('click', (e) => { if (e.target !== fileIn) fileIn.click(); });
+    dz.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileIn.click(); }
+    });
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('is-drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('is-drag'));
+    dz.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dz.classList.remove('is-drag');
+      if (e.dataTransfer && e.dataTransfer.files.length) useFiles(e.dataTransfer.files);
+    });
+    inCard.appendChild(dz);
 
     // En móvil abre directamente la cámara: hacer la foto a la placa y contar
     // en el mismo sitio es justo el caso de uso.
@@ -273,7 +362,7 @@ export function render(container, opts = {}) {
     camIn.accept = 'image/*';
     camIn.setAttribute('capture', 'environment');
     camIn.style.display = 'none';
-    camIn.addEventListener('change', () => { if (camIn.files && camIn.files[0]) useFile(camIn.files[0]); });
+    camIn.addEventListener('change', () => { if (camIn.files && camIn.files.length) useFiles(camIn.files); });
     const camBtn = document.createElement('button');
     camBtn.type = 'button';
     camBtn.className = 'ql-btn';
@@ -282,6 +371,41 @@ export function render(container, opts = {}) {
     camBtn.addEventListener('click', () => camIn.click());
     inCard.appendChild(camBtn);
     inCard.appendChild(camIn);
+
+    // Lista del lote: cada placa con su recuento, para saltar entre ellas sin
+    // perder las correcciones hechas a mano en cada una.
+    if (plates.length) {
+      const list = document.createElement('div');
+      list.className = 'ql-plate-list';
+      plates.forEach((pl, i) => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'ql-plate-row' + (i === active ? ' is-on' : '');
+        if (i === active) row.setAttribute('aria-current', 'true');
+        const tt = pl.result ? applyManualEdits(pl.result, pl.edits) : null;
+        row.innerHTML =
+          '<span class="ql-plate-row-name">' + escapeHtml(pl.name) + '</span>' +
+          '<span class="ql-badge ' + (tt ? 'ql-badge-good' : 'ql-badge-muted') + '">' +
+          (tt ? t('placa.rowCount', { n: tt.total }) : t('placa.rowPending')) + '</span>';
+        row.addEventListener('click', () => { if (i !== active) activate(i); });
+        list.appendChild(row);
+      });
+      inCard.appendChild(list);
+
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'ql-btn ql-btn-sm';
+      clear.style.marginTop = '8px';
+      clear.textContent = t('placa.clearBatch');
+      clear.addEventListener('click', () => {
+        plates.length = 0;
+        active = -1;
+        imageData = null; bitmapCanvas = null; result = null; roi = null; fileName = '';
+        edits = { removed: [], added: [] };
+        paint();
+      });
+      inCard.appendChild(clear);
+    }
 
     if (fileName) {
       inCard.insertAdjacentHTML('beforeend',
@@ -499,8 +623,16 @@ export function render(container, opts = {}) {
     const dilIn = document.createElement('input');
     dilIn.type = 'text'; dilIn.inputMode = 'decimal';
     dilIn.className = 'tabular';
-    dilIn.value = s.dil;
-    dilIn.addEventListener('input', () => { s.dil = dilIn.value; saveSettings(s); updateOut(host); });
+    dilIn.value = plateDil();
+    dilIn.addEventListener('input', () => {
+      if (active >= 0 && plates[active]) plates[active].dil = dilIn.value;
+      // se guarda tambien como valor por defecto del lote: la siguiente placa
+      // que entre arranca con la ultima dilucion escrita, que suele ser la
+      // contigua de la serie
+      s.dil = dilIn.value;
+      saveSettings(s);
+      updateOut(host);
+    });
     dilWrap.appendChild(dilIn);
     grid.appendChild(dilWrap);
 
@@ -540,18 +672,36 @@ export function render(container, opts = {}) {
     sendBtn.type = 'button';
     sendBtn.className = 'ql-btn ql-btn-primary';
     sendBtn.style.marginTop = '10px';
-    sendBtn.textContent = t('placa.sendToRecuentos');
+    sendBtn.textContent = plates.length > 1
+      ? t('placa.sendBatch', { n: plates.filter((pl) => pl.result).length })
+      : t('placa.sendToRecuentos');
     sendBtn.addEventListener('click', () => {
       const c = cfu();
       if (!Number.isFinite(c.value)) return;
-      const fileId = registerFile(fileName || 'placa', 0, t('placa.sendNote'));
+      stash();
       const labelCol = t('placa.colLabel');
       const cfuCol = t('placa.colCfu');
+      const vol = volumeInMl(s.volume, s.volumeUnit);
+      // Se envia el LOTE entero, no solo la placa en pantalla: quien ha
+      // contado diez placas quiere las diez en el analisis, y las que aun no
+      // tienen recuento se quedan fuera en vez de entrar como cero.
+      const rows = plates
+        .map((pl) => {
+          if (!pl.result) return null;
+          const tt = applyManualEdits(pl.result, pl.edits);
+          const v = cfuPerMl(tt.total, vol, dilutionFactor(s.dilMode, pl.dil));
+          return Number.isFinite(v) ? { [labelCol]: pl.name, [cfuCol]: v } : null;
+        })
+        .filter(Boolean);
+      if (!rows.length) return;
+      const fileId = registerFile(
+        rows.length > 1 ? t('placa.seriesLabel') : (fileName || 'placa'), 0, t('placa.sendNote'),
+      );
       addMicrobialCountSeries({
         label: t('placa.seriesLabel'),
         sourceFileId: fileId,
         headers: [labelCol, cfuCol],
-        rows: [{ [labelCol]: fileName || t('placa.seriesLabel'), [cfuCol]: c.value }],
+        rows,
         mapping: { groupCols: [0], valueCol: 1, dilutionCol: null, alreadyLog: false },
       });
       sendBtn.textContent = t('placa.sentConfirm');

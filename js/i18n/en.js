@@ -1654,6 +1654,13 @@ export default {
     close: 'Close',
   },
   placa: {
+    dropzone: 'Drag the plate photos here, or tap to choose them',
+    dropSub: 'JPG, PNG or HEIC. You can drop several at once: they join the batch and you go through them one by one.',
+    errorSome: '{n} files could not be read as images and were skipped.',
+    rowCount: '{n} colonies',
+    rowPending: 'not counted',
+    clearBatch: 'Clear the batch',
+    sendBatch: 'Send {n} plates to Count analysis',
     title: 'Colony counting from a photo',
     subtitle: 'Photograph the plate and count the colonies in your browser; with the dilution and the plated volume you get the result in CFU/mL.',
     note: 'Counting is assisted: the analysis proposes the colonies and you correct it by clicking. A real plate has colonies against the rim, bits of medium and pinpoint colonies, so the final figure is yours to decide.',
