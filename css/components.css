@@ -2543,3 +2543,30 @@ html:has(> body[data-ds="v2"]) { background: #f8fafc; }
 [data-ds="v2"] .ql-calc-callout-title,
 [data-ds="v2"] .ql-calc-unit-badge,
 [data-ds="v2"] .ql-calc-preset-tag { font-family: var(--font-body); font-weight: 600; }
+
+/* Visor de secuencias de nucleótidos del módulo Sanger (#/sanger → Ver secuencias) */
+.ql-reads-block {
+  margin-top: 16px;
+}
+.ql-reads-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.ql-reads-title {
+  margin: 0;
+  font-size: 15px;
+}
+.ql-reads-head .ql-btn {
+  margin-left: auto;
+}
+.ql-reads-seq {
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre;
+  margin: 0;
+  font-variant-ligatures: none;
+  tab-size: 4;
+}

@@ -22,6 +22,7 @@ import { openPanel } from '../lib/modal.js';
 import { svgEl, escapeHtml, moreDetailsHtml } from '../lib/dom.js';
 import { glossaryLinkHtml } from '../lib/glossaryLink.js';
 import { markExternal } from '../lib/reportLog.js';
+import { downloadText } from '../lib/rScript.js';
 
 const STORE_KEY = 'smart-175.sanger';
 const LEGACY_STORE_KEY = 'qiimelab.sanger';
@@ -534,6 +535,142 @@ export function calculateScrollFromMinimap(clickX, minimapWidth, scrollWidth, cl
  * @param {Object} [opts] - Opciones adicionales ({ samples, state, onClose })
  * @returns {{ close: Function }} Controlador del modal
  */
+// --- Visor de secuencias de nucleótidos (lecturas + consenso) ---
+
+/**
+ * Parte una secuencia en líneas numeradas al estilo FASTA/EMBL: bloques de
+ * `group` bases separados por un espacio, `width` bases por línea, y la
+ * coordenada de la primera base de cada línea a la izquierda.
+ * @param {string} seq
+ * @param {number} [width=60] Bases por línea.
+ * @param {number} [group=10] Tamaño del bloque dentro de la línea.
+ * @returns {string}
+ */
+export function formatSeqBlock(seq, width = 60, group = 10) {
+  const s = String(seq || '');
+  if (!s) return '';
+  const w = Math.max(1, width);
+  const g = Math.max(1, group);
+  const pad = String(s.length).length;
+  const lines = [];
+  for (let i = 0; i < s.length; i += w) {
+    const chunk = s.slice(i, i + w);
+    const groups = [];
+    for (let j = 0; j < chunk.length; j += g) groups.push(chunk.slice(j, j + g));
+    lines.push(String(i + 1).padStart(pad, ' ') + '  ' + groups.join(' '));
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Las secuencias disponibles de una muestra, en el orden en que se muestran.
+ * No recalcula nada: la forward y la reverse complementada ya vienen
+ * recortadas en el resultado, y la reverse "tal cual se secuenció" es el
+ * complementario inverso de esa reverse complementada.
+ * @param {Object} resultItem
+ * @returns {Array<{key:string,labelKey:string,suffix:string,seq:string}>}
+ */
+export function collectReadSequences(resultItem = {}) {
+  const fSeq = resultItem.fSeq || resultItem.fwdSeq || '';
+  const rcSeq = resultItem.rcSeq || resultItem.revCompSeq || '';
+  const consensus = resultItem.consensus || '';
+  const out = [];
+  if (fSeq) {
+    out.push({ key: 'forward', labelKey: 'sanger.readForward', suffix: 'forward', seq: fSeq });
+  }
+  if (rcSeq) {
+    out.push({ key: 'reverse', labelKey: 'sanger.readReverse', suffix: 'reverse', seq: reverseComplement(rcSeq) });
+    out.push({ key: 'revcomp', labelKey: 'sanger.readReverseComp', suffix: 'reverse_revcomp', seq: rcSeq });
+  }
+  if (consensus) {
+    out.push({ key: 'consensus', labelKey: 'sanger.readConsensus', suffix: 'consenso', seq: consensus });
+  }
+  return out;
+}
+
+/**
+ * FASTA con todas las secuencias disponibles de la muestra.
+ * @param {Object} resultItem
+ * @returns {string} Vacío si la muestra no tiene ninguna secuencia.
+ */
+export function buildReadsFasta(resultItem = {}) {
+  const id = resultItem.id || 'muestra';
+  const reads = collectReadSequences(resultItem);
+  if (!reads.length) return '';
+  return reads.map((r) => '>' + id + '_' + r.suffix + ' len=' + r.seq.length + '\n' + r.seq).join('\n') + '\n';
+}
+
+/**
+ * Panel con la secuencia de nucleótidos de cada lectura y del consenso.
+ * @param {Object} resultItem
+ */
+export function openReadsModal(resultItem = {}) {
+  const sampleId = resultItem.id || 'Muestra';
+  const reads = collectReadSequences(resultItem);
+
+  openPanel({
+    title: t('sanger.readsPanelTitle') + ': ' + sampleId,
+    extraClass: 'ql-modal-reads',
+    closeLabel: t('sanger.readsClose'),
+    render: (bodyEl) => {
+      if (!reads.length) {
+        const empty = document.createElement('p');
+        empty.className = 'ql-panel-note';
+        empty.textContent = t('sanger.readsNone');
+        bodyEl.appendChild(empty);
+        return;
+      }
+
+      const note = document.createElement('p');
+      note.className = 'ql-panel-note';
+      note.textContent = t('sanger.readsNote');
+      bodyEl.appendChild(note);
+
+      reads.forEach((read) => {
+        const block = document.createElement('section');
+        block.className = 'ql-reads-block';
+
+        const head = document.createElement('div');
+        head.className = 'ql-reads-head';
+        head.innerHTML =
+          '<h3 class="ql-reads-title">' + escapeHtml(t(read.labelKey)) + '</h3>' +
+          '<span class="ql-badge">' + escapeHtml(t('sanger.readsBp', { n: read.seq.length })) + '</span>';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'ql-btn ql-btn-sm';
+        copyBtn.textContent = t('sanger.readsCopy');
+        copyBtn.addEventListener('click', () => {
+          try {
+            navigator.clipboard.writeText(read.seq);
+            copyBtn.textContent = t('sanger.readsCopied');
+            setTimeout(() => { copyBtn.textContent = t('sanger.readsCopy'); }, 1600);
+          } catch (e) { /* el portapapeles puede fallar sin permiso */ }
+        });
+        head.appendChild(copyBtn);
+        block.appendChild(head);
+
+        const pre = document.createElement('pre');
+        pre.className = 'ql-code ql-reads-seq';
+        pre.textContent = formatSeqBlock(read.seq);
+        block.appendChild(pre);
+
+        bodyEl.appendChild(block);
+      });
+
+      const dlBtn = document.createElement('button');
+      dlBtn.type = 'button';
+      dlBtn.className = 'ql-btn ql-btn-primary';
+      dlBtn.style.marginTop = '12px';
+      dlBtn.textContent = t('sanger.readsDownload');
+      dlBtn.addEventListener('click', () => {
+        downloadText(String(sampleId).replace(/[^\w.-]+/g, '_') + '-lecturas.fasta', buildReadsFasta(resultItem), 'text/plain;charset=utf-8');
+      });
+      bodyEl.appendChild(dlBtn);
+    },
+  });
+}
+
 export function openOverlapModal(resultItem, opts = {}) {
   let fSeq = resultItem.fSeq || resultItem.fwdSeq || '';
   let rcSeq = resultItem.rcSeq || resultItem.revCompSeq || '';
@@ -2554,6 +2691,16 @@ export function render(container) {
       sendBtn.disabled = !r.consensus;
       sendBtn.addEventListener('click', () => sendConsensusToPrimers(r.id, r.consensus));
       btnRow.appendChild(copyBtn); btnRow.appendChild(sendBtn);
+
+      const readsBtn = document.createElement('button');
+      readsBtn.type = 'button';
+      readsBtn.className = 'ql-btn';
+      readsBtn.textContent = t('sanger.viewReads');
+      readsBtn.title = t('sanger.viewReadsTitle');
+      readsBtn.disabled = collectReadSequences(r).length === 0;
+      readsBtn.addEventListener('click', () => { openReadsModal(r); });
+      btnRow.appendChild(readsBtn);
+
       if (r.consensus) {
         if (r.method === 'merged' || r.method === 'stitched' || (r.fLen > 0 && r.rLen > 0)) {
           const ovDetailBtn = document.createElement('button');
