@@ -86,7 +86,12 @@ const PANEL_REACH = `(() => {
   const one = (el, name) => { if (!el) { bad.push(name + ' ausente'); return; } el.focus(); const r = el.getBoundingClientRect();
     if (document.activeElement !== el) bad.push(name + ' no recibe foco'); else if (r.left < 0 || r.right > innerWidth + 1) bad.push(name + ' fuera del viewport'); };
   one(document.getElementById('ql-lang-select'), 'selector de idioma');
-  const th = [...document.querySelectorAll('#sidebar .ql-segmented-block button')];
+  // Por id, no por clase: '#sidebar .ql-segmented-block' cogía TAMBIÉN el
+  // selector de densidad, así que contaba 5 botones y daba por roto un panel
+  // que estaba bien. Ahora cada bloque se comprueba por separado.
+  const de = [...document.querySelectorAll('#ql-density-seg button')];
+  if (de.length !== 2) bad.push('selector de densidad: ' + de.length + ' botones'); de.forEach((b, i) => one(b, 'densidad ' + (i + 1)));
+  const th = [...document.querySelectorAll('#ql-theme-seg button')];
   if (th.length !== 3) bad.push('selector de tema: ' + th.length + ' botones'); th.forEach((b, i) => one(b, 'tema ' + (i + 1)));
   one(document.getElementById('ql-profile-name'), 'nombre local');
   return bad;
@@ -132,12 +137,32 @@ async function drawerAudit(c, route) {
   if (!s1.mainInert) fail('el contenido queda accesible detrás del panel (no inert)');
   (await c.ev(PANEL_REACH)).forEach((m) => fail('panel: ' + m));
 
-  // foco atrapado entre botón y panel: Tab desde el último control vuelve al botón; Shift+Tab desde el botón, al último
-  await c.ev(`document.getElementById('ql-profile-name').focus()`);
+  // Foco atrapado entre botón y panel: Tab desde el ÚLTIMO control vuelve al
+  // botón; Shift+Tab desde el botón, al último.
+  //
+  // El último se busca en vivo, no se nombra. Antes se daba por hecho que era
+  // #ql-profile-name, y cuando se añadió detrás el enlace a privacidad.html
+  // (página estática que piden las tiendas de apps) este test empezó a fallar
+  // en las 19 rutas × 2 temas aunque la trampa de foco funcionaba: Tab desde el
+  // nombre de perfil iba al enlace, que es lo correcto. Clavar un id aquí
+  // vuelve a romperse con el siguiente control que se añada al cajón.
+  const FOCUS_LAST = `(() => {
+    const roots = [document.querySelector('.ql-navbar'), document.getElementById('sidebar')];
+    const f = roots.flatMap((r) => [...r.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]).filter((e) => !e.disabled);
+    const last = f[f.length - 1];
+    if (last) last.focus();
+    return last ? (last.id || last.getAttribute('href') || last.className) : null;
+  })()`;
+  const lastCtl = await c.ev(FOCUS_LAST);
+  if (!lastCtl) fail('el panel no tiene ningún control enfocable');
   await press(c, 'Tab', 'Tab', 9);
-  if (!(await c.ev(`document.activeElement === document.getElementById('nav-toggle')`))) fail('Tab desde el último control no vuelve al botón (foco no atrapado)');
+  if (!(await c.ev(`document.activeElement === document.getElementById('nav-toggle')`))) fail('Tab desde el último control (' + lastCtl + ') no vuelve al botón (foco no atrapado)');
   await press(c, 'Tab', 'Tab', 9, 8);
-  if (!(await c.ev(`document.activeElement === document.getElementById('ql-profile-name')`))) fail('Shift+Tab desde el botón no llega al último control del panel');
+  if (!(await c.ev(`(() => {
+    const roots = [document.querySelector('.ql-navbar'), document.getElementById('sidebar')];
+    const f = roots.flatMap((r) => [...r.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]).filter((e) => !e.disabled);
+    return document.activeElement === f[f.length - 1];
+  })()`))) fail('Shift+Tab desde el botón no llega al último control del panel (' + lastCtl + ')');
 
   // Escape
   await press(c, 'Escape', 'Escape', 27);

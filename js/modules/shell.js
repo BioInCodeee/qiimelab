@@ -262,6 +262,7 @@ export function renderShell(container, currentRoute) {
   // no qué hace — y porque es donde la gente ya mira cuando algo le molesta
   // visualmente.
   const densSeg = document.createElement('div');
+  densSeg.id = 'ql-density-seg';
   densSeg.className = 'ql-segmented ql-segmented-block';
   densSeg.setAttribute('role', 'group');
   densSeg.setAttribute('aria-label', t('shell.density'));
@@ -289,6 +290,7 @@ export function renderShell(container, currentRoute) {
     '<p class="ql-sidebar-note" style="margin:4px 0 10px;">' + t('shell.densityHelp') + '</p>');
 
   const themeSeg = document.createElement('div');
+  themeSeg.id = 'ql-theme-seg';
   themeSeg.className = 'ql-segmented ql-segmented-block';
   themeSeg.setAttribute('role', 'group');
   themeSeg.setAttribute('aria-label', t('shell.theme'));
