@@ -84,8 +84,8 @@ export function methodsText(selectedIds) {
     if (state.betaDiversity) bits.push(en ? 'a heatmap ordered by UPGMA hierarchical clustering' : 'un mapa de calor ordenado por clustering jerárquico UPGMA');
     if (state.ordination) bits.push(en ? 'principal coordinates analysis (PCoA)' : 'un análisis de coordenadas principales (PCoA)');
     P.push(en
-      ? `Between-sample (beta) diversity used ${distName} distances, visualised with ${bits.join(' and ')}.${firstGroup ? ` Group separation was tested with one-factor PERMANOVA (permutation of group labels; equivalent to vegan::adonis2) on the ${firstGroup} factor.` : ''}`
-      : `La diversidad entre muestras (beta) usó distancias ${distName}, representadas con ${bits.join(' y ')}.${firstGroup ? ` La separación entre grupos se contrastó con una PERMANOVA de un factor (permutación de las etiquetas de grupo; equivalente a vegan::adonis2) sobre ${firstGroup}.` : ''}`);
+      ? `Between-sample (beta) diversity used ${distName} distances, visualised with ${bits.join(' and ')}.${firstGroup ? ` Group separation was tested with one-factor PERMANOVA (permutation of group labels; equivalent to vegan::adonis2) on the ${firstGroup} factor, and homogeneity of multivariate dispersions with PERMDISP (distance to the group centroid; equivalent to vegan::betadisper with type = "centroid") on the same factor.` : ''}`
+      : `La diversidad entre muestras (beta) usó distancias ${distName}, representadas con ${bits.join(' y ')}.${firstGroup ? ` La separación entre grupos se contrastó con una PERMANOVA de un factor (permutación de las etiquetas de grupo; equivalente a vegan::adonis2) sobre ${firstGroup}, y la homogeneidad de las dispersiones multivariantes con PERMDISP (distancia al centroide del grupo; equivalente a vegan::betadisper con type = "centroid") sobre el mismo factor.` : ''}`);
   }
 
   // --- abundancia diferencial ---

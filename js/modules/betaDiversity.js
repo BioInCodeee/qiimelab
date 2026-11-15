@@ -1,6 +1,7 @@
 import { state, subscribe } from '../state.js';
 import { t, getLang } from '../lib/i18n.js';
 import { upgma, leafOrder, permanova, formatP, confidenceEllipsePoints } from '../lib/stats.js';
+import { permdisp } from '../lib/permdisp.js';
 import { upgmaOrderAsync } from '../lib/heavyStats.js';
 import { makeGroupResolver } from '../lib/sampleMatch.js';
 import { rda, cca } from '../lib/constrainedOrdination.js';
@@ -225,7 +226,14 @@ export function render(container) {
       } else {
         const sub = keep.map((i) => keep.map((j) => data.matrix[i][j]));
         const subGroups = keep.map((i) => groups[i]);
-        permResult = { key, res: permanova(sub, subGroups, { permutations: permN, seed: PERM_SEED }), sub, subGroups, subIds: keep.map((i) => data.sampleIds[i]) };
+        permResult = {
+          key,
+          res: permanova(sub, subGroups, { permutations: permN, seed: PERM_SEED }),
+          // PERMDISP sobre EXACTAMENTE el mismo subconjunto y las mismas
+          // permutaciones: si no, las dos tablas no serían comparables.
+          pd: permdisp(sub, subGroups, { permutations: permN, seed: PERM_SEED }),
+          sub, subGroups, subIds: keep.map((i) => data.sampleIds[i]),
+        };
       }
     }
     const r = permResult.res;
@@ -293,6 +301,266 @@ export function render(container) {
       hasDataFiles: pr.subIds.length > R_EMBED_MAX_ROWS,
     }));
     card.appendChild(rRow);
+
+    container.appendChild(card);
+
+    // PERMDISP justo debajo: responde la pregunta que el PERMANOVA deja
+    // abierta (¿centro o dispersión?), así que van siempre juntos.
+    renderPermdisp(m, sig);
+  }
+
+  // =========================================================================
+  //  PERMDISP — homogeneidad de dispersiones (js/lib/permdisp.js)
+  // =========================================================================
+
+  // Paleta categórica de los tokens del tema (misma que el resto de gráficos
+  // por grupo); el boxplot de abajo es un diagnóstico, no una figura del
+  // editor, así que se queda con los colores del tema sin pasar por él.
+  const PD_CAT = ['--cat-1', '--cat-2', '--cat-3', '--cat-4', '--cat-5', '--cat-6', '--cat-7'];
+  const pdColor = (i) => 'var(' + PD_CAT[i % PD_CAT.length] + ')';
+
+  /** Caja y bigotes (cuartiles tipo 7, bigotes a 1.5·IQR) de la distancia al
+   *  centroide, un grupo por posición del eje X. Diagnóstico visual del
+   *  PERMDISP: la tabla da el p, esto dice QUIÉN se dispersa más. */
+  function drawPermdispBox(pd, mountEl, yLabel) {
+    const groupsN = pd.groups.length;
+    const byGroup = pd.groups.map(() => []);
+    pd.distances.forEach((z, i) => { byGroup[pd.groupOf[i]].push(z); });
+
+    const marginL = 56, marginR = 16, marginT = 14, marginB = 46;
+    const slotW = Math.max(64, Math.min(130, 420 / groupsN));
+    const W = marginL + marginR + slotW * groupsN;
+    const H = 230;
+    const plotH = H - marginT - marginB;
+
+    let vMax = 0;
+    pd.distances.forEach((z) => { if (z > vMax) vMax = z; });
+    const yTop = vMax > 0 ? vMax * 1.12 : 1;
+    const yOf = (v) => marginT + plotH - (v / yTop) * plotH;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'ql-chart-wrap';
+    wrap.style.position = 'relative';
+    const svg = svgEl('svg', {
+      class: 'ql-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img',
+      'aria-label': yLabel, preserveAspectRatio: 'xMidYMid meet',
+    });
+
+    // eje Y con rejilla
+    const TICKS = 4;
+    for (let k = 0; k <= TICKS; k++) {
+      const v = (yTop * k) / TICKS;
+      const y = yOf(v);
+      svg.appendChild(svgEl('line', {
+        x1: marginL, y1: y, x2: W - marginR, y2: y,
+        stroke: 'var(--border)', 'stroke-width': k === 0 ? 1 : 0.5,
+      }));
+      const lab = svgEl('text', { x: marginL - 8, y: y + 3.5, 'text-anchor': 'end', class: 'ql-svg-tick' });
+      lab.textContent = v.toFixed(2);
+      svg.appendChild(lab);
+    }
+    const yTitle = svgEl('text', {
+      x: 12, y: marginT + plotH / 2, 'text-anchor': 'middle', class: 'ql-svg-axis',
+      transform: 'rotate(-90 12 ' + (marginT + plotH / 2) + ')',
+    });
+    yTitle.textContent = yLabel;
+    svg.appendChild(yTitle);
+
+    byGroup.forEach((vals, gi) => {
+      const xc = marginL + slotW * gi + slotW / 2;
+      const sorted = vals.slice().sort((a, b) => a - b);
+      // cuantiles tipo 7 (los de R por defecto)
+      const q = (p) => {
+        if (sorted.length === 1) return sorted[0];
+        const h = (sorted.length - 1) * p;
+        const lo = Math.floor(h);
+        return sorted[lo] + (h - lo) * (sorted[Math.min(lo + 1, sorted.length - 1)] - sorted[lo]);
+      };
+      const q1 = q(0.25), med = q(0.5), q3 = q(0.75);
+      const iqr = q3 - q1;
+      let lo = q1 - 1.5 * iqr, hi = q3 + 1.5 * iqr;
+      const inside = sorted.filter((v) => v >= lo && v <= hi);
+      lo = inside.length ? inside[0] : sorted[0];
+      hi = inside.length ? inside[inside.length - 1] : sorted[sorted.length - 1];
+
+      const bw = Math.min(46, slotW * 0.52);
+      const col = pdColor(gi);
+      // bigotes
+      svg.appendChild(svgEl('line', { x1: xc, y1: yOf(lo), x2: xc, y2: yOf(hi), stroke: col, 'stroke-width': 1.2 }));
+      svg.appendChild(svgEl('line', { x1: xc - bw / 4, y1: yOf(hi), x2: xc + bw / 4, y2: yOf(hi), stroke: col, 'stroke-width': 1.2 }));
+      svg.appendChild(svgEl('line', { x1: xc - bw / 4, y1: yOf(lo), x2: xc + bw / 4, y2: yOf(lo), stroke: col, 'stroke-width': 1.2 }));
+      // caja
+      svg.appendChild(svgEl('rect', {
+        x: xc - bw / 2, y: yOf(q3), width: bw, height: Math.max(1, yOf(q1) - yOf(q3)),
+        fill: col, 'fill-opacity': 0.18, stroke: col, 'stroke-width': 1.4, rx: 2,
+      }));
+      // mediana
+      svg.appendChild(svgEl('line', {
+        x1: xc - bw / 2, y1: yOf(med), x2: xc + bw / 2, y2: yOf(med), stroke: col, 'stroke-width': 2,
+      }));
+      // media (el estadístico que compara el test) como rombo
+      const my = yOf(pd.groupMeans[gi]);
+      svg.appendChild(svgEl('path', {
+        d: 'M' + xc + ' ' + (my - 4) + 'L' + (xc + 4) + ' ' + my + 'L' + xc + ' ' + (my + 4) + 'L' + (xc - 4) + ' ' + my + 'Z',
+        fill: 'var(--page)', stroke: col, 'stroke-width': 1.4,
+      }));
+      // puntos de cada muestra, desplazados en horizontal de forma determinista
+      vals.forEach((v, k) => {
+        const off = ((k % 5) - 2) * (bw / 12);
+        const dot = svgEl('circle', {
+          cx: xc + off, cy: yOf(v), r: 2.6, fill: col, 'fill-opacity': 0.75,
+          'data-pd-group': pd.groups[gi], 'data-pd-value': v.toFixed(4),
+        });
+        dot.style.cursor = 'crosshair';
+        svg.appendChild(dot);
+      });
+      // etiqueta del grupo
+      const xl = svgEl('text', { x: xc, y: H - marginB + 18, 'text-anchor': 'middle', class: 'ql-svg-tick' });
+      xl.textContent = pd.groups[gi];
+      svg.appendChild(xl);
+      const nl = svgEl('text', { x: xc, y: H - marginB + 32, 'text-anchor': 'middle', class: 'ql-svg-tick', 'fill-opacity': 0.65 });
+      nl.textContent = 'n=' + pd.groupSizes[gi];
+      svg.appendChild(nl);
+    });
+
+    wrap.appendChild(svg);
+    mountEl.appendChild(wrap);
+
+    delegateHover(svg, 'circle[data-pd-value]', {
+      onEnter: (el, e) => showTooltip(wrap, e.clientX, e.clientY, el.getAttribute('data-pd-group'),
+        [[yLabel, el.getAttribute('data-pd-value')]]),
+      onLeave: () => hideTooltip(wrap),
+    });
+  }
+
+  /** @param {string} m métrica activa  @param {boolean} permanovaSig si el PERMANOVA salió significativo */
+  function renderPermdisp(m, permanovaSig) {
+    const pd = permResult && permResult.pd;
+    if (!pd) return;
+
+    const card = document.createElement('section');
+    card.className = 'ql-card ql-panel';
+    card.style.marginTop = '20px';
+    card.innerHTML = '<h2>' + t('beta.pdTitle') + '</h2><p class="ql-panel-note">' + t('beta.pdNote') + '</p>';
+
+    if (pd.error) {
+      const ERR = {
+        size: 'beta.pdErrSize', groups: 'beta.pdErrGroups', replicates: 'beta.pdErrReplicates',
+        singleton: 'beta.pdErrSingleton', noreal: 'beta.pdErrNoreal',
+      };
+      const key = ERR[pd.code];
+      card.insertAdjacentHTML('beforeend',
+        '<p class="ql-field-help">' + (key ? t(key) : escapeHtml(pd.error)) + '</p>');
+      container.appendChild(card);
+      return;
+    }
+
+    const pdSig = isFinite(pd.p) && pd.p < 0.05;
+
+    // tabla ANOVA sobre las distancias al centroide
+    const scrollDiv = document.createElement('div');
+    scrollDiv.className = 'ql-table-scroll scroll-x';
+    const tbl = document.createElement('table');
+    tbl.className = 'ql-table';
+    tbl.innerHTML = '<thead><tr><th></th><th>' + t('beta.permDf') + '</th><th>' + t('beta.permSS') +
+      '</th><th>' + t('beta.pdMS') + '</th><th>' + t('beta.pdF') + '</th><th>' + t('beta.permP') + '</th></tr></thead>' +
+      '<tbody>' +
+      '<tr><td>' + t('beta.pdSource') + '</td><td class="ql-num tabular">' + pd.df1 + '</td>' +
+      '<td class="ql-num tabular">' + pd.ssB.toFixed(4) + '</td>' +
+      '<td class="ql-num tabular">' + pd.msB.toFixed(4) + '</td>' +
+      '<td class="ql-num tabular">' + pd.F.toFixed(3) + '</td>' +
+      '<td class="ql-num tabular">' + formatP(pd.p) + (pdSig ? ' <span class="mono">∗</span>' : '') + '</td></tr>' +
+      '<tr><td>' + t('beta.permResidual') + '</td><td class="ql-num tabular">' + pd.df2 + '</td>' +
+      '<td class="ql-num tabular">' + pd.ssW.toFixed(4) + '</td>' +
+      '<td class="ql-num tabular">' + pd.msW.toFixed(4) + '</td><td></td><td></td></tr>' +
+      '</tbody>';
+    scrollDiv.appendChild(tbl);
+    card.appendChild(scrollDiv);
+
+    const verdict = document.createElement('p');
+    verdict.style.cssText = 'margin:12px 0 0;font-size:13px;';
+    verdict.innerHTML = '<strong style="color:' + (pdSig ? 'var(--warn-ink, var(--ink))' : 'var(--ink-muted)') + ';">' +
+      (pdSig ? t('beta.pdSig') : t('beta.pdNs')) + '</strong> ' +
+      t('beta.pdPParam', { p: formatP(pd.pParam) });
+    card.appendChild(verdict);
+
+    // lectura conjunta de los dos tests: es la razón de tenerlos juntos
+    const joint = document.createElement('p');
+    joint.style.cssText = 'margin:10px 0 0;font-size:13px;padding:12px;border-radius:var(--radius-md);background:var(--page);border:1px solid var(--border);';
+    const jointKey = permanovaSig
+      ? (pdSig ? 'beta.pdJointBoth' : 'beta.pdJointLocation')
+      : (pdSig ? 'beta.pdJointDispersion' : 'beta.pdJointNeither');
+    joint.textContent = t(jointKey, { group: permGroupCol });
+    card.appendChild(joint);
+
+    // boxplot de las distancias al centroide
+    const boxWrap = document.createElement('div');
+    boxWrap.style.marginTop = '16px';
+    boxWrap.innerHTML = '<p class="ql-panel-note" style="margin-bottom:6px;">' + t('beta.pdBoxTitle') + '</p>';
+    card.appendChild(boxWrap);
+    drawPermdispBox(pd, boxWrap, t('beta.pdBoxY'));
+
+    // media y DT por grupo
+    const gScroll = document.createElement('div');
+    gScroll.className = 'ql-table-scroll scroll-x';
+    gScroll.style.marginTop = '14px';
+    const gTbl = document.createElement('table');
+    gTbl.className = 'ql-table';
+    let gHtml = '<thead><tr><th>' + t('beta.pdColGroup') + '</th><th>' + t('beta.pdColN') + '</th><th>' +
+      t('beta.pdColMean') + '</th><th>' + t('beta.pdColSd') + '</th></tr></thead><tbody>';
+    pd.groups.forEach((g, i) => {
+      gHtml += '<tr><td>' + escapeHtml(g) + '</td><td class="ql-num tabular">' + pd.groupSizes[i] + '</td>' +
+        '<td class="ql-num tabular">' + pd.groupMeans[i].toFixed(4) + '</td>' +
+        '<td class="ql-num tabular">' + pd.groupSds[i].toFixed(4) + '</td></tr>';
+    });
+    gTbl.innerHTML = gHtml + '</tbody>';
+    gScroll.appendChild(gTbl);
+    const gCap = document.createElement('p');
+    gCap.className = 'ql-panel-note';
+    gCap.style.cssText = 'margin:14px 0 6px;';
+    gCap.textContent = t('beta.pdGroupTableTitle');
+    card.appendChild(gCap);
+    card.appendChild(gScroll);
+
+    // comparaciones por pares (solo con 3+ grupos)
+    if (pd.pairwise && pd.pairwise.length) {
+      const pCap = document.createElement('p');
+      pCap.className = 'ql-panel-note';
+      pCap.style.cssText = 'margin:14px 0 6px;';
+      pCap.textContent = t('beta.pdPairTitle');
+      card.appendChild(pCap);
+      const pScroll = document.createElement('div');
+      pScroll.className = 'ql-table-scroll scroll-x';
+      const pTbl = document.createElement('table');
+      pTbl.className = 'ql-table';
+      let pHtml = '<thead><tr><th>' + t('beta.pdColPair') + '</th><th>' + t('beta.pdF') + '</th><th>' +
+        t('beta.permP') + '</th><th>' + t('beta.pdColPAdj') + '</th></tr></thead><tbody>';
+      pd.pairwise.forEach((x) => {
+        const s = isFinite(x.pAdj) && x.pAdj < 0.05;
+        pHtml += '<tr><td>' + escapeHtml(x.a) + ' vs ' + escapeHtml(x.b) + '</td>' +
+          '<td class="ql-num tabular">' + x.F.toFixed(3) + '</td>' +
+          '<td class="ql-num tabular">' + formatP(x.p) + '</td>' +
+          '<td class="ql-num tabular">' + formatP(x.pAdj) + (s ? ' <span class="mono">∗</span>' : '') + '</td></tr>';
+      });
+      pTbl.innerHTML = pHtml + '</tbody>';
+      pScroll.appendChild(pTbl);
+      card.appendChild(pScroll);
+    }
+
+    // avisos metodológicos: ejes imaginarios y centroide vs mediana espacial
+    if (pd.nNegAxes > 0) {
+      const neg = document.createElement('p');
+      neg.className = 'ql-field-help';
+      neg.textContent = t('beta.pdNegAxes', { metric: m, n: pd.nNegAxes, pct: (pd.negShare * 100).toFixed(1) });
+      card.appendChild(neg);
+    }
+    const cen = document.createElement('p');
+    cen.className = 'ql-field-help';
+    cen.style.fontStyle = 'italic';
+    cen.textContent = t('beta.pdCentroidNote');
+    card.appendChild(cen);
+    card.insertAdjacentHTML('beforeend', methodNoticeHtml('permdisp'));
+    noteMethods('beta', ['permdisp-f', 'permdisp']);
 
     container.appendChild(card);
   }

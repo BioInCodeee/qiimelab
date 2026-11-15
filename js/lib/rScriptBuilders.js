@@ -270,12 +270,17 @@ export function alphaScript(o) {
 export function permanovaScript(o) {
   const n = o.sampleIds.length;
   const header = rHeader({
-    title: 'PERMANOVA: ' + o.metricName + ' ~ "' + o.groupCol + '"',
+    title: 'PERMANOVA + PERMDISP: ' + o.metricName + ' ~ "' + o.groupCol + '"',
     what: 'Comprueba si la composición de las comunidades (resumida en la matriz de distancias "' + o.metricName +
-      '") difiere entre los grupos de "' + o.groupCol + '". Es la tabla PERMANOVA de la página de diversidad beta ' +
-      'de Smart-175: grados de libertad, sumas de cuadrados, R², pseudo-F y p por permutaciones.',
-    functions: ['vegan::adonis2 — PERMANOVA (Anderson 2001) sobre la matriz de distancias'],
-    methodIds: ['permanova'],
+      '") difiere entre los grupos de "' + o.groupCol + '", y si los grupos se dispersan por igual alrededor ' +
+      'de su propio centro. Son las dos tablas de la página de diversidad beta de Smart-175: PERMANOVA ' +
+      '(gl, sumas de cuadrados, R², pseudo-F y p por permutaciones) y PERMDISP (F y p sobre las distancias ' +
+      'al centroide). Hay que leerlas juntas: ver la nota del final.',
+    functions: [
+      'vegan::adonis2 — PERMANOVA (Anderson 2001) sobre la matriz de distancias',
+      'vegan::betadisper + permutest — PERMDISP (Anderson 2006), homogeneidad de dispersiones',
+    ],
+    methodIds: ['permanova', 'permdisp'],
     params: [
       ['Matriz de distancias', o.metricName + ' (' + n + ' muestras)'],
       ['Agrupación', 'columna "' + o.groupCol + '" de los metadatos' + (o.nDropped ? ' (' + o.nDropped + ' muestras sin valor en esa columna se han quitado, igual que en la app)' : '')],
@@ -306,10 +311,31 @@ export function permanovaScript(o) {
     'print(resultado)\n\n' +
     'cat(sprintf("\\nR² = %.4f: la agrupación explica el %.1f%% de la variación entre muestras (p = %.4g, %d permutaciones)\\n",\n' +
     '            resultado$R2[1], 100 * resultado$R2[1], resultado$`Pr(>F)`[1], ' + o.permutations + '))');
-  parts.push(rSection('Recordatorio'));
-  parts.push(rComment('PERMANOVA es sensible a la dispersión: si los grupos difieren mucho en su variabilidad ' +
-    'interna, un p significativo puede deberse a eso y no a un cambio de "centro". Para comprobarlo:') +
-    '\n# anova(betadisper(as.dist(D), metadatos$grupo))');
+  parts.push(rSection('3. PERMDISP (homogeneidad de dispersiones)'));
+  parts.push(rComment('PERMANOVA es sensible a la dispersión: si los grupos difieren mucho en su ' +
+    'variabilidad interna, un p significativo puede deberse a eso y no a un cambio de "centro". ' +
+    'PERMDISP (Anderson 2006) es la comprobación que falta, y es la segunda tabla de la página de ' +
+    'diversidad beta de Smart-175.\n' +
+    'OJO con type: el valor por defecto de vegan es "median" (mediana espacial). Smart-175 usa el ' +
+    'centroide aritmético, así que para reproducir sus números hay que pedir type = "centroid".') +
+    '\nset.seed(' + o.seed + ')\n' +
+    'disp <- betadisper(as.dist(D), metadatos$grupo, type = "centroid")\n' +
+    'print(anova(disp))                      # F y p paramétrico\n' +
+    'print(permutest(disp, permutations = ' + o.permutations + '))   # p por permutaciones (lo que muestra la app)\n' +
+    'print(tapply(disp$distances, disp$group, mean))  # distancia media al centroide, por grupo\n\n' +
+    '# comparaciones por pares, con la misma corrección BH que usa la app\n' +
+    'pw <- permutest(disp, pairwise = TRUE, permutations = ' + o.permutations + ')\n' +
+    'print(p.adjust(pw$pairwise$permuted, method = "BH"))\n\n' +
+    '# boxplot de las distancias al centroide (el mismo diagnóstico que dibuja la app)\n' +
+    'boxplot(disp, xlab = "' + o.groupCol.replace(/"/g, '\\"') + '", ylab = "Distancia al centroide")');
+  parts.push(rSection('Cómo leerlos juntos'));
+  parts.push(rComment('PERMANOVA significativo + PERMDISP no significativo → el caso limpio: cambia la ' +
+    'composición (desplazamiento del centro).\n' +
+    'PERMANOVA significativo + PERMDISP significativo → ambiguo: parte del efecto puede venir de que un ' +
+    'grupo es mucho más variable, no de un cambio de composición.\n' +
+    'PERMANOVA no significativo + PERMDISP significativo → mismo centro, distinta variabilidad interna ' +
+    '(resultado interpretable por sí mismo).\n' +
+    'Ninguno significativo → no hay evidencia de diferencia ni en centro ni en dispersión.'));
   return assembleScript('smart175_permanova_' + safeName(o.metricName) + '.R', parts);
 }
 

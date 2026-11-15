@@ -29,8 +29,10 @@ export const METHODS = Object.freeze({
   spearman: { level: 'A', tool: 'stats::cor' },
   bh: { level: 'A', tool: 'stats::p.adjust("BH")' },
   'permanova-f': { level: 'A', tool: 'vegan::adonis2 (pseudo-F)' },
+  'permdisp-f': { level: 'A', tool: 'vegan::betadisper (type = "centroid") → anova (F)' },
   // Nivel B
   permanova: { level: 'B', tool: 'vegan::adonis2', where: 'R' },
+  permdisp: { level: 'B', tool: 'vegan::betadisper + permutest', where: 'R' },
   rda: { level: 'B', tool: 'vegan::rda', where: 'R' },
   cca: { level: 'B', tool: 'vegan::cca', where: 'R' },
   upgma: { level: 'B', tool: 'stats::hclust(method = "average")', where: 'R' },
