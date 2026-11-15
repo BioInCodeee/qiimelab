@@ -2,6 +2,10 @@
 export default {
   app: { loading: '加载中…', moduleLoadError: '无法加载此模块', unknownError: '未知错误。' },
   nav: {
+    antagonismo: '拮抗试验',
+    diseno: '实验设计',
+    qpcr: 'qPCR',
+    mapaPlaca: '板位图',
     home: '概览', upload: '加载数据', barplots: '分类学条形图',
     alpha: 'Alpha 多样性', beta: 'Beta 多样性', temporal: '时间演变', differential: '差异丰度',
     recuentos: '微生物计数', ufc: 'CFU/mL 计算器', primers: 'Primers', arbol: '系统发育树',

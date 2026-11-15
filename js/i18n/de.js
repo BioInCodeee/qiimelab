@@ -2,6 +2,10 @@
 export default {
   app: { loading: 'Wird geladen…', moduleLoadError: 'Dieses Modul konnte nicht geladen werden', unknownError: 'Unbekannter Fehler.' },
   nav: {
+    antagonismo: 'Antagonismus',
+    diseno: 'Versuchsplaner',
+    qpcr: 'qPCR',
+    mapaPlaca: 'Plattenbelegung',
     home: 'Übersicht', upload: 'Daten laden', barplots: 'Taxonomische Barplots',
     alpha: 'Alpha-Diversität', beta: 'Beta-Diversität', temporal: 'Zeitlicher Verlauf', differential: 'Differenzielle Abundanz',
     recuentos: 'Mikrobielle Zählungen', ufc: 'KBE/mL-Rechner', primers: 'Primers', arbol: 'Phylogenetischer Baum',

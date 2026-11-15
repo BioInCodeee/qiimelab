@@ -2,6 +2,10 @@
 export default {
   app: { loading: 'Caricamento…', moduleLoadError: 'Impossibile caricare questo modulo', unknownError: 'Errore sconosciuto.' },
   nav: {
+    antagonismo: 'Antagonismo',
+    diseno: 'Pianificatore',
+    qpcr: 'qPCR',
+    mapaPlaca: 'Mappa della piastra',
     home: 'Panoramica', upload: 'Carica dati', barplots: 'Barplot tassonomici',
     alpha: 'Diversità alfa', beta: 'Diversità beta', temporal: 'Evoluzione temporale', differential: 'Abbondanza differenziale',
     recuentos: 'Conteggi microbici', ufc: 'Calcolatrice UFC/mL', calculadora: 'Calcolatrice', primers: 'Primers', arbol: 'Albero filogenetico',

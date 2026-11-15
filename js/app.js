@@ -45,6 +45,10 @@ const moduleLoaders = {
   temporal: () => import('./modules/temporal.js'),
   diferencial: () => import('./modules/differentialAbundance.js'),
   recuentos: () => import('./modules/microbialCounts.js'),
+  diseno: () => import('./modules/designPlanner.js'),
+  antagonismo: () => import('./modules/antagonism.js'),
+  'mapa-placa': () => import('./modules/plateMap.js'),
+  qpcr: () => import('./modules/qpcr.js'),
   // #/ufc: la calculadora vive ahora como pestaña de #/recuentos (Fase 2, B4);
   // el alias redirige para no romper enlaces guardados
   ufc: () => { location.replace('#/recuentos?tab=calc'); return import('./modules/microbialCounts.js'); },
