@@ -52,3 +52,24 @@ export function parseTable(text, delimiter) {
 export function normalizeHeader(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 }
+
+/**
+ * Serializa {headers, rows} a texto delimitado, entrecomillando solo los
+ * campos que lo necesitan (los que llevan el delimitador, comillas o salto de
+ * línea), con las comillas internas duplicadas — que es justo lo que
+ * `parseDelimited` sabe deshacer.
+ * @param {string[]} headers
+ * @param {Array<Object>} rows Objetos {cabecera: valor}.
+ * @param {string} [delimiter='\t'] TSV por defecto, que es la convención de
+ *   los metadatos de QIIME2.
+ * @returns {string} Termina en salto de línea.
+ */
+export function toDelimitedText(headers, rows, delimiter = '\t') {
+  const esc = (v) => {
+    const s = v == null ? '' : String(v);
+    return /["\r\n]/.test(s) || s.includes(delimiter) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.map(esc).join(delimiter)];
+  for (const r of rows) lines.push(headers.map((h) => esc(r[h])).join(delimiter));
+  return lines.join('\n') + '\n';
+}
