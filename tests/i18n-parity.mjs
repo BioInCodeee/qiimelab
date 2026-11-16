@@ -5,9 +5,10 @@
 // no existen en `es`) y las que no conservan los mismos `{marcadores}` que el
 // original (la interpolación dejaría `{n}` a la vista o perdería un dato).
 //
-// Es INFORMATIVO: reporta y sale con 0 aunque falten claves (it/de/zh solo
-// traducen la navegación a propósito). Con --strict sale con 1 si hay algún
-// hueco, para usarlo como puerta cuando se quiera exigir paridad completa.
+// Es INFORMATIVO: reporta y sale con 0 aunque falten claves. Los cinco
+// idiomas están completos (paridad 100%); si añades claves nuevas a es.js
+// tienes que añadirlas también a en/it/de/zh. Con --strict sale con 1 si hay
+// algún hueco, para usarlo como puerta de calidad en CI.
 //
 //   node tests/i18n-parity.mjs            # resumen + primeras claves de cada lista
 //   node tests/i18n-parity.mjs --all      # todas las claves
