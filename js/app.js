@@ -12,6 +12,7 @@ import { watchFieldLabels, linkFieldLabels } from './lib/a11yFields.js';
 import { initPWA, onPWAChange } from './lib/pwa.js';
 import { applyDataDensity, getDensity, prepareHelpToggles } from './lib/density.js';
 import { initTheme } from './lib/theme.js';
+import { initSobrio } from './lib/tardi.js';
 import { initNavDrawer } from './lib/navDrawer.js';
 import { captureRoute } from './lib/reportLog.js';
 
@@ -126,4 +127,5 @@ onPWAChange(() => renderFooter(footer));
 applyDataDensity(getDensity());
 initPWA();
 initTheme();
+initSobrio();
 renderRoute();

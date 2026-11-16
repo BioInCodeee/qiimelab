@@ -5,6 +5,7 @@ import { getProfileName } from '../lib/profile.js';
 import { slotFilled, GROUPS } from './shell.js';
 import { healthBannerEl } from '../lib/healthBanner.js';
 import { escapeHtml } from '../lib/dom.js';
+import { tardiHtml } from '../lib/tardi.js';
 import { mountExampleButtons, loadExampleCommunityData, loadRealCommunityData } from '../lib/exampleData.js';
 
 // La portada tiene UNA tarea: que quien entra sepa qué hacer a continuación.
@@ -79,11 +80,15 @@ export function render(container) {
       (Array.isArray(state.microbialCounts) && state.microbialCounts.length > 0);
 
     // ---- 1. la acción principal, sola y arriba ----
+    // Tardi (mascota, AGAR.md): esperando datos si no hay nada; celebrando si
+    // ya hay. El aria-label describe el estado, y el modo sobrio la oculta
+    // por CSS sin tocar este módulo.
     const cta = document.createElement('section');
-    cta.className = 'ql-card ql-panel';
-    cta.innerHTML = anyData
-      ? '<h2>' + t('home.ctaLoadedTitle') + '</h2><p class="ql-panel-note">' + t('home.ctaLoadedNote') + '</p>'
-      : '<h2>' + t('home.ctaEmptyTitle') + '</h2><p class="ql-panel-note">' + t('home.ctaEmptyNote') + '</p>';
+    cta.className = 'ql-card ql-panel ql-cta-tardi';
+    cta.innerHTML = tardiHtml(anyData ? 'celebrate' : 'idle', { lg: true }) +
+      (anyData
+        ? '<h2>' + t('home.ctaLoadedTitle') + '</h2><p class="ql-panel-note">' + t('home.ctaLoadedNote') + '</p>'
+        : '<h2>' + t('home.ctaEmptyTitle') + '</h2><p class="ql-panel-note">' + t('home.ctaEmptyNote') + '</p>');
 
     const ctaRow = document.createElement('div');
     ctaRow.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
