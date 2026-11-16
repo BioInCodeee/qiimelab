@@ -21,9 +21,18 @@ function esc(s) {
  *  hermanos ni descendientes uno del otro). Exportada para reutilizarla. */
 export function trapFocus(dlg, onEscape) {
   const roots = Array.isArray(dlg) ? dlg : [dlg];
+  // Un elemento que encaja con el selector no siempre puede recibir el foco:
+  // puede estar oculto (display:none, visibility:hidden) o pertenecer a una
+  // parte del panel que no se renderiza en ese ancho. Si se cuela en la lista,
+  // el ciclo de tabulacion manda el foco a la nada — y, peor, el "ultimo"
+  // elemento del ciclo pasa a ser invisible, asi que Shift+Tab desde el primero
+  // no lleva a ningun sitio util. getClientRects() vacio es la forma estandar
+  // de detectar lo no renderizado, y cubre display:none en cualquier ancestro.
+  const rendered = (el) => el.getClientRects().length > 0
+    && getComputedStyle(el).visibility !== 'hidden';
   const focusables = () => roots.flatMap((r) => Array.from(
     r.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
-  )).filter((el) => !el.disabled);
+  )).filter((el) => !el.disabled && el.getAttribute('tabindex') !== '-1' && rendered(el));
   const inside = () => roots.some((r) => r.contains(document.activeElement));
   function onKey(e) {
     if (e.key === 'Escape') { e.preventDefault(); onEscape(); return; }

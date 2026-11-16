@@ -262,6 +262,11 @@ export function renderShell(container, currentRoute) {
   // visualmente.
   const densSeg = document.createElement('div');
   densSeg.className = 'ql-segmented ql-segmented-block';
+  // Ancla estable para tests y hojas de estilo: hasta ahora los dos bloques
+  // segmentados del panel (densidad y tema) solo se distinguian por su orden
+  // en el DOM, y al anadir el de densidad los selectores genericos
+  // `.ql-segmented` pasaron a capturar los dos.
+  densSeg.dataset.seg = 'density';
   densSeg.setAttribute('role', 'group');
   densSeg.setAttribute('aria-label', t('shell.density'));
   const densNow = getDensity();
@@ -289,6 +294,7 @@ export function renderShell(container, currentRoute) {
 
   const themeSeg = document.createElement('div');
   themeSeg.className = 'ql-segmented ql-segmented-block';
+  themeSeg.dataset.seg = 'theme';
   themeSeg.setAttribute('role', 'group');
   themeSeg.setAttribute('aria-label', t('shell.theme'));
   const themeNow = getTheme();
@@ -326,10 +332,21 @@ export function renderShell(container, currentRoute) {
   nameInput.placeholder = t('shell.namePlaceholder');
   nameInput.setAttribute('aria-label', t('shell.nameLabel'));
   nameInput.value = getProfileName();
-  // guarda al salir del campo o con Enter; setProfileName avisa a sus
+  // Guarda al salir del campo o con Enter; setProfileName avisa a sus
   // suscriptores (app.js repinta barra + vista, así el "Hola, X" del hero
-  // también se actualiza al instante)
-  const commitName = () => setProfileName(nameInput.value);
+  // también se actualiza al instante).
+  //
+  // Solo se guarda si el valor ha CAMBIADO de verdad. Antes se guardaba en
+  // cada blur, y como el repintado vuelve a montar el sidebar entero, el nodo
+  // que iba a recibir el foco se destruía en ese mismo instante: tabular desde
+  // este campo hacia el siguiente control expulsaba el foco al body y sacaba
+  // del menú a quien navega con teclado, sin haber editado nada.
+  let committed = getProfileName();
+  const commitName = () => {
+    if (nameInput.value === committed) return;
+    committed = nameInput.value;
+    setProfileName(committed);
+  };
   nameInput.addEventListener('change', commitName);
   nameInput.addEventListener('blur', commitName);
   nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameInput.blur(); });
