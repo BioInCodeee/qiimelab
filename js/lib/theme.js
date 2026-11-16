@@ -38,12 +38,33 @@ function applyDataTheme(theme) {
 // Fuerza el color de la barra del navegador (meta theme-color) a seguir la
 // elección explícita en vez del prefers-color-scheme del SO; en 'auto' se
 // restauran las media queries originales que ya trae index.html.
+// Las dos <meta> se localizan UNA sola vez y se guardan. No se pueden volver
+// a buscar por su atributo `media` en cada llamada: este mismo código lo
+// reescribe (''/'not all'), así que a partir del primer cambio explícito el
+// selector [media*="light"] ya no casaba con nada, salía por el `return` de
+// abajo y el color de la barra del navegador se quedaba congelado en el del
+// primer cambio (light→dark→light no hacía nada). Se resuelven por posición
+// y se recuerda su `media` original en `dataset.origMedia` para 'auto'.
+let metas = null;
+function themeColorMetas() {
+  if (metas) return metas;
+  const all = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
+  const byMedia = (kind) => all.find((m) => (m.getAttribute('media') || '').includes(kind))
+    || all.find((m) => m.dataset.origMedia !== undefined && m.dataset.origMedia.includes(kind));
+  const light = byMedia('light');
+  const dark = byMedia('dark');
+  if (!light || !dark || light === dark) return null;
+  if (light.dataset.origMedia === undefined) light.dataset.origMedia = light.getAttribute('media') || '';
+  if (dark.dataset.origMedia === undefined) dark.dataset.origMedia = dark.getAttribute('media') || '';
+  metas = { light, dark };
+  return metas;
+}
+
 function applyMetaThemeColor(theme) {
-  const lightMeta = document.querySelector('meta[name="theme-color"][media*="light"]');
-  const darkMeta = document.querySelector('meta[name="theme-color"][media*="dark"]');
-  if (!lightMeta || !darkMeta) return;
-  if (lightMeta.dataset.origMedia === undefined) lightMeta.dataset.origMedia = lightMeta.getAttribute('media') || '';
-  if (darkMeta.dataset.origMedia === undefined) darkMeta.dataset.origMedia = darkMeta.getAttribute('media') || '';
+  const found = themeColorMetas();
+  if (!found) return;
+  const lightMeta = found.light;
+  const darkMeta = found.dark;
   if (theme === 'light') {
     lightMeta.setAttribute('media', '');
     darkMeta.setAttribute('media', 'not all');
