@@ -132,8 +132,8 @@ if (!findChrome()) {
     await c.ev(`location.hash = '#/'`); await sleep(1500);
     const home = await probe();
     check('<body> lleva data-ds="v2"', home.ds === 'v2', JSON.stringify(home.ds));
-    check('título de la portada en Fira Sans', /^"?Fira Sans/.test(home.h1Font), home.h1Font);
-    check('botón primario con el azul de marca v2 (#00107C)', home.btnBg === 'rgb(0, 16, 124)', home.btnBg);
+    check('título de la portada en IBM Plex Serif (Agar)', /^"?IBM Plex Serif/.test(home.h1Font), home.h1Font);
+    check('botón primario con el teal de marca (#12615F)', home.btnBg === 'rgb(18, 97, 95)', home.btnBg);
     check('«Generar informe completo» (barra lateral) con el mismo azul que la portada', home.ctaBg === home.btnBg, home.ctaBg);
     check('barra lateral y pie en Fira Sans', /^"?Fira Sans/.test(home.sidebarFont) && /^"?Fira Sans/.test(home.footerFont), home.sidebarFont + ' | ' + home.footerFont);
     check('Fira Sans cargada, desde el propio origen (fonts/)', home.firaLoaded && home.firaReq.length > 0 && home.firaReq.every((u) => u.startsWith('/fonts/')), JSON.stringify(home.firaReq));
@@ -141,17 +141,24 @@ if (!findChrome()) {
 
     await c.ev(`location.hash = '#/alfa'`); await sleep(2200);
     const alfa = await probe();
-    check('#/alfa: v2 sigue activo al cambiar de módulo (título en Fira Sans, azul de marca)', alfa.ds === 'v2' && /^"?Fira Sans/.test(alfa.h1Font) && alfa.viewAccent === '#00107c', JSON.stringify({ h1: alfa.h1Font, accent: alfa.viewAccent }));
+    check('#/alfa: v2 sigue activo al cambiar de módulo (título en serif, teal de marca)', alfa.ds === 'v2' && /^"?IBM Plex Serif/.test(alfa.h1Font) && alfa.viewAccent === '#12615f', JSON.stringify({ h1: alfa.h1Font, accent: alfa.viewAccent }));
     check('#/alfa: la figura conserva IBM Plex (marcas de eje en IBM Plex Mono)', /IBM Plex Mono/.test(alfa.tickFont || ''), String(alfa.tickFont));
     check('#/alfa: las cifras de KPI no llevan el punto de estado de la portada', alfa.kpiDot === 'none', String(alfa.kpiDot));
 
     await c.ev(`(async () => { const { setTheme } = await import('/js/lib/theme.js'); setTheme('dark'); })()`);
     await c.ev(`location.hash = '#/'`); await sleep(1500);
     const dark = await probe();
-    check('oscuro: portada con el azul claro derivado (#93C5FD)', dark.ds === 'v2' && dark.btnBg === 'rgb(147, 197, 253)', dark.btnBg);
+    check('oscuro: portada con el teal claro derivado (#57C9BE)', dark.ds === 'v2' && dark.btnBg === 'rgb(87, 201, 190)', dark.btnBg);
     await c.ev(`location.hash = '#/beta'`); await sleep(1500);
     const beta = await probe();
-    check('oscuro: #/beta con el azul de marca v2 (#93C5FD), no el teal', beta.viewAccent === '#93c5fd', beta.viewAccent);
+    // Antes esta comprobación distinguía v2 de :root por el color (azul v2 vs
+    // teal heredado). Desde Agar (16 nov 2026) la marca de :root y la de v2 son
+    // el mismo teal, así que el color ya no discrimina: lo que prueba que el
+    // bloque v2 está en efecto es la TIPOGRAFÍA de interfaz, que solo v2 pone en
+    // Fira Sans (:root sigue con IBM Plex Sans).
+    check('oscuro: #/beta con v2 realmente aplicado (teal de marca + Fira Sans de interfaz)',
+      beta.ds === 'v2' && beta.viewAccent === '#57c9be' && /^"?Fira Sans/.test(beta.sidebarFont),
+      JSON.stringify({ accent: beta.viewAccent, sidebar: beta.sidebarFont }));
 
     // ---- 3. encabezado de identidad (js/lib/brand.js) en los 4 breakpoints ----
     console.log('\n--- 3. encabezado: wordmark + motivo (375/768/1024/1440, claro y oscuro) ---');
