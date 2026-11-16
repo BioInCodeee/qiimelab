@@ -66,6 +66,14 @@
   --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 55%, transparent);
 
+  /* MASCOTA (Tardi, 16 nov 2026): el terracota Agar #b4532a, reservado a la
+     mascota y a las ilustraciones de placa — nunca dentro de una figura
+     (AGAR.md: ahí compite con --critical/--enriched). Tres tonos del mismo
+     matiz: cuerpo, detalle (patas, segmentos, rasgos) y disco de fondo. */
+  --tardi-body: #b4532a;
+  --tardi-deep: #8f3f1e;
+  --tardi-soft: color-mix(in srgb, var(--tardi-body) 9%, var(--surface));
+
   /* DATOS · par divergente: enriquecido / reducido */
   --enriched: #e34948;
   --depleted: #2a78d6;
@@ -131,6 +139,11 @@
     --accent-soft: color-mix(in srgb, var(--accent) 15%, var(--surface));
     --ring: color-mix(in srgb, var(--accent) 60%, transparent);
 
+    /* en oscuro el terracota se aclara para seguir leyéndose sobre #211c16 */
+    --tardi-body: #cf6b3f;
+    --tardi-deep: #a34f28;
+    --tardi-soft: color-mix(in srgb, var(--tardi-body) 16%, var(--surface));
+
     --enriched: #e66767;
     --depleted: #3987e5;
     --neutral: #6f6d67;
@@ -174,6 +187,11 @@
   --accent-ink: #04211f;
   --accent-soft: color-mix(in srgb, var(--accent) 15%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 60%, transparent);
+
+  /* en oscuro el terracota se aclara para seguir leyéndose sobre #211c16 */
+  --tardi-body: #cf6b3f;
+  --tardi-deep: #a34f28;
+  --tardi-soft: color-mix(in srgb, var(--tardi-body) 16%, var(--surface));
 
   --enriched: #e66767;
   --depleted: #3987e5;
@@ -244,6 +262,14 @@
   --accent-soft: color-mix(in srgb, var(--accent) 8%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 50%, transparent);
   --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 55%, transparent);
+
+  /* MASCOTA (Tardi, 16 nov 2026): el terracota Agar reservado a la mascota y
+     a las ilustraciones de placa (AGAR.md) — es el único sitio donde el
+     terracota no compite con --critical ni --enriched. Tres tonos: cuerpo,
+     detalle y disco de fondo. */
+  --tardi-body: #b4532a;
+  --tardi-deep: #8f3f1e;
+  --tardi-soft: color-mix(in srgb, var(--tardi-body) 9%, var(--surface));
 
   /* resalte ámbar del MASTER: SOLO relleno/marcas, con --highlight-ink encima */
   --highlight: #d97706;
@@ -325,6 +351,9 @@
     --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
     --ring: color-mix(in srgb, var(--accent) 60%, transparent);
     --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 50%, transparent);
+    --tardi-body: #cf6b3f;
+    --tardi-deep: #a34f28;
+    --tardi-soft: color-mix(in srgb, var(--tardi-body) 16%, var(--surface));
     --highlight: #f59e0b;
     --good-ink: #4ade80;
     --warning-ink: #fbbf24;
@@ -348,6 +377,9 @@
   --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 60%, transparent);
   --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 50%, transparent);
+  --tardi-body: #cf6b3f;
+  --tardi-deep: #a34f28;
+  --tardi-soft: color-mix(in srgb, var(--tardi-body) 16%, var(--surface));
   --highlight: #f59e0b;
   --good-ink: #4ade80;
   --warning-ink: #fbbf24;

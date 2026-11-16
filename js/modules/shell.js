@@ -6,6 +6,7 @@ import { t, getLang, setLang, LANGS } from '../lib/i18n.js';
 import { getProfileName, setProfileName } from '../lib/profile.js';
 import { getTheme, setTheme } from '../lib/theme.js';
 import { getDensity, setDensity } from '../lib/density.js';
+import { getSobrio, setSobrio } from '../lib/tardi.js';
 import { wordmarkHtml } from '../lib/brand.js';
 
 // Sistema de iconos propio: 24×24, trazo 1.7, extremos redondeados, sin
@@ -321,6 +322,37 @@ export function renderShell(container, currentRoute) {
     themeSeg.appendChild(b);
   });
   setWrap.appendChild(themeSeg);
+
+  // Mascota (Tardi): animada por defecto; «sobria» la desactiva del todo
+  // (AGAR.md). Va junto a tema y densidad porque es otro ajuste de ASPECTO,
+  // no de contenido — y es donde la gente ya mira cuando algo le sobra.
+  const mascSeg = document.createElement('div');
+  mascSeg.className = 'ql-segmented ql-segmented-block';
+  mascSeg.dataset.seg = 'mascota';
+  mascSeg.setAttribute('role', 'group');
+  mascSeg.setAttribute('aria-label', t('shell.mascota'));
+  const mascNow = getSobrio() ? 'sobria' : 'animada';
+  [['animada', t('shell.mascotaAnimada')], ['sobria', t('shell.mascotaSobria')]].forEach(([v, lbl]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ql-seg-btn' + (mascNow === v ? ' is-on' : '');
+    if (mascNow === v) b.setAttribute('aria-pressed', 'true');
+    b.textContent = lbl;
+    b.addEventListener('click', () => {
+      if (getSobrio() === (v === 'sobria')) return;
+      setSobrio(v === 'sobria');
+      mascSeg.querySelectorAll('.ql-seg-btn').forEach((btn) => {
+        const isOn = btn === b;
+        btn.classList.toggle('is-on', isOn);
+        if (isOn) btn.setAttribute('aria-pressed', 'true');
+        else btn.removeAttribute('aria-pressed');
+      });
+    });
+    mascSeg.appendChild(b);
+  });
+  setWrap.appendChild(mascSeg);
+  setWrap.insertAdjacentHTML('beforeend',
+    '<p class="ql-sidebar-note" style="margin:4px 0 10px;">' + t('shell.mascotaHelp') + '</p>');
 
   const nameInput = document.createElement('input');
   nameInput.type = 'text';

@@ -724,6 +724,47 @@ svg.ql-brand-mark {
 .ql-empty p { max-width: 48ch; margin: 0 auto 18px; font-size: 13.5px; line-height: 1.6; }
 .ql-empty .ql-btn { margin-top: 2px; }
 
+/* ---------- mascota (Tardi, 16 nov 2026) ----------
+   SVG plano de js/lib/tardi.js. El color es el terracota Agar (--tardi-*),
+   reservado a la mascota: nunca un color de datos ni dentro de una figura.
+   El movimiento va TODO detrás de prefers-reduced-motion; el modo sobrio
+   (ajuste de Ajustes, atributo data-sobrio en <html>) la esconde entera.
+   Los grupos animados usan transform-box: fill-box para que el origen del
+   transform sea su propia caja, no el lienzo del SVG. */
+.ql-tardi-wrap { display: inline-block; width: 116px; line-height: 0; }
+.ql-tardi-wrap.ql-tardi-lg { width: 168px; }
+.ql-tardi { display: block; width: 100%; height: auto; }
+
+[data-sobrio="on"] .ql-tardi-wrap { display: none !important; }
+
+.ql-tardi .ql-tardi-body,
+.ql-tardi .ql-tardi-eyes,
+.ql-tardi .ql-tardi-confetti { transform-box: fill-box; transform-origin: 50% 50%; }
+
+/* error: pose quieta, ladeada — es una inclinación, no una animación, así
+   que no depende de prefers-reduced-motion */
+.ql-tardi[data-state="error"] .ql-tardi-body { transform: rotate(-7deg); transform-origin: 38% 92%; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ql-tardi[data-state="idle"] .ql-tardi-body,
+  .ql-tardi[data-state="ready"] .ql-tardi-body { animation: tardi-bob 3.6s var(--ease, ease) infinite; }
+  .ql-tardi[data-state="idle"] .ql-tardi-eyes,
+  .ql-tardi[data-state="ready"] .ql-tardi-eyes { animation: tardi-blink 4.8s infinite; }
+  .ql-tardi[data-state="busy"] .ql-tardi-body { animation: tardi-rock 1.5s ease-in-out infinite; transform-origin: 50% 92%; }
+  .ql-tardi[data-state="warn"] .ql-tardi-body { animation: tardi-shake 1.1s ease-in-out infinite; }
+  .ql-tardi[data-state="celebrate"] .ql-tardi-body { animation: tardi-hop 0.62s cubic-bezier(.3, .7, .4, 1) infinite alternate; }
+  .ql-tardi[data-state="celebrate"] .ql-tardi-confetti { animation: tardi-float 2.1s ease-in-out infinite alternate; }
+}
+@keyframes tardi-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+@keyframes tardi-blink { 0%, 91%, 100% { transform: scaleY(1); } 94%, 96% { transform: scaleY(0.08); } }
+@keyframes tardi-rock { 0%, 100% { transform: rotate(-2.6deg); } 50% { transform: rotate(2.6deg); } }
+@keyframes tardi-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-1.6px); } 75% { transform: translateX(1.6px); } }
+@keyframes tardi-hop { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+@keyframes tardi-float { from { transform: translateY(0) rotate(0deg); opacity: .72; } to { transform: translateY(-3px) rotate(6deg); opacity: 1; } }
+
+/* colocación: portada, centrado sobre el título de la acción principal */
+.ql-cta-tardi .ql-tardi-wrap { display: block; margin: 0 auto 8px; }
+
 /* ---------- descargar archivos de ejemplo ---------- */
 .ql-exdl {
   margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border-strong);
