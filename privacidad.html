@@ -5,27 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
 <meta name="referrer" content="no-referrer" />
+<meta name="theme-color" content="#12615f" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)" />
 <title>Política de privacidad — Smart-175</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png" />
+<!-- Las tipografías propias, auto-hospedadas en fonts/ (font-src 'self' en la
+     CSP de arriba). Esta página declaraba 'Fira Sans' en su pila desde
+     siempre, pero nunca cargaba la fuente, así que caía a system-ui. -->
+<link rel="stylesheet" href="css/fonts.css" />
 <style>
-  :root { color-scheme: light dark; --ink: #16181d; --ink-2: #4a5160; --bg: #ffffff; --card: #f6f8fb; --line: #dfe4ec; --brand: #00107c; }
+  /* Paleta Agar (16 nov 2026). Esta página es deliberadamente autónoma —
+     su propia CSP, su propio estilo en línea, sin depender de css/tokens.css —
+     así que los valores van a mano, copiados de los tokens: crema cálido,
+     tinta cálida y el teal de marca, en vez del blanco/azul frío anterior.
+     tests/cromado-meta.mjs los compara contra css/tokens.css para que la
+     próxima paleta no vuelva a dejar esta página atrás. */
+  :root { color-scheme: light dark;
+          --ink: #1f1c17; --ink-2: #4a4236; --bg: #faf5ec; --card: #ffffff; --line: #e8dfcd; --brand: #12615f;
+          --font-display: "IBM Plex Serif", Georgia, "Times New Roman", serif; }
   @media (prefers-color-scheme: dark) {
-    :root { --ink: #e8ebf2; --ink-2: #a7b0c0; --bg: #0c1018; --card: #151b26; --line: #28303d; --brand: #93c5fd; }
+    :root { --ink: #f5efe4; --ink-2: #d2c8b8; --bg: #16130f; --card: #211c16; --line: rgba(245, 239, 228, 0.12); --brand: #57c9be; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; padding: 32px 20px 64px; background: var(--bg); color: var(--ink);
          font-family: 'Fira Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height: 1.6; }
   main { max-width: 760px; margin: 0 auto; }
+  /* titulares en serif: la firma de Agar */
+  h1, h2, h3 { font-family: var(--font-display); }
   h1 { font-size: 28px; line-height: 1.25; margin: 0 0 6px; }
   h2 { font-size: 19px; margin: 32px 0 8px; }
   h3 { font-size: 16px; margin: 22px 0 6px; }
   p, li { color: var(--ink); }
   .sub { color: var(--ink-2); margin: 0 0 24px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 20px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin: 20px 0; }
   ul { padding-left: 20px; }
   a { color: var(--brand); }
-  code { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 0.92em; }
+  code { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1px 5px; font-size: 0.92em; }
   hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0 32px; }
   footer { color: var(--ink-2); font-size: 14px; margin-top: 40px; }
 </style>
