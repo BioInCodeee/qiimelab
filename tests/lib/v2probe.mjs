@@ -7,11 +7,12 @@
 //                  Fuera: iconos, botones y controles interactivos de la figura
 //                  (asas role=slider, contornos del editor .ce-*)
 //   plexUI         texto de interfaz en IBM Plex (solo las figuras lo conservan)
-// Retirado (Agar, 16 nov 2026): «teal», que buscaba restos del cromado anterior
-// a v2. Desde Agar el teal ES el color de marca, así que la comprobación
-// marcaba como resto justo lo que ahora es correcto. Lo que de verdad delata
-// una vista con el cromado heredado es plexUI: la tipografía de interfaz solo
-// es Fira Sans dentro del bloque v2.
+//   legacy         restos del cromado ANTERIOR a Agar (los azules del v2
+//                  original). Hasta Agar (16 nov 2026) esta comprobación
+//                  buscaba el teal, que era el cromado previo a v2; desde Agar
+//                  el teal ES el color de marca, así que lo que hay que cazar
+//                  es el azul v2. La comprobación no se pierde: cambia de
+//                  objetivo al cromado que ahora queda atrás.
 // Se omiten: lo decorativo (aria-hidden), lo atenuado/deshabilitado (exento en
 // WCAG) y el texto SVG que va sobre celdas/barras (su fondo no es el contenedor).
 export const V2_PROBE = `
@@ -50,7 +51,9 @@ export const V2_PROBE = `
   const accent = toRgba(getComputedStyle(document.body).getPropertyValue('--accent').trim());
   const accent2 = toRgba(getComputedStyle(document.body).getPropertyValue('--accent-2').trim());
   const same = (a, b) => a && b && a[3] > 0 && Math.abs(a[0] - b[0]) < 2 && Math.abs(a[1] - b[1]) < 2 && Math.abs(a[2] - b[2]) < 2;
-  const out = { lowText: [], fadedLow: 0, accentInChart: [], plexUI: [], unknownBg: 0, nText: 0 };
+  // azules del v2 original: --accent/--accent-2 en claro y en oscuro
+  const LEGACY = ['#00107c', '#000a5a', '#93c5fd', '#bfdbfe'].map(toRgba);
+  const out = { lowText: [], fadedLow: 0, accentInChart: [], plexUI: [], legacy: [], unknownBg: 0, nText: 0 };
   const scope = [document.getElementById('app-view'), document.getElementById('sidebar'), document.getElementById('app-footer')];
   const desc = (el) => {
     const cls = typeof el.className === 'string' ? el.className : (el.className && el.className.baseVal) || '';
@@ -62,6 +65,10 @@ export const V2_PROBE = `
       if (!vis(el)) return;
       const s = getComputedStyle(el);
       const inSvg = !!el.closest('svg');
+      // restos del cromado anterior a Agar (azules del v2 original)
+      ['color', 'backgroundColor', 'borderTopColor', 'fill', 'stroke'].forEach((p) => {
+        const c = toRgba(s[p]); if (c && LEGACY.some((t) => same(c, t))) out.legacy.push(desc(el) + ' ' + p);
+      });
       // IBM Plex fuera de figuras. Desde Agar (16 nov 2026) los TITULARES van
       // en IBM Plex Serif a propósito (--font-display), así que lo que delata
       // el cromado heredado es IBM Plex Sans o Mono en texto de interfaz: la
@@ -103,6 +110,7 @@ export const V2_PROBE = `
   out.lowText = uniq(out.lowText).slice(0, 40);
   out.accentInChart = uniq(out.accentInChart).slice(0, 20);
   out.plexUI = uniq(out.plexUI).slice(0, 20);
+  out.legacy = uniq(out.legacy).slice(0, 20);
   return out;
 })()
 `;
