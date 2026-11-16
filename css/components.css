@@ -91,7 +91,9 @@ svg.ql-brand-mark {
   margin-left: auto;
   font-family: var(--font-mono);
   font-size: 9.5px;
-  color: var(--ink-muted);
+  /* a 9,5px y sobre la barra lateral, --ink-muted se queda en 4,43:1 en
+     oscuro: este rótulo usa el tono de texto secundario */
+  color: var(--ink-2);
   letter-spacing: 0.04em;
 }
 
@@ -575,7 +577,9 @@ svg.ql-brand-mark {
 /* ---------- matriz de consenso entre métodos ---------- */
 .ql-consensus th[scope="row"] { text-align: left; font-weight: 600; white-space: nowrap; }
 .ql-consensus .ql-cons-diag { font-weight: 700; background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.ql-cons-disc { color: var(--critical); font-size: 12px; white-space: nowrap; }
+/* --critical es un color de DATOS: como texto se queda en 4,42:1 sobre el
+   crema, igual que pasaba con --good y --warning. Va su tono de texto. */
+.ql-cons-disc { color: var(--critical-ink, var(--critical)); font-size: 12px; white-space: nowrap; }
 .ql-cons-ok { color: var(--good-ink, var(--good)); font-weight: 700; }
 
 /* ---------- calculadora UFC/mL ---------- */
@@ -2361,6 +2365,10 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
   font-weight: 600;
   font-size: 11.5px;
   letter-spacing: 0.09em;
+  /* Agar (16 nov 2026): con el crema de fondo, --ink-muted sobre el trazo más
+     denso del motivo se quedaba en 4,23:1. El rótulo sube a --ink-2 (6,5:1):
+     es un rótulo corto en versalitas, no texto secundario corrido. */
+  color: var(--ink-2);
 }
 /* ámbar del MASTER: solo como marca gráfica, nunca como color de texto */
 [data-ds="v2"] .ql-eyebrow::before { width: 16px; height: 3px; background: var(--highlight); }
@@ -2502,13 +2510,14 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
 /* ============================================================
    v2 GLOBAL — cromado común (fase global, 28 sep 2026)
    ============================================================ */
-/* el fondo de <html> (rebote del scroll) queda fuera de <body>: se iguala a
-   mano al --page de v2 */
-html:has(> body[data-ds="v2"]) { background: #f8fafc; }
-:root[data-theme="dark"]:has(> body[data-ds="v2"]) { background: #0c1018; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):has(> body[data-ds="v2"]) { background: #0c1018; }
-}
+/* el fondo de <html> (rebote del scroll) queda fuera de <body). Estaba
+   igualado A MANO al --page de v2 (#f8fafc claro, #0c1018 oscuro, una regla
+   por tema), y Agar cambió --page sin tocar estos tres hexes: el rebote del
+   scroll seguía pintando el gris frío y el negro frío de antes. Como --page
+   se declara en :root, que ES <html>, basta con leer el token — y así no
+   vuelve a quedarse atrás en la próxima paleta. Una regla en vez de tres: el
+   propio token ya resuelve claro/oscuro. */
+html:has(> body[data-ds="v2"]) { background: var(--page); }
 
 /* barra lateral: rótulos de sección y «sin datos» en Fira Sans (Fira Code
    queda solo para cifras); el ítem activo, con el azul de marca */

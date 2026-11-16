@@ -36,21 +36,21 @@
 :root {
   color-scheme: light;
 
-  /* superficies */
-  --surface: #fcfcfb;
-  --page: #f7f7f5;
-  --border: rgba(11, 11, 11, 0.10);
-  --border-strong: rgba(11, 11, 11, 0.16);
-  --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 10px 30px -8px rgba(11, 11, 11, 0.08);
-  --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.05);
+  /* superficies — paleta Agar (16 nov 2026): crema cálido en vez de gris frío */
+  --surface: #ffffff;
+  --page: #faf5ec;
+  --border: #e8dfcd;
+  --border-strong: #e0d2b6;
+  --shadow: 0 1px 2px rgba(31, 28, 23, 0.06), 0 10px 30px -8px rgba(31, 28, 23, 0.10);
+  --shadow-sm: 0 1px 2px rgba(31, 28, 23, 0.06);
   /* sombra de color del botón primario al pasar el ratón (sale de --accent,
      así que sigue sola al tema claro/oscuro) */
   --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 60%, transparent);
 
-  /* tinta */
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-muted: #6f6e69; /* WCAG AA: 4.98:1 sobre --surface, 4.76:1 sobre --page (antes #898781 = 3.4:1, texto normal) */
+  /* tinta — cálida, para no ensuciar el crema con gris azulado */
+  --ink: #1f1c17;
+  --ink-2: #4a4236;
+  --ink-muted: #6b6153; /* WCAG AA: 6,1:1 sobre --surface, 5,6:1 sobre --page */
   /* líneas de figura: gridline = rejilla suave, baseline = ejes con más peso */
   --gridline: #e4e3dc;
   --baseline: #a9a79b;
@@ -59,7 +59,9 @@
      y --page, y a ΔE(OKLab) >= 15 de las 8 categorías de datos, para que un
      botón nunca se confunda con una serie. */
   --accent: #12615f;
-  --accent-2: #17756f;
+  /* hover: antes #17756f, que quedaba a ΔE 13,7 de --cat-6 (incumplía el
+     suelo de 15 que comprueba tests/design-v2.mjs). #0d4f4d: ΔE 18,6. */
+  --accent-2: #0d4f4d;
   --accent-ink: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 55%, transparent);
@@ -110,16 +112,16 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --surface: #1a1a19;
-    --page: #0d0d0d;
-    --border: rgba(255, 255, 255, 0.10);
-    --border-strong: rgba(255, 255, 255, 0.18);
+    --surface: #211c16;
+    --page: #16130f;
+    --border: rgba(245, 239, 228, 0.12);
+    --border-strong: rgba(245, 239, 228, 0.22);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.45);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
 
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --ink-muted: #898781;
+    --ink: #f5efe4;
+    --ink-2: #d2c8b8;
+    --ink-muted: #a2967f;
     --gridline: #2c2c2b;
     --baseline: #4c4c46;
 
@@ -154,16 +156,16 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface: #1a1a19;
-  --page: #0d0d0d;
-  --border: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --surface: #211c16;
+  --page: #16130f;
+  --border: rgba(245, 239, 228, 0.12);
+  --border-strong: rgba(245, 239, 228, 0.22);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.45);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
 
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --ink-muted: #898781;
+  --ink: #f5efe4;
+  --ink-2: #d2c8b8;
+  --ink-muted: #a2967f;
   --gridline: #2c2c2b;
   --baseline: #4c4c46;
 
@@ -217,21 +219,27 @@
    ============================================================ */
 [data-ds="v2"] {
   --surface: #ffffff;
-  --page: #f8fafc;
-  --border: #dbe4f0;
-  --border-strong: #c3d0e3;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+  --page: #faf5ec;
+  --border: #e8dfcd;
+  --border-strong: #e0d2b6;
+  --shadow-sm: 0 1px 2px rgba(31, 28, 23, 0.06);
+  --shadow: 0 1px 2px rgba(31, 28, 23, 0.06), 0 4px 14px -2px rgba(31, 28, 23, 0.10);
 
-  --ink: #0f172a;
-  --ink-2: #334155;
-  --ink-muted: #475569;
+  --ink: #1f1c17;
+  --ink-2: #4a4236;
+  --ink-muted: #6b6153;
 
-  /* azul de marca: el #1E40AF del MASTER quedaba a ΔE 5,7 de --cat-7 y 15,5
-     de --cat-1/--depleted (tarea 5, 28 sep 2026) → ultramar más oscuro, a
-     ΔE ≥ 15 de TODOS los colores de datos y también de --ink (ver arriba) */
-  --accent: #00107c;
-  --accent-2: #000a5a;
+  /* MARCA (Agar, 16 nov 2026): el terracota #b4532a del sistema Agar NO puede
+     ser la marca — queda a ΔE 7,0 de --critical y 9,7 de --enriched, así que un
+     botón primario se leería como un valor crítico. El barrido de todo el rango
+     cálido (hue 15-95) solo deja castaños muy oscuros en claro y rosas casi
+     neutros (croma 0,03) en oscuro, porque la paleta de datos ya ocupa naranja,
+     rojo, ámbar y amarillo. Decisión: el calor lo ponen las SUPERFICIES crema y
+     la serif en titulares, y la marca vuelve al teal, que sigue libre de datos.
+     El terracota sobrevive en la mascota y las ilustraciones de placa, que no
+     son figuras de datos. */
+  --accent: #12615f;
+  --accent-2: #0d4f4d;
   --accent-ink: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 8%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 50%, transparent);
@@ -256,14 +264,35 @@
   --panel: var(--surface);
   --ink-1: var(--ink);
   --ink-3: var(--ink-muted);
+  /* Agar (16 nov 2026): mismos síntomas, seis tokens más que se usaban sin
+     existir, así que SIEMPRE ganaba el fallback y esos trozos de interfaz se
+     quedaban congelados en claro y en el azul viejo, sin seguir el tema:
+       --line      js/modules/plateMap.js, antagonism.js
+       --brand     js/modules/plateMap.js (y components.css)
+       --warn-ink  designPlanner.js, betaDiversity.js, qpcr.js, antagonism.js
+       --font-ui   plateMap.js
+       --bad       components.css (insignia de error)
+       --focus     components.css (anillo de foco)
+     Los --fig-* y --danger-color NO entran aquí: ya caen en tokens reales y
+     son puntos de personalización por figura, a propósito. */
+  --line: var(--border);
+  --brand: var(--accent);
+  --warn-ink: var(--warning-ink);
+  --font-ui: var(--font-body);
+  --bad: var(--critical);
+  --focus: var(--ring);
 
-  --font-display: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Agar: serif en titulares (efecto cuaderno de poyata), Fira Sans en texto e
+     interfaz, Fira Code en cifras. Las dos ya están auto-hospedadas en fonts/:
+     cero peticiones externas, cero archivos nuevos. */
+  --font-display: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --font-body: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Fira Code", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* esquinas más generosas que el v2 original (6/8/12) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 
   /* escala de espaciado del MASTER (densidad 6/10) */
   --space-xs: 4px;
@@ -281,18 +310,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) [data-ds="v2"] {
-    --surface: #141b28;
-    --page: #0c1018;
-    --border: rgba(148, 163, 184, 0.16);
-    --border-strong: rgba(148, 163, 184, 0.30);
+    --surface: #211c16;
+    --page: #16130f;
+    --border: rgba(245, 239, 228, 0.14);
+    --border-strong: rgba(245, 239, 228, 0.26);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px -8px rgba(0, 0, 0, 0.55);
-    --ink: #f1f5f9;
-    --ink-2: #cbd5e1;
-    --ink-muted: #94a3b8;
-    --accent: #93c5fd;
-    --accent-2: #bfdbfe;
-    --accent-ink: #0b1220;
+    --ink: #f5efe4;
+    --ink-2: #d2c8b8;
+    --ink-muted: #a2967f;
+    --accent: #57c9be;
+    --accent-2: #74d6cb;
+    --accent-ink: #04211f;
     --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
     --ring: color-mix(in srgb, var(--accent) 60%, transparent);
     --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 50%, transparent);
@@ -304,18 +333,18 @@
 }
 
 :root[data-theme="dark"] [data-ds="v2"] {
-  --surface: #141b28;
-  --page: #0c1018;
-  --border: rgba(148, 163, 184, 0.16);
-  --border-strong: rgba(148, 163, 184, 0.30);
+  --surface: #211c16;
+  --page: #16130f;
+  --border: rgba(245, 239, 228, 0.14);
+  --border-strong: rgba(245, 239, 228, 0.26);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px -8px rgba(0, 0, 0, 0.55);
-  --ink: #f1f5f9;
-  --ink-2: #cbd5e1;
-  --ink-muted: #94a3b8;
-  --accent: #93c5fd;
-  --accent-2: #bfdbfe;
-  --accent-ink: #0b1220;
+  --ink: #f5efe4;
+  --ink-2: #d2c8b8;
+  --ink-muted: #a2967f;
+  --accent: #57c9be;
+  --accent-2: #74d6cb;
+  --accent-ink: #04211f;
   --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
   --ring: color-mix(in srgb, var(--accent) 60%, transparent);
   --shadow-btn-primary: 0 5px 16px -5px color-mix(in srgb, var(--accent) 50%, transparent);

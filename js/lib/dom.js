@@ -110,3 +110,19 @@ export function plotClip(svg, id, x, y, w, h) {
   defs.appendChild(cp);
   return 'url(#' + id + ')';
 }
+
+/**
+ * Valor actual de un token de diseño, leído del DOM.
+ *
+ * Para lo que se dibuja en <canvas>, donde no hay CSS que resuelva var() y
+ * hasta ahora los colores iban incrustados a mano: así la marca sobre la foto
+ * de una placa sigue el tema claro/oscuro como el resto de la interfaz.
+ *
+ * @param {string} name      nombre del token, con los dos guiones ('--accent')
+ * @param {string} fallback  valor si el token no existe o aún no hay estilos
+ * @returns {string}
+ */
+export function token(name, fallback = '') {
+  const v = getComputedStyle(document.body).getPropertyValue(name).trim();
+  return v || fallback;
+}
