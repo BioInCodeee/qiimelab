@@ -13,7 +13,20 @@ export default {
     sanger: 'Sanger-Sequenzierung',
     venn: 'Venn / UpSet', correlograma: 'Korrelogramm', funcional: 'Funktionelle Indizes', inference: 'Funktionelle Inferenz', qc: 'Qualitätskontrolle (FASTQ)', informe: 'Kombinierter Bericht', recursos: 'Ressourcen', glosario: 'Glossar', validacion: 'Statistische Validierung',
   },
+  // Mascota (Tardi). El aria-label describe EL ESTADO, no al animal:
+  // a quien navega con lector de pantalla le sirve saber que el analisis
+  // esta listo, no que hay un tardigrado en pantalla (AGAR.md).
+  tardi: {
+    idle: 'Warten auf Daten',
+    busy: 'Verarbeitung',
+    ready: 'Bereit',
+    warn: 'Mit Warnungen',
+    error: 'Mit Fehlern',
+    celebrate: 'Alles bereit',
+  },
   shell: {
+    mascota: 'Maskottchen', mascotaAnimada: 'Animiert', mascotaSobria: 'Schlicht',
+    mascotaHelp: 'Schlicht blendet das Maskottchen in Panels und Leerzuständen aus. Es ändert keine Ergebnisse.',
     density: 'Dichte der Oberfläche',
     densityGuided: 'Geführt',
     densityCompact: 'Kompakt',

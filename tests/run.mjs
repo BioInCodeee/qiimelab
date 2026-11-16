@@ -56,6 +56,7 @@ const SUITE = [
   { name: 'storage-migration', file: 'storage-migration.mjs', kind: 'navegador' },
   { name: 'theme-default', file: 'theme-default.mjs', kind: 'navegador' },
   { name: 'theme-meta', file: 'theme-meta.mjs', kind: 'estático' },
+  { name: 'tardi', file: 'tardi.mjs', kind: 'estático' },
   { name: 'cromado-meta', file: 'cromado-meta.mjs', kind: 'estático' },
   { name: 'security-headers', file: 'security-headers.mjs', kind: 'navegador' },
   { name: 'button-hover', file: 'button-hover.mjs', kind: 'navegador' },

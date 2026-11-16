@@ -13,7 +13,20 @@ export default {
     sanger: 'Sanger 测序',
     venn: 'Venn / UpSet', correlograma: '相关图', funcional: '功能指数', inference: '功能推断', qc: '质量控制（FASTQ）', informe: '综合报告', recursos: '资源', glosario: '术语表', validacion: '统计验证',
   },
+  // Mascota (Tardi). El aria-label describe EL ESTADO, no al animal:
+  // a quien navega con lector de pantalla le sirve saber que el analisis
+  // esta listo, no que hay un tardigrado en pantalla (AGAR.md).
+  tardi: {
+    idle: '等待数据',
+    busy: '正在处理',
+    ready: '就绪',
+    warn: '有警告',
+    error: '有错误',
+    celebrate: '一切就绪',
+  },
   shell: {
+    mascota: '吉祥物', mascotaAnimada: '动画', mascotaSobria: '简洁',
+    mascotaHelp: '简洁模式会在面板和空状态中隐藏吉祥物。不会改变任何结果。',
     density: '界面密度',
     densityGuided: '引导式',
     densityCompact: '紧凑',

@@ -1,6 +1,11 @@
 # Agar — revisión visual módulo a módulo
 
-Estado: cimientos hechos (16 nov 2026). Falta la pasada por módulos.
+Estado (16 nov 2026): cimientos hechos, pasada por módulos hecha, cromado y
+mascota hechos. Queda lo listado en «Lo que falta del sistema».
+
+Esta línea se quedó desactualizada una vez diciendo «falta la pasada por
+módulos» cuando más abajo, en el mismo archivo, ya estaba documentada como
+hecha. Al cerrar algo, actualizar **las dos**.
 
 Agar es la dirección visual que sustituye al cromado del v2 original. Cambia
 superficies, tinta, tipografía y radios; **no cambia los colores de datos**.
@@ -73,9 +78,17 @@ Primero lo que más se ve y menos riesgo tiene:
 
 ## Lo que falta del sistema, aparte de los módulos
 
-- **Mascota (Tardi)** y sus seis estados: no está implementada. Al hacerlo,
-  SVG plano, `role="img"` con `aria-label` que describa el estado y no el
-  animal, y un ajuste de «modo sobrio» que la desactive.
+- ~~**Mascota (Tardi)** y sus seis estados~~ → **hecha (16 nov 2026)**.
+  `js/lib/tardi.js`: SVG plano dibujado a mano, sin `defs` ni `id` (así varias
+  instancias no chocan), `role="img"` con `aria-label` que describe el estado y
+  no al animal, y modo sobrio (`localStorage` + `data-sobrio` en `<html>` +
+  una regla de CSS), con su ajuste junto a tema y densidad. Pintada en la
+  portada (`home.js`). `tests/tardi.mjs` comprueba los seis estados, el
+  `aria-label` **resuelto en los cinco idiomas** y el modo sobrio.
+  Cuidado con el fallo que tuvo esto en su WIP: la mascota se pintaba bien y
+  los tests de vista pasaban, pero no existía ninguna clave `tardi.*`, así que
+  el `aria-label` era literalmente «tardi.idle». Un estado nuevo necesita sus
+  cinco traducciones, y `tests/tardi.mjs` es la puerta.
 - **Módulo de enfrentamientos** (captura, resultado, estado vacío): diseñado,
   sin construir. Es un módulo autónomo, como `labcalc.js`.
 - **Tabla de réplicas** y **barra inferior de módulos**: especificadas en el

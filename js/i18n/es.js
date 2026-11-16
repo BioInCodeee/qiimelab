@@ -13,7 +13,20 @@ export default {
     sanger: 'Secuenciación Sanger',
     venn: 'Venn / UpSet', correlograma: 'Correlograma', funcional: 'Índices funcionales', inference: 'Inferencia funcional', qc: 'Control de calidad (FASTQ)', informe: 'Informe combinado', recursos: 'Recursos', glosario: 'Glosario', validacion: 'Validación estadística',
   },
+  // Mascota (Tardi). El aria-label describe EL ESTADO, no al animal:
+  // a quien navega con lector de pantalla le sirve saber que el analisis
+  // esta listo, no que hay un tardigrado en pantalla (AGAR.md).
+  tardi: {
+    idle: 'Esperando datos',
+    busy: 'Procesando',
+    ready: 'Listo',
+    warn: 'Con avisos',
+    error: 'Con errores',
+    celebrate: 'Todo listo',
+  },
   shell: {
+    mascota: 'Mascota', mascotaAnimada: 'Animada', mascotaSobria: 'Sobria',
+    mascotaHelp: 'En sobria se oculta la mascota de los paneles y los estados vacíos. No cambia ningún resultado.',
     density: 'Densidad de la interfaz',
     densityGuided: 'Guiado',
     densityCompact: 'Compacto',

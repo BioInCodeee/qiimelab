@@ -160,11 +160,11 @@ function glass() {
 function confetti() {
   return '<g class="ql-tardi-confetti">' +
     '<rect x="54" y="10" width="4.5" height="7.5" rx="1.2" fill="' + BODY + '" transform="rotate(20 56 14)"/>' +
-    '<circle cx="72" cy="7" r="2.6" fill="var(--accent)"/>' +
+    '<circle cx="72" cy="7" r="2.6" fill="var(--tardi-deep)"/>' +
     '<rect x="86" y="12" width="4.5" height="7.5" rx="1.2" fill="var(--highlight)" transform="rotate(-15 88 16)"/>' +
     '<circle cx="101" cy="6.5" r="2.4" fill="' + DEEP + '"/>' +
     '<rect x="42" y="17" width="4" height="6.5" rx="1.1" fill="var(--highlight)" transform="rotate(-25 44 20)"/>' +
-    '<circle cx="112" cy="28" r="2.4" fill="var(--accent)"/>' +
+    '<circle cx="112" cy="28" r="2.4" fill="var(--tardi-body)"/>' +
     '</g>';
 }
 
