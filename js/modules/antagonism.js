@@ -20,6 +20,7 @@ import {
   prepareField, sectorRadius, freestDirection,
 } from '../lib/plateMetrology.js';
 import { confrontation, halo, formatMm, WARN } from '../lib/antagonismMetrics.js';
+import { token } from '../lib/dom.js';
 import { toDelimitedText } from '../lib/csv.js';
 import { suggestRoi, toGrayscale } from '../lib/colonyCount.js';
 
@@ -247,8 +248,9 @@ export function render(container, opts = {}) {
     ctx.stroke();
 
     if (s.mode === 'enfrentamiento') {
-      // punto de siembra
-      ctx.fillStyle = '#00107C';
+      // punto de siembra: marca de la app, así que va en el color de marca
+      // (antes el azul v2 incrustado, que ya no existe en ningún token)
+      ctx.fillStyle = token('--accent', '#12615f');
       ctx.beginPath();
       ctx.arc(p.center.x, p.center.y, 5, 0, 2 * Math.PI);
       ctx.fill();
@@ -280,11 +282,13 @@ export function render(container, opts = {}) {
         ctx.arc(a.x, a.y, (row.mean / 2) / m.mmPx, 0, 2 * Math.PI);
         ctx.stroke();
       }
-      ctx.fillStyle = '#D97706';
+      // antagonistas: --highlight es justo esto, ámbar como relleno o marca,
+      // nunca como color de texto
+      ctx.fillStyle = token('--highlight', '#d97706');
       ctx.beginPath();
       ctx.arc(a.x, a.y, 6, 0, 2 * Math.PI);
       ctx.fill();
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = token('--highlight-ink', '#000000');
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

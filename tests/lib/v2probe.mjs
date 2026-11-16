@@ -6,8 +6,12 @@
 //                  de marca: la marca no va dentro de las figuras (tarea 5).
 //                  Fuera: iconos, botones y controles interactivos de la figura
 //                  (asas role=slider, contornos del editor .ce-*)
-//   teal           restos del teal de antes de v2
 //   plexUI         texto de interfaz en IBM Plex (solo las figuras lo conservan)
+// Retirado (Agar, 16 nov 2026): «teal», que buscaba restos del cromado anterior
+// a v2. Desde Agar el teal ES el color de marca, así que la comprobación
+// marcaba como resto justo lo que ahora es correcto. Lo que de verdad delata
+// una vista con el cromado heredado es plexUI: la tipografía de interfaz solo
+// es Fira Sans dentro del bloque v2.
 // Se omiten: lo decorativo (aria-hidden), lo atenuado/deshabilitado (exento en
 // WCAG) y el texto SVG que va sobre celdas/barras (su fondo no es el contenedor).
 export const V2_PROBE = `
@@ -46,8 +50,7 @@ export const V2_PROBE = `
   const accent = toRgba(getComputedStyle(document.body).getPropertyValue('--accent').trim());
   const accent2 = toRgba(getComputedStyle(document.body).getPropertyValue('--accent-2').trim());
   const same = (a, b) => a && b && a[3] > 0 && Math.abs(a[0] - b[0]) < 2 && Math.abs(a[1] - b[1]) < 2 && Math.abs(a[2] - b[2]) < 2;
-  const TEAL = ['#12615f', '#17756f', '#57c9be', '#74d6cb'].map(toRgba);
-  const out = { lowText: [], fadedLow: 0, accentInChart: [], teal: [], plexUI: [], unknownBg: 0, nText: 0 };
+  const out = { lowText: [], fadedLow: 0, accentInChart: [], plexUI: [], unknownBg: 0, nText: 0 };
   const scope = [document.getElementById('app-view'), document.getElementById('sidebar'), document.getElementById('app-footer')];
   const desc = (el) => {
     const cls = typeof el.className === 'string' ? el.className : (el.className && el.className.baseVal) || '';
@@ -59,13 +62,13 @@ export const V2_PROBE = `
       if (!vis(el)) return;
       const s = getComputedStyle(el);
       const inSvg = !!el.closest('svg');
-      // restos del teal
-      ['color', 'backgroundColor', 'borderTopColor', 'fill', 'stroke'].forEach((p) => {
-        const c = toRgba(s[p]); if (c && TEAL.some((t) => same(c, t))) out.teal.push(desc(el) + ' ' + p);
-      });
-      // IBM Plex fuera de figuras
+      // IBM Plex fuera de figuras. Desde Agar (16 nov 2026) los TITULARES van
+      // en IBM Plex Serif a propósito (--font-display), así que lo que delata
+      // el cromado heredado es IBM Plex Sans o Mono en texto de interfaz: la
+      // serif no, y el texto corrido debe seguir siendo Fira Sans.
       const hasText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
-      if (hasText && !inSvg && /IBM Plex/.test(s.fontFamily.split(',')[0])) out.plexUI.push(desc(el));
+      const fam = s.fontFamily.split(',')[0];
+      if (hasText && !inSvg && /IBM Plex (Sans|Mono)/.test(fam)) out.plexUI.push(desc(el) + ' ' + fam);
       // marca dentro de figuras (svg de datos, no iconos)
       if (inSvg && !el.closest('.ql-nav-icon, .ql-btn, button, .ql-brand, .ql-hero-motif, [role="slider"], [class*="ce-"]') && el.tagName !== 'svg') {
         const svg = el.closest('svg');
@@ -99,7 +102,6 @@ export const V2_PROBE = `
   const uniq = (a) => [...new Map(a.map((x) => [x.replace(/ «.*»/, '') + (x.match(/ [\\d.]+( \\[svg\\])?$/) || [''])[0], x])).values()];
   out.lowText = uniq(out.lowText).slice(0, 40);
   out.accentInChart = uniq(out.accentInChart).slice(0, 20);
-  out.teal = uniq(out.teal).slice(0, 20);
   out.plexUI = uniq(out.plexUI).slice(0, 20);
   return out;
 })()

@@ -91,7 +91,9 @@ svg.ql-brand-mark {
   margin-left: auto;
   font-family: var(--font-mono);
   font-size: 9.5px;
-  color: var(--ink-muted);
+  /* a 9,5px y sobre la barra lateral, --ink-muted se queda en 4,43:1 en
+     oscuro: este rótulo usa el tono de texto secundario */
+  color: var(--ink-2);
   letter-spacing: 0.04em;
 }
 
@@ -575,7 +577,9 @@ svg.ql-brand-mark {
 /* ---------- matriz de consenso entre métodos ---------- */
 .ql-consensus th[scope="row"] { text-align: left; font-weight: 600; white-space: nowrap; }
 .ql-consensus .ql-cons-diag { font-weight: 700; background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.ql-cons-disc { color: var(--critical); font-size: 12px; white-space: nowrap; }
+/* --critical es un color de DATOS: como texto se queda en 4,42:1 sobre el
+   crema, igual que pasaba con --good y --warning. Va su tono de texto. */
+.ql-cons-disc { color: var(--critical-ink, var(--critical)); font-size: 12px; white-space: nowrap; }
 .ql-cons-ok { color: var(--good-ink, var(--good)); font-weight: 700; }
 
 /* ---------- calculadora UFC/mL ---------- */

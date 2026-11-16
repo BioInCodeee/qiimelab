@@ -264,6 +264,23 @@
   --panel: var(--surface);
   --ink-1: var(--ink);
   --ink-3: var(--ink-muted);
+  /* Agar (16 nov 2026): mismos síntomas, seis tokens más que se usaban sin
+     existir, así que SIEMPRE ganaba el fallback y esos trozos de interfaz se
+     quedaban congelados en claro y en el azul viejo, sin seguir el tema:
+       --line      js/modules/plateMap.js, antagonism.js
+       --brand     js/modules/plateMap.js (y components.css)
+       --warn-ink  designPlanner.js, betaDiversity.js, qpcr.js, antagonism.js
+       --font-ui   plateMap.js
+       --bad       components.css (insignia de error)
+       --focus     components.css (anillo de foco)
+     Los --fig-* y --danger-color NO entran aquí: ya caen en tokens reales y
+     son puntos de personalización por figura, a propósito. */
+  --line: var(--border);
+  --brand: var(--accent);
+  --warn-ink: var(--warning-ink);
+  --font-ui: var(--font-body);
+  --bad: var(--critical);
+  --focus: var(--ring);
 
   /* Agar: serif en titulares (efecto cuaderno de poyata), Fira Sans en texto e
      interfaz, Fira Code en cifras. Las dos ya están auto-hospedadas en fonts/:

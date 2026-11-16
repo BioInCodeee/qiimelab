@@ -80,3 +80,48 @@ Primero lo que más se ve y menos riesgo tiene:
   sin construir. Es un módulo autónomo, como `labcalc.js`.
 - **Tabla de réplicas** y **barra inferior de módulos**: especificadas en el
   sistema de diseño, sin implementar.
+
+## Pasada módulo a módulo: hecha (16 nov 2026)
+
+`tests/design-v2-modules.mjs` recorre las 21 rutas y sus pestañas (58 vistas)
+en claro y en oscuro. Está en verde: 120/120. Lo que salió de la pasada:
+
+- **Seis tokens que se usaban sin existir** (`--line`, `--brand`, `--warn-ink`,
+  `--font-ui`, `--bad`, `--focus`): como no estaban definidos, siempre ganaba
+  el fallback incrustado, así que esos trozos de `plateMap.js`,
+  `antagonism.js`, `qpcr.js`, `designPlanner.js`, `betaDiversity.js` y
+  `components.css` se quedaban congelados en claro y en el azul viejo. Ahora
+  son alias en el bloque v2.
+- **Colores incrustados en `<canvas>`**, que no sigue CSS: `antagonism.js`
+  pintaba el punto de siembra con el azul v2 y los antagonistas con un ámbar
+  a mano. Van por `token()`, un helper nuevo en `js/lib/dom.js`.
+- **`.ql-cons-disc` usaba `--critical` como color de texto** (4,42:1). Es el
+  mismo fallo que el repo ya había corregido para `--good` y `--warning`: va
+  `--critical-ink`.
+- `.ql-nav-soon` a 9,5px en oscuro se quedaba en 4,43:1 → `--ink-2`.
+- `validacion.js`, `sequenceQC.js` y el `placeholder` de `plateMap.js`:
+  literales sueltos pasados a tokens.
+
+### Lo que se dejó a propósito
+
+- **Los colores de detección de `plateImage.js`** (cian, ámbar, amarillo,
+  verde, gris) marcan estados de colonia **sobre una fotografía**, donde no
+  valen las premisas de contraste de la app ni la paleta de datos. Cambiarlos
+  sin fotos reales de placa delante es arriesgado. Pendiente de revisar con
+  imágenes de verdad.
+- `OTHER_COLOR` (`#d3d3d3`) en `taxaBarplot.js`: es el gris fijo de «otros» en
+  las pilas, decisión de dataviz anterior, distinta de `--cat-8`.
+- Los hex dentro del script de R que exporta `differentialAbundance.js`: son
+  para que la figura de R salga igual que la de la app.
+
+### Comprobaciones de test que cambiaron, y por qué
+
+Dos guardas codificaban la identidad anterior y marcaban como error justo lo
+que Agar decide:
+
+- `tests/lib/v2probe.mjs` buscaba «restos del teal». El teal es ahora el color
+  de marca, así que esa comprobación se retiró. Lo que sigue delatando una
+  vista con el cromado heredado es `plexUI`.
+- `plexUI` marcaba cualquier IBM Plex en interfaz. Los titulares van en IBM
+  Plex **Serif** a propósito, así que ahora solo marca IBM Plex **Sans** o
+  **Mono**, que es lo que de verdad indica texto de interfaz sin migrar.

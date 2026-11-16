@@ -847,7 +847,7 @@ export function render(container) {
     if (cost) {
       const w = document.createElement('p');
       w.className = 'ql-field-help';
-      w.style.cssText = 'margin-top:6px;color:#8a5a00;';
+      w.style.cssText = 'margin-top:6px;color:var(--warning-ink);';
       w.innerHTML = '⚠ ' + cost;
       optRow.appendChild(w);
     }
@@ -927,7 +927,7 @@ export function render(container) {
     if (anyBig) {
       const w = document.createElement('p');
       w.className = 'ql-field-help';
-      w.style.cssText = 'margin-top:10px;color:#8a5a00;';
+      w.style.cssText = 'margin-top:10px;color:var(--warning-ink);';
       w.textContent = t('qc.bigFileWarn', { size: '> 100 MB', n: isFinite(maxReads) ? fmtInt(maxReads) : t('qc.presetAll') });
       fileList.appendChild(w);
     }

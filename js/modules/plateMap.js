@@ -508,7 +508,7 @@ export function render(container, opts = {}) {
     let chosen = '';
     const hex = document.createElement('input');
     hex.type = 'text';
-    hex.placeholder = '#1E40AF';
+    hex.placeholder = '#12615F';
     hex.setAttribute('aria-label', t('mapa.fHex'));
     CATEGORICAL.forEach((color) => {
       const b = document.createElement('button');

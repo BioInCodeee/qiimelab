@@ -33,7 +33,7 @@ export function render(container) {
   sum.className = 'ql-card ql-panel ql-health-banner is-' + (allPass ? 'good' : 'error');
   sum.setAttribute('role', 'status');
   sum.innerHTML = '<div class="ql-health-banner-row">' +
-    '<span class="ql-health-light" aria-hidden="true" style="background:' + (allPass ? '#1a9e57' : '#d33a3a') +
+    '<span class="ql-health-light" aria-hidden="true" style="background:' + (allPass ? 'var(--good)' : 'var(--critical)') +
     ';box-shadow:0 0 0 4px color-mix(in srgb, ' + (allPass ? 'var(--good)' : 'var(--critical)') + ' 18%, transparent);"></span>' +
     '<div class="ql-health-banner-txt"><strong>' +
     t(allPass ? 'validacion.allPass' : 'validacion.someFail', { n: nPass, total: results.length }) +

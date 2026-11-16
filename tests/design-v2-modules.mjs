@@ -6,8 +6,9 @@
 //   · todo el texto visible ≥ 4,5:1 (3:1 si es grande) contra su fondo real
 //   · ninguna marca de figura en el azul de marca (tarea 5: la marca no se
 //     confunde con una serie de datos porque no va dentro de las figuras)
-//   · ni rastro del teal anterior, ni texto de interfaz en IBM Plex (solo
-//     las figuras lo conservan)
+//   · ningún texto de interfaz en IBM Plex (solo las figuras lo conservan).
+//     La comprobación de «restos del teal» se retiró con Agar (16 nov 2026):
+//     el teal pasó a ser el color de marca — ver tests/lib/v2probe.mjs.
 //   · 0 errores de consola
 //
 //   node tests/design-v2-modules.mjs
@@ -69,7 +70,7 @@ for (const theme of ['light', 'dark']) {
         const o = await c.ev(V2_PROBE);
         views++;
         const bad = [...o.lowText.map((x) => 'contraste: ' + x), ...o.accentInChart.map((x) => 'marca en figura: ' + x),
-          ...o.teal.map((x) => 'teal: ' + x), ...o.plexUI.map((x) => 'IBM Plex en interfaz: ' + x)];
+          ...o.plexUI.map((x) => 'IBM Plex en interfaz: ' + x)];
         check(`${T} ${route}${tab ? ' [' + tab + ']' : ''} (${o.nText} textos)`, bad.length === 0, bad.slice(0, 6).join('\n      → '));
       }
     }
