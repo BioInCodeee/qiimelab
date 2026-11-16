@@ -86,7 +86,7 @@ const PANEL_REACH = `(() => {
   const one = (el, name) => { if (!el) { bad.push(name + ' ausente'); return; } el.focus(); const r = el.getBoundingClientRect();
     if (document.activeElement !== el) bad.push(name + ' no recibe foco'); else if (r.left < 0 || r.right > innerWidth + 1) bad.push(name + ' fuera del viewport'); };
   one(document.getElementById('ql-lang-select'), 'selector de idioma');
-  const th = [...document.querySelectorAll('#sidebar .ql-segmented-block button')];
+  const th = [...document.querySelectorAll('#sidebar [data-seg="theme"] button')];
   if (th.length !== 3) bad.push('selector de tema: ' + th.length + ' botones'); th.forEach((b, i) => one(b, 'tema ' + (i + 1)));
   one(document.getElementById('ql-profile-name'), 'nombre local');
   return bad;
@@ -132,12 +132,47 @@ async function drawerAudit(c, route) {
   if (!s1.mainInert) fail('el contenido queda accesible detrás del panel (no inert)');
   (await c.ev(PANEL_REACH)).forEach((m) => fail('panel: ' + m));
 
-  // foco atrapado entre botón y panel: Tab desde el último control vuelve al botón; Shift+Tab desde el botón, al último
-  await c.ev(`document.getElementById('ql-profile-name').focus()`);
+  // Foco atrapado entre botón y panel: Tab desde el último control vuelve al
+  // botón, y Shift+Tab desde el botón va al último control.
+  //
+  // El último control se calcula, no se da por supuesto. Antes se usaba
+  // `ql-profile-name` como si fuera el último, y dejó de serlo en cuanto se
+  // añadió el enlace del pie del panel: el atrapador seguía funcionando bien y
+  // el test fallaba igual. Lo que se comprueba es la propiedad (el foco da la
+  // vuelta), no qué elemento concreto hay al final.
+  // Misma regla que `trapFocus`: solo cuentan los controles que de verdad se
+  // renderizan en este ancho.
+  const FOCUSABLES = `const FOCUSABLES = () => {
+    const sel = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    return [...document.getElementById('sidebar').querySelectorAll(sel)].filter((e) => !e.disabled
+      && e.getAttribute('tabindex') !== '-1'
+      && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden');
+  };`;
+  const LAST_IN_PANEL = `(() => {
+    ${FOCUSABLES}
+    const f = FOCUSABLES();
+    const el = f[f.length - 1];
+    return el ? (el.id || el.tagName + '.' + String(el.className || '').split(' ')[0]) : null;
+  })()`;
+  const lastId = await c.ev(LAST_IN_PANEL);
+  const focusLast = `(() => {
+    ${FOCUSABLES}
+    const f = FOCUSABLES();
+    const el = f[f.length - 1];
+    if (!el) return false;
+    el.focus();
+    return document.activeElement === el;
+  })()`;
+  const isLast = `(() => {
+    ${FOCUSABLES}
+    const f = FOCUSABLES();
+    return document.activeElement === f[f.length - 1];
+  })()`;
+  if (!(await c.ev(focusLast))) fail('el último control del panel no recibe foco' + (lastId ? ' (' + lastId + ')' : ''));
   await press(c, 'Tab', 'Tab', 9);
   if (!(await c.ev(`document.activeElement === document.getElementById('nav-toggle')`))) fail('Tab desde el último control no vuelve al botón (foco no atrapado)');
   await press(c, 'Tab', 'Tab', 9, 8);
-  if (!(await c.ev(`document.activeElement === document.getElementById('ql-profile-name')`))) fail('Shift+Tab desde el botón no llega al último control del panel');
+  if (!(await c.ev(isLast))) fail('Shift+Tab desde el botón no llega al último control del panel' + (lastId ? ' (' + lastId + ')' : ''));
 
   // Escape
   await press(c, 'Escape', 'Escape', 27);

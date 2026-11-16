@@ -28,7 +28,7 @@ const probe = `(() => ({
   attr: document.documentElement.getAttribute('data-theme'),
   stored: localStorage.getItem('smart-175.theme'),
   page: getComputedStyle(document.body).backgroundColor,
-  pressed: [...document.querySelectorAll('.ql-segmented .ql-seg-btn[aria-pressed="true"]')].map((b) => b.textContent),
+  pressed: [...document.querySelectorAll('[data-seg="theme"] .ql-seg-btn[aria-pressed="true"]')].map((b) => b.textContent),
 }))()`;
 // fondo oscuro = luminancia baja
 const isDark = (rgb) => { const [r, g, b] = rgb.match(/\d+/g).map(Number); return (r + g + b) / 3 < 80; };
@@ -56,7 +56,7 @@ for (const osDark of [false, true]) {
     // «Automático» desde el selector: se guarda y sigue al sistema
     await c.ev(`localStorage.clear()`);
     await c.goto(); await sleep(1300);
-    await c.ev(`[...document.querySelectorAll('.ql-segmented .ql-seg-btn')].find((b) => /auto/i.test(b.textContent)).click()`);
+    await c.ev(`[...document.querySelectorAll('[data-seg="theme"] .ql-seg-btn')].find((b) => /auto/i.test(b.textContent)).click()`);
     await sleep(300);
     p = await c.ev(probe);
     check(`${os} · «Automático» se guarda ('auto') y quita data-theme`, p.stored === 'auto' && p.attr === null, JSON.stringify(p));
