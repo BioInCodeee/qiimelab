@@ -2510,13 +2510,14 @@ table.ql-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
 /* ============================================================
    v2 GLOBAL — cromado común (fase global, 28 sep 2026)
    ============================================================ */
-/* el fondo de <html> (rebote del scroll) queda fuera de <body>: se iguala a
-   mano al --page de v2 */
-html:has(> body[data-ds="v2"]) { background: #f8fafc; }
-:root[data-theme="dark"]:has(> body[data-ds="v2"]) { background: #0c1018; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):has(> body[data-ds="v2"]) { background: #0c1018; }
-}
+/* el fondo de <html> (rebote del scroll) queda fuera de <body). Estaba
+   igualado A MANO al --page de v2 (#f8fafc claro, #0c1018 oscuro, una regla
+   por tema), y Agar cambió --page sin tocar estos tres hexes: el rebote del
+   scroll seguía pintando el gris frío y el negro frío de antes. Como --page
+   se declara en :root, que ES <html>, basta con leer el token — y así no
+   vuelve a quedarse atrás en la próxima paleta. Una regla en vez de tres: el
+   propio token ya resuelve claro/oscuro. */
+html:has(> body[data-ds="v2"]) { background: var(--page); }
 
 /* barra lateral: rótulos de sección y «sin datos» en Fira Sans (Fira Code
    queda solo para cifras); el ítem activo, con el azul de marca */
